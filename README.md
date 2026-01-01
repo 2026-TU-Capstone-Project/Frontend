@@ -32,9 +32,26 @@ cd Frontend
 
 # 3. Install Dependencies
 flutter pub get
+```
 
+### 2. Run APP 
+```bash
 # Debug Mode
 flutter run
 
 # Release Mode
 flutter run --release
+```
+
+
+### 3. 프로젝트 폴더 구조 
+```bash
+lib/
+├── common/          # 공통 리소스 (상수, 유틸)
+├── data/            # 데이터 계층 (API, Repository)
+├── models/          # 데이터 모델
+├── providers/       # 상태 관리
+├── screens/         # UI 화면
+├── widgets/         # 재사용 위젯
+└── main.dart        # 앱 진입점
+```
