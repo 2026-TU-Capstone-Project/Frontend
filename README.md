@@ -33,3 +33,8 @@ cd Frontend
 # 3. Install Dependencies
 flutter pub get
 
+# Debug Mode
+flutter run
+
+# Release Mode
+flutter run --release
