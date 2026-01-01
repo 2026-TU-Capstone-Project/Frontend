@@ -35,6 +35,7 @@ flutter pub get
 ```
 
 ### 2. Run APP 
+
 ```bash
 # Debug Mode
 flutter run
@@ -44,7 +45,8 @@ flutter run --release
 ```
 
 
-### 3. 프로젝트 폴더 구조 
+### 3.Project Structure
+폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/01)
 ```bash
 lib/
 ├── common/          # 공통 리소스 (상수, 유틸)
