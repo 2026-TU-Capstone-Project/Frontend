@@ -53,9 +53,9 @@ lib/
 ├── asset                 # 이미지 폰트 
 ├── lib/common            # 공통 리소스 (상수, 유틸)
 ├── lib/commom/component  # 재사용 가능 위젯
-├── lib/view/homeScreen & login_screen & splashScreen 화면 
-├── screens/              # UI 화면
-├── widgets/              # 재사용 위젯
+├── lib/view/homeScreen & login_screen & splashScreen 화면 # 화면 
+├── 
+├──
 └── main.dart             # 앱 진입점
 ```
 
