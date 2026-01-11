@@ -50,13 +50,13 @@ flutter run --release
 폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/01)
 ```bash
 lib/
-├── common/          # 공통 리소스 (상수, 유틸)
-├── data/            # 데이터 계층 (API, Repository)
-├── models/          # 데이터 모델
-├── providers/       # 상태 관리
-├── screens/         # UI 화면
-├── widgets/         # 재사용 위젯
-└── main.dart        # 앱 진입점
+├── asset                 # 공통 리소스 (상수, 유틸)
+├── lib/common            # 공통 리소스 (상수, 유틸)
+├── lib/commom/component  # 재사용 가능 위젯
+├── lib/view/homeScreen & login_screen&splashScreen 화면 
+├── screens/              # UI 화면
+├── widgets/              # 재사용 위젯
+└── main.dart             # 앱 진입점
 ```
 
 
