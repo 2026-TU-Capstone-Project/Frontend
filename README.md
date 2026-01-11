@@ -47,7 +47,7 @@ flutter run --release
 
 
 ### 3.Project Structure
-폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/01)
+폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/11)
 ```bash
 lib/
 ├── asset                 # 이미지 폰트 
