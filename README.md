@@ -47,16 +47,16 @@ flutter run --release
 
 
 ### 3.Project Structure
-폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/01)
+폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/18)
 ```bash
 lib/
-├── common/          # 공통 리소스 (상수, 유틸)
-├── data/            # 데이터 계층 (API, Repository)
-├── models/          # 데이터 모델
-├── providers/       # 상태 관리
-├── screens/         # UI 화면
-├── widgets/         # 재사용 위젯
-└── main.dart        # 앱 진입점
+├── common : 앱 천체에서 자주 사용하는 ui         
+├── home   : home 화면을 구성하는 ui
+├── user   : 로그인 화면읋 구성하는 ui
+├── 
+├── 
+├──
+└── main.dart             # 앱 진입점
 ```
 
 
