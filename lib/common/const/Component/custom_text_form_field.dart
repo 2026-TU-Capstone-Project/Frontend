@@ -1,5 +1,7 @@
-import 'package:capstone_fe/common/const.dart';
+
 import 'package:flutter/material.dart';
+
+import '../colors.dart';
 
 class CustomTextFormField extends StatelessWidget {
   final String? hintText;

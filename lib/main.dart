@@ -1,4 +1,5 @@
-import 'package:capstone_fe/view/splash_screen.dart';
+
+import 'package:capstone_fe/user/view/splash_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {

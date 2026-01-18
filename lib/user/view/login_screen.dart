@@ -1,11 +1,13 @@
 import 'dart:ffi' hide Size;
 
-import 'package:capstone_fe/common/Component/custom_text_form_field.dart';
-import 'package:capstone_fe/common/Component/social_login_button.dart';
-import 'package:capstone_fe/common/const.dart';
-import 'package:capstone_fe/view/Home_screen.dart';
+
+
+import 'package:capstone_fe/common/view/root_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../common/const/Component/custom_text_form_field.dart';
+import '../../common/const/colors.dart';
+import '../component/social_login_button.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -53,7 +55,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) =>HomeScreen())
+                      MaterialPageRoute(builder: (_) =>RootTab())
                     );
                   },
                   child: Text(

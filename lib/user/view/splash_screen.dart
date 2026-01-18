@@ -1,7 +1,10 @@
-import 'package:capstone_fe/common/const.dart';
-import 'package:capstone_fe/view/login_screen.dart';
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+
+import '../../common/const/colors.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
