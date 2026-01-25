@@ -68,7 +68,7 @@ final List<SingleFeedModel> dummyFeeds = [
   SingleFeedModel(
       title: '캠퍼스 개강 룩',
       author: '새내기',
-      likeCount: 1200,
+      likeCount: 140,
       badgeType: 'HOT',
       imageUrl:'asset/img/App7.jpg'
   ),

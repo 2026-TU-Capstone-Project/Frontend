@@ -8,23 +8,18 @@ class SingleFeedcard extends StatelessWidget {
     required this.model,
     super.key,
   });
-
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12.0),
       child: Stack(
         children: [
-
           Positioned.fill(
-
             child: Image.asset(
               model.imageUrl,
               fit: BoxFit.cover,
             ),
           ),
-
-
           Positioned(
             bottom: 0,
             left: 0,
@@ -43,8 +38,6 @@ class SingleFeedcard extends StatelessWidget {
               ),
             ),
           ),
-
-
           Positioned(
             bottom: 12,
             left: 12,
@@ -53,7 +46,6 @@ class SingleFeedcard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-
                 Text(
                   model.title,
                   style: const TextStyle(
@@ -71,10 +63,7 @@ class SingleFeedcard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 const SizedBox(height: 4.0),
-
-
                 Row(
                   children: [
                     const Icon(Icons.favorite, size: 12, color: Colors.white70),

@@ -1,5 +1,6 @@
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/layout/default_layout.dart';
+import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
 import 'package:capstone_fe/home/view/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -76,7 +77,7 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin{
             controller: controller,
             children: [
               HomeScreen(),
-              Center(child: Container(child: Text('피팅룸'))),
+              FittingRoomScreen(),
               Center(child: Container(child: Text('옷장'))),
               Center(child: Container(child: Text('피드'))),
         ]
