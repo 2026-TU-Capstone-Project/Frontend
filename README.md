@@ -47,7 +47,7 @@ flutter run --release
 
 
 ### 3.Project Structure
-폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/18)
+폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/25)
 ```bash
 lib/
 ├── 📂 common/                  # 공통 기능
