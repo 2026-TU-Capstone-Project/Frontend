@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class WeatherCard extends StatelessWidget {
-  final Widget weahterIcon; // 오타: weatherIcon이 맞지만 일단 유지했습니다
+  final Widget weatherIcon;
   final int temp;
   final String region;
   final String weather;
   final String guideText;
 
   const WeatherCard({
-    required this.weahterIcon,
+    required this.weatherIcon,
     required this.temp,
     required this.region,
     required this.weather,
@@ -20,30 +20,16 @@ class WeatherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
-
-        image: DecorationImage(
-
-          image: AssetImage('asset/img/bg.png'),
-
-
-          fit: BoxFit.cover,
-
-
-          colorFilter: ColorFilter.mode(
-            Colors.white.withOpacity(0.2),
-            BlendMode.lighten,
-          ),
-        ),
-
-        borderRadius: BorderRadius.circular(20.0),
+        color: Colors.white, // 깨끗한 흰색 배경
+        borderRadius: BorderRadius.circular(28.0),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
             spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0,3),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -51,53 +37,96 @@ class WeatherCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: weahterIcon,
-              ),
-
-              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${temp}°C',
+                    region,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$temp',
+                        style: const TextStyle(
+                          fontSize: 64,
+                          fontWeight: FontWeight.w300,
+                          color: Colors.black,
+                          height: 1.0,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                        child: Text(
+                          '°',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w300,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    '${region}, ${weather}',
-                    style: TextStyle(
-                      fontSize: 14,
+                    weather,
+                    style: const TextStyle(
+                      fontSize: 16,
                       color: Colors.blueAccent,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
-              )
+              ),
+              // 날씨 아이콘
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: weatherIcon,
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+
           Container(
-            padding: const EdgeInsets.all(12.0),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFF7F8FA),
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
-              '${guideText}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.4,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Icon(Icons.info_outline_rounded, size: 18, color: Colors.grey[500]),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    guideText,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

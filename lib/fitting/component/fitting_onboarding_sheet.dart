@@ -307,7 +307,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                             return Icon(
                               Icons.star_rounded,
                               size: 12,
-                              // 포인트 컬러 적용
+
                               color: index < rating ? FittingRoomTheme.kPrimaryColor : Colors.grey[300],
                             );
                           }),

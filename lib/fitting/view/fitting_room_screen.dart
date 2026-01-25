@@ -17,7 +17,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> with SingleTicker
 
   final TextEditingController _promptController = TextEditingController();
 
-  // 애니메이션 컨트롤러
+
   late AnimationController _animationController;
 
   final List<Map<String, dynamic>> _quickChips = [
@@ -39,14 +39,13 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> with SingleTicker
   void initState() {
     super.initState();
 
-    // ⚡️ 속도 개선: 1.2초 -> 0.6초 (부드럽지만 빠름)
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
       reverseDuration: const Duration(milliseconds: 400),
     );
 
-    // ⚡️ 지연 시간 단축: 0.5초 -> 0.1초 (화면 뜨자마자 거의 바로 올라옴)
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) _showOnboardingSheet();
@@ -57,8 +56,8 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> with SingleTicker
   @override
   void dispose() {
     _promptController.dispose();
-    // 에러 방지: 컨트롤러가 초기화되었는지 확인 후 해제하면 좋지만,
-    // 정상적인 flow라면 initState가 먼저 실행되므로 바로 dispose 해도 됩니다.
+
+
     _animationController.dispose();
     super.dispose();
   }
@@ -70,7 +69,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> with SingleTicker
       backgroundColor: Colors.transparent,
       isDismissible: false,
       enableDrag: false,
-      transitionAnimationController: _animationController, // 컨트롤러 연결
+      transitionAnimationController: _animationController,
       builder: (context) {
         return FittingOnboardingSheet(
           onStart: () {

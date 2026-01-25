@@ -17,7 +17,7 @@ class HomeScreen extends StatelessWidget {
           children: [
 
             WeatherCard(
-                weahterIcon: Image.asset('asset/img/sun.png'),
+                weatherIcon: Image.asset('asset/img/sun.png'),
                 temp: 18,
                 region: '서울',
                 weather: '맑음',

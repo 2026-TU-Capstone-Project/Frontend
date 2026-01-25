@@ -68,7 +68,7 @@ class AddClothingSheet extends StatelessWidget {
       child: InkWell(
         onTap: () {
           Navigator.pop(context);
-          // TODO: 각 기능 연결
+
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
