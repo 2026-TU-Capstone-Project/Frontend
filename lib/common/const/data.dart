@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 class SingleFeedModel {
   final String title;
   final String author;
@@ -14,6 +15,12 @@ class SingleFeedModel {
     required this.imageUrl,
   });
 }
+
+const ip = '35.224.102.23:8080';
+
+// http 프로토콜 포함
+const baseUrl = 'http://$ip';
+
 
 final List<SingleFeedModel> dummyFeeds = [
   SingleFeedModel(

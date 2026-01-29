@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../theme/fitting_room_theme.dart';
 
 class FittingMainStage extends StatelessWidget {
-  final String imagePath;
+  final String? imagePath;
+  final bool isLoading;
 
   const FittingMainStage({
-    required this.imagePath,
+    this.imagePath,
+    this.isLoading = false,
     super.key,
   });
 
@@ -14,6 +16,7 @@ class FittingMainStage extends StatelessWidget {
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
+
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
@@ -32,23 +35,9 @@ class FittingMainStage extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    imagePath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.person_off, size: 40, color: Colors.grey[400]),
-                            const SizedBox(height: 8),
-                            Text('이미지 로드 실패', style: TextStyle(color: Colors.grey[500])),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+
+                  _buildImage(),
+
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -65,11 +54,23 @@ class FittingMainStage extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  if (isLoading)
+                    Container(
+                      color: Colors.black.withOpacity(0.5),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
         ),
+
+
         Positioned(
           bottom: 20,
           right: 20,
@@ -84,6 +85,60 @@ class FittingMainStage extends StatelessWidget {
       ],
     );
   }
+
+
+  Widget _buildImage() {
+
+    if (imagePath == null) {
+      return Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: Icon(Icons.image, color: Colors.grey),
+        ),
+      );
+    }
+
+    if (imagePath!.startsWith('http')) {
+      return Image.network(
+        imagePath!,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+
+          return Center(
+            child: CircularProgressIndicator(
+              color: FittingRoomTheme.kPrimaryColor,
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
+      );
+    }
+
+    else {
+      return Image.asset(
+        imagePath!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
+      );
+    }
+  }
+
+
+  Widget _buildErrorWidget() {
+    return Container(
+      color: Colors.grey[200],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person_off, size: 40, color: Colors.grey[400]),
+          const SizedBox(height: 8),
+          Text('이미지 로드 실패', style: TextStyle(color: Colors.grey[500])),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildGlassIconButton(IconData icon) {
     return Container(
