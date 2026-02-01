@@ -47,26 +47,40 @@ flutter run --release
 
 
 ### 3.Project Structure
-폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/25)
+폴더구조 입니다 지속적으로 업데이트 합니다 : last update (01/29)
 ```bash
 lib/
 ├── 📂 common/                  # 공통 기능
 │   ├── 📂 const/
-│   │   ├── colors.dart         # 색상 상수
-│   │   └── data.dart           # 데이터 상수
+│   │   ├── 📂 Component/       # [변경] 폴더 구조 변경됨
+│   │   │   ├── colors.dart
+│   │   │   └── data.dart
 │   ├── 📂 layout/
-│   │   └── default_layout.dart # 기본 레이아웃
+│   │   └── default_layout.dart
 │   └── 📂 view/
-│       └── root_tab.dart       # 하단 탭
+│       └── root_tab.dart
 │
 ├── 📂 fitting/                 # [Feature] 가상 피팅룸
-│   ├── 📂 component/           # 피팅룸 전용 컴포넌트
+│   ├── 📂 clothes/             # [추가] 옷 관련 기능
+│   │   ├── 📂 model/
+│   │   │   ├── clothes_model.dart
+│   │   │   └── clothes_model.g.dart
+│   │   └── 📂 repository/
+│   │       ├── clothes_repository.dart
+│   │       └── clothes_repository.g.dart
+│   ├── 📂 component/           # 피팅룸 UI 컴포넌트
 │   │   ├── add_clothing_sheet.dart
 │   │   ├── ai_stylist_input.dart
 │   │   ├── fitting_main_stage.dart
 │   │   ├── fitting_onboarding_sheet.dart
 │   │   ├── fitting_room_header.dart
 │   │   └── wardrobe_section.dart
+│   ├── 📂 model/               # [추가] 피팅 모델
+│   │   ├── fitting_model.dart
+│   │   └── fitting_model.g.dart
+│   ├── 📂 repository/          # [추가] 피팅 API 레포지토리
+│   │   ├── fitting_repository.dart
+│   │   └── fitting_repository.g.dart
 │   ├── 📂 theme/
 │   │   └── fitting_room_theme.dart
 │   └── 📂 view/
@@ -81,7 +95,7 @@ lib/
 │       └── home_screen.dart
 │
 ├── 📂 user/                    # [Feature] 회원 관리
-│   ├── 📂 component/
+│   ├── 📂 component/           # (이미지상 잘려있으나 기존 유지)
 │   │   └── social_login_button.dart
 │   └── 📂 view/
 │       ├── login_screen.dart
