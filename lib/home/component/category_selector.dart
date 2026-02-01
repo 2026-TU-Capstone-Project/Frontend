@@ -14,7 +14,7 @@ class _CategorySelectorState extends State<CategorySelector> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 45, // 높이를 조금 줄여 컴팩트하게
+      height: 45,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -28,13 +28,12 @@ class _CategorySelectorState extends State<CategorySelector> {
                 selectedIndex = index;
               });
             },
-            // AnimatedContainer: 색상과 크기가 변경될 때 자동으로 애니메이션 처리
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOut,
               alignment: Alignment.center,
               padding: EdgeInsets.symmetric(
-                  horizontal: isSelected ? 24.0 : 16.0, // 선택되면 조금 더 넓어짐
+                  horizontal: isSelected ? 24.0 : 16.0,
                   vertical: 10.0
               ),
               decoration: BoxDecoration(
@@ -42,7 +41,7 @@ class _CategorySelectorState extends State<CategorySelector> {
                 borderRadius: BorderRadius.circular(30.0),
                 border: isSelected
                     ? Border.all(color: Colors.transparent)
-                    : Border.all(color: Colors.grey[300]!), // 선택 안된 것은 테두리
+                    : Border.all(color: Colors.grey[300]!),
                 boxShadow: isSelected
                     ? [
                   BoxShadow(

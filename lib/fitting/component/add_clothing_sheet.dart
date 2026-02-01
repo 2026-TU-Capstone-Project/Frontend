@@ -61,7 +61,6 @@ class AddClothingSheet extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildOption(BuildContext context, IconData icon, String title, String subtitle, {bool isLast = false}) {
     return Material(
       color: Colors.transparent,

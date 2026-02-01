@@ -22,7 +22,7 @@ class WeatherCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
-        color: Colors.white, // 깨끗한 흰색 배경
+        color: Colors.white,
         borderRadius: BorderRadius.circular(28.0),
         boxShadow: [
           BoxShadow(

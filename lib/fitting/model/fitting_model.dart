@@ -1,15 +1,12 @@
-// lib/fitting/model/fitting_model.dart
+
 import 'package:json_annotation/json_annotation.dart';
 
 part 'fitting_model.g.dart';
 
-// ==========================================
-// 1. [POST] 요청 응답 (껍데기 + 알맹이)
-// ==========================================
 @JsonSerializable()
 class FittingRequestResponse {
   final bool success;
-  final FittingRequestData data; // 껍데기 안의 data
+  final FittingRequestData data;
 
   FittingRequestResponse({required this.success, required this.data});
 
@@ -19,7 +16,7 @@ class FittingRequestResponse {
 
 @JsonSerializable()
 class FittingRequestData {
-  final int taskId; // ⭐️ String -> int 변경
+  final int taskId;
 
   FittingRequestData({required this.taskId});
 
@@ -27,13 +24,11 @@ class FittingRequestData {
       _$FittingRequestDataFromJson(json);
 }
 
-// ==========================================
-// 2. [GET] 상태 조회 응답 (껍데기 + 알맹이)
-// ==========================================
+
 @JsonSerializable()
 class FittingStatusResponse {
   final bool success;
-  final FittingStatusData data; // 껍데기 안의 data
+  final FittingStatusData data;
 
   FittingStatusResponse({required this.success, required this.data});
 
@@ -44,8 +39,8 @@ class FittingStatusResponse {
 @JsonSerializable()
 class FittingStatusData {
   final int taskId;
-  final String status; // 'WAITING', 'COMPLETED' 등
-  final String? resultImgUrl; // ⭐️ resultFilename -> resultImgUrl 변경
+  final String status;
+  final String? resultImgUrl;
 
   FittingStatusData({
     required this.taskId,

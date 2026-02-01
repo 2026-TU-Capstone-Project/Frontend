@@ -1,7 +1,7 @@
-import 'dart:io'; // File 사용을 위해 필수
-import 'package:dio/dio.dart'; // Dio 사용을 위해 필수
-import 'package:retrofit/retrofit.dart'; // ⭐️ @RestApi, @POST 등을 위해 필수!
-import 'package:capstone_fe/fitting/model/fitting_model.dart'; // 응답 모델
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:retrofit/retrofit.dart';
+import 'package:capstone_fe/fitting/model/fitting_model.dart';
 
 part 'fitting_repository.g.dart';
 
