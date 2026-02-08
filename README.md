@@ -52,69 +52,86 @@ flutter run --release
 lib/
 ├── 📂 common/                  # [공통] 앱 전반 재사용 코드
 │   ├── 📂 const/
+│   │   ├── 📂 Component/       # 공통 UI 컴포넌트 상수/위젯
+│   │   │   └── custom_text_form_field.dart # 커스텀 텍스트 입력 필드
 │   │   ├── colors.dart         # 앱 메인 색상 정의
 │   │   └── data.dart           # 상수 데이터 (API URL, 토큰 등)
 │   ├── 📂 layout/
 │   │   └── default_layout.dart # 모든 화면 기본 레이아웃 (Scaffold)
+│   ├── 📂 model/               #  공통 데이터 모델
+│   │   ├── api_response.dart   #  API 공통 응답 래퍼 (status, message, data)
+│   │   └── api_response.g.dart
 │   └── 📂 view/
 │       └── root_tab.dart       # 하단 탭바(BottomNavigation) 관리
 │
 ├── 📂 feed/                    # [기능] 패션 피드
 │   ├── 📂 component/
-│   │   └── feed_card.dart      # 피드 리스트 아이템 UI
+│   │   └── feed_card.dart
 │   ├── 📂 model/
-│   │   └── feed_model.dart     # 피드 데이터 모델
+│   │   └── feed_model.dart
 │   └── 📂 view/
-│       ├── fashion_feed_screen.dart  # 피드 메인 리스트 화면
-│       └── feed_detail_screen.dart   # 피드 상세 화면
+│       ├── fashion_feed_screen.dart
+│       └── feed_detail_screen.dart
 │
 ├── 📂 fitting/                 # [기능] 가상 피팅룸
 │   ├── 📂 clothes/             # (하위기능) 옷 데이터 관리
 │   │   ├── 📂 model/
-│   │   │   ├── clothes_model.dart    # 옷 정보 모델
-│   │   │   └── clothes_model.g.dart  # 모델 생성 코드 (JsonSerializable)
+│   │   │   ├── clothes_model.dart
+│   │   │   ├── clothes_model.g.dart
+│   │   │   ├── recommend_model.dart    #  AI 추천 결과 모델
+│   │   │   └── recommend_model.g.dart
 │   │   └── 📂 repository/
-│   │       ├── clothes_repository.dart   # 옷 데이터 API 통신
-│   │       └── clothes_repository.g.dart # API 생성 코드 (Retrofit)
+│   │       ├── clothes_client.dart     # Retrofit API 정의 인터페이스
+│   │       ├── clothes_client.g.dart
+│   │       ├── clothes_repository.dart # 옷 데이터 비즈니스 로직
+│   │       └── clothes_repository.g.dart
 │   ├── 📂 component/
-│   │   ├── add_clothing_sheet.dart       # 옷 추가 바텀시트
-│   │   ├── ai_stylist_input.dart         # AI 스타일링 입력창
-│   │   ├── fitting_main_stage.dart       # 아바타 합성 뷰 영역
-│   │   ├── fitting_onboarding_sheet.dart # 피팅룸 사용 가이드
-│   │   ├── fitting_room_header.dart      # 피팅룸 상단 헤더
-│   │   └── wardrobe_section.dart         # 하단 옷 선택 리스트
+│   │   ├── add_clothing_sheet.dart
+│   │   ├── ai_stylist_input.dart
+│   │   ├── fitting_main_stage.dart
+│   │   ├── fitting_onboarding_sheet.dart
+│   │   ├── fitting_room_header.dart
+│   │   └── wardrobe_section.dart
 │   ├── 📂 model/
-│   │   ├── fitting_model.dart      # 피팅 로직 모델
+│   │   ├── fitting_model.dart
 │   │   └── fitting_model.g.dart
 │   ├── 📂 repository/
-│   │   ├── fitting_repository.dart   # 피팅 기능 API 통신
+│   │   ├── fitting_repository.dart
 │   │   └── fitting_repository.g.dart
 │   ├── 📂 theme/
-│   │   └── fitting_room_theme.dart   # 피팅룸 전용 테마/스타일
+│   │   └── fitting_room_theme.dart
 │   └── 📂 view/
-│       └── fitting_room_screen.dart  # 피팅룸 메인 화면
+│       └── fitting_room_screen.dart
 │
 ├── 📂 home/                    # [기능] 홈 화면
 │   ├── 📂 component/
-│   │   ├── category_selector.dart    # 상단 카테고리 선택 버튼
-│   │   ├── single_feed_card.dart     # 홈 전용 피드 카드
-│   │   └── weather_card.dart         # 날씨 정보 위젯
+│   │   ├── category_selector.dart
+│   │   ├── single_feed_card.dart
+│   │   └── weather_card.dart
 │   └── 📂 view/
-│       └── home_screen.dart          # 홈 메인 화면
+│       └── home_screen.dart
 │
 ├── 📂 personal_closet/         # [기능] 나만의 옷장
 │   ├── 📂 component/
-│   │   ├── category_filter_bar.dart  # 옷 종류 필터 (상의/하의 등)
-│   │   └── wardrobe_card.dart        # 옷 아이템 카드 UI
+│   │   ├── category_filter_bar.dart
+│   │   └── wardrobe_card.dart
 │   └── 📂 view/
-│       └── wardrobe_screen.dart      # 옷장 메인 화면
+│       └── wardrobe_screen.dart
 │
 ├── 📂 user/                    # [기능] 회원 관리
 │   ├── 📂 component/
-│   │   └── social_login_button.dart  # 소셜 로그인 버튼
+│   │   └── social_login_button.dart
+│   ├── 📂 model/
+│   │   ├── auth_model.dart     #  로그인/회원가입 요청/응답 모델
+│   │   └── auth_model.g.dart
+│   ├── 📂 repository/          # 인증 관련 통신 계층
+│   │   ├── auth_client.dart    #  Auth API 정의 (Retrofit)
+│   │   ├── auth_client.g.dart
+│   │   └── auth_repository.dart #  인증 저장소 (토큰 관리 등)
 │   └── 📂 view/
-│       ├── login_screen.dart   # 로그인 화면
-│       └── splash_screen.dart  # 앱 시작 로딩 화면
+│       ├── login_screen.dart
+│       ├── signup_screen.dart  #  회원가입 화면
+│       └── splash_screen.dart
 │
 └── 📄 main.dart                # 앱 진입점
 ```
