@@ -1,4 +1,3 @@
-// lib/clothes/model/clothes_model.dart
 import 'package:json_annotation/json_annotation.dart';
 
 part 'clothes_model.g.dart';
@@ -9,15 +8,19 @@ class ClothesModel {
   final String? category;
   final String? name;
   final String? imgUrl;
+
+
   final String? brand;
   final int? price;
-
-
   final String? color;
   final String? material;
   final String? season;
   final String? fit;
   final String? detail;
+  final String? style;
+  final String? texture;
+  final String? buyUrl;
+  final String? createdAt;
 
   ClothesModel({
     required this.id,
@@ -31,42 +34,12 @@ class ClothesModel {
     this.season,
     this.fit,
     this.detail,
+    this.style,
+    this.texture,
+    this.buyUrl,
+    this.createdAt,
   });
 
   factory ClothesModel.fromJson(Map<String, dynamic> json) =>
       _$ClothesModelFromJson(json);
-}
-
-
-@JsonSerializable()
-class ClothesListResponse {
-  final bool success;
-  final String? message;
-  final List<ClothesModel> data;
-
-  ClothesListResponse({
-    required this.success,
-    this.message,
-    required this.data,
-  });
-
-  factory ClothesListResponse.fromJson(Map<String, dynamic> json) =>
-      _$ClothesListResponseFromJson(json);
-}
-
-
-@JsonSerializable()
-class ClothesDetailResponse {
-  final bool success;
-  final String? message;
-  final ClothesModel data;
-
-  ClothesDetailResponse({
-    required this.success,
-    this.message,
-    required this.data,
-  });
-
-  factory ClothesDetailResponse.fromJson(Map<String, dynamic> json) =>
-      _$ClothesDetailResponseFromJson(json);
 }

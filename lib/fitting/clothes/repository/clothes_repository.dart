@@ -1,20 +1,51 @@
-// lib/clothes/repository/clothes_repository.dart
-import 'package:dio/dio.dart';
+import 'dart:io'; // 👈 파일 업로드 필수
+import 'package:dio/dio.dart' hide Headers;
 import 'package:retrofit/retrofit.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
+// 👇 1단계에서 만든 파일 import (경로 확인!)
+import 'package:capstone_fe/common/model/api_response.dart';
 
 part 'clothes_repository.g.dart';
 
 @RestApi()
 abstract class ClothesRepository {
-  factory ClothesRepository(Dio dio, {String baseUrl}) = _ClothesRepository;
+  factory ClothesRepository(Dio dio, {String? baseUrl}) = _ClothesRepository;
 
 
   @GET('/api/clothes')
-  Future<ClothesListResponse> getClothesList();
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<List<ClothesModel>>> getClothesList();
+
 
   @GET('/api/clothes/{id}')
-  Future<ClothesDetailResponse> getClothDetail({
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<ClothesModel>> getClothDetail({
     @Path("id") required int id,
+  });
+
+
+  @DELETE('/api/clothes/{id}')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<String>> deleteCloth({
+    @Path("id") required int id,
+  });
+
+
+  @POST('/api/clothes')
+  @MultiPart()
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<String>> uploadSingleCloth({
+    @Query("category") required String category,
+    @Part(name: "file") required File file,
+  });
+
+
+  @POST('/api/clothes/analysis')
+  @MultiPart()
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<String>> uploadAnalysisCloth({
+    @Part(name: "top") File? top,
+    @Part(name: "bottom") File? bottom,
+    @Part(name: "shoes") File? shoes,
   });
 }

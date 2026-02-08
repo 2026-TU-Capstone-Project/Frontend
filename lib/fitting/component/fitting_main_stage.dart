@@ -20,7 +20,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
   late AnimationController _scanController;
   late Animation<double> _scanAnimation;
 
-  // 로딩 멘트를 주기적으로 변경하기 위한 타이머와 변수
+
   Timer? _textTimer;
   String _loadingText = "체형 분석 중...";
   int _textIndex = 0;
@@ -45,7 +45,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
       CurvedAnimation(parent: _scanController, curve: Curves.easeInOut),
     );
 
-    // isLoading 상태에 따라 애니메이션 시작/정지 결정
+
     if (widget.isLoading) {
       _startLoadingEffects();
     }
@@ -54,7 +54,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
   @override
   void didUpdateWidget(covariant FittingMainStage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 상태가 변할 때 애니메이션 제어
+
     if (widget.isLoading != oldWidget.isLoading) {
       if (widget.isLoading) {
         _startLoadingEffects();
@@ -65,10 +65,10 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
   }
 
   void _startLoadingEffects() {
-    _scanController.repeat(reverse: true); // 위아래 왕복
+    _scanController.repeat(reverse: true);
     _textIndex = 0;
     _loadingText = _loadingMessages[0];
-    // 1.5초마다 멘트 변경
+
     _textTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
       setState(() {
         _textIndex = (_textIndex + 1) % _loadingMessages.length;
@@ -96,7 +96,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
-        // 메인 컨테이너
+
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
@@ -115,10 +115,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 1. 기본 이미지
                   _buildImage(),
-
-                  // 2. 그라데이션 오버레이 (하단 그림자)
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -136,7 +133,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
                     ),
                   ),
 
-                  // 3. [핵심] 로딩 시 스캐닝 효과 오버레이
+
                   if (widget.isLoading) _buildScanningEffect(),
                 ],
               ),
@@ -144,7 +141,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
           ),
         ),
 
-        // 4. 하단 버튼들 (로딩 중엔 숨기거나 비활성화 가능, 여기선 유지)
+
         if (!widget.isLoading)
           Positioned(
             bottom: 20,
@@ -161,24 +158,20 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
     );
   }
 
-  // =========================================
-  // ✨ 스캐닝 효과 위젯 (Scanning Effect)
-  // =========================================
   Widget _buildScanningEffect() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // 3-1. 전체를 살짝 어둡게 (집중 효과)
+
         Container(color: Colors.black.withOpacity(0.3)),
 
-        // 3-2. 움직이는 스캔 라인 (AnimatedBuilder 사용)
         AnimatedBuilder(
           animation: _scanAnimation,
           builder: (context, child) {
             return FractionallySizedBox(
-              heightFactor: 0.15, // 스캔 빔의 높이 비율
+              heightFactor: 0.15,
               widthFactor: 1.0,
-              alignment: Alignment(0.0, _scanAnimation.value * 2 - 1), // -1(top) ~ 1(bottom)
+              alignment: Alignment(0.0, _scanAnimation.value * 2 - 1),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -186,7 +179,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
                     end: Alignment.bottomCenter,
                     colors: [
                       FittingRoomTheme.kPrimaryColor.withOpacity(0.0),
-                      FittingRoomTheme.kPrimaryColor.withOpacity(0.5), // 빛나는 부분
+                      FittingRoomTheme.kPrimaryColor.withOpacity(0.5),
                       FittingRoomTheme.kPrimaryColor.withOpacity(0.0),
                     ],
                   ),
@@ -196,12 +189,11 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
           },
         ),
 
-        // 3-3. 진행 상황 텍스트 (중앙)
+
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 뺑글이도 작게 추가 (보조적인 역할)
               SizedBox(
                 width: 30,
                 height: 30,
@@ -211,12 +203,12 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
                 ),
               ),
               const SizedBox(height: 16),
-              // 바뀌는 텍스트
+
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: Text(
                   _loadingText,
-                  key: ValueKey<String>(_loadingText), // Key가 바뀌면 애니메이션 발동
+                  key: ValueKey<String>(_loadingText),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -253,7 +245,7 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
       return Image.network(
         widget.imagePath!,
         fit: BoxFit.cover,
-        // 이미지 자체 로딩 시에는 스캐닝 효과가 아니라 기본 인디케이터 사용
+
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Center(

@@ -69,7 +69,7 @@ lib/
 │   │       ├── clothes_repository.dart
 │   │       └── clothes_repository.g.dart
 │   ├── 📂 component/           # 피팅룸 UI 컴포넌트
-│   │   ├── add_clothing_sheet.dart
+│   │   ├── dffadd_clothing_sheet.dart
 │   │   ├── ai_stylist_input.dart
 │   │   ├── fitting_main_stage.dart
 │   │   ├── fitting_onboarding_sheet.dart

@@ -18,6 +18,10 @@ ClothesModel _$ClothesModelFromJson(Map<String, dynamic> json) => ClothesModel(
   season: json['season'] as String?,
   fit: json['fit'] as String?,
   detail: json['detail'] as String?,
+  style: json['style'] as String?,
+  texture: json['texture'] as String?,
+  buyUrl: json['buyUrl'] as String?,
+  createdAt: json['createdAt'] as String?,
 );
 
 Map<String, dynamic> _$ClothesModelToJson(ClothesModel instance) =>
@@ -33,37 +37,8 @@ Map<String, dynamic> _$ClothesModelToJson(ClothesModel instance) =>
       'season': instance.season,
       'fit': instance.fit,
       'detail': instance.detail,
+      'style': instance.style,
+      'texture': instance.texture,
+      'buyUrl': instance.buyUrl,
+      'createdAt': instance.createdAt,
     };
-
-ClothesListResponse _$ClothesListResponseFromJson(Map<String, dynamic> json) =>
-    ClothesListResponse(
-      success: json['success'] as bool,
-      message: json['message'] as String?,
-      data: (json['data'] as List<dynamic>)
-          .map((e) => ClothesModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-
-Map<String, dynamic> _$ClothesListResponseToJson(
-  ClothesListResponse instance,
-) => <String, dynamic>{
-  'success': instance.success,
-  'message': instance.message,
-  'data': instance.data,
-};
-
-ClothesDetailResponse _$ClothesDetailResponseFromJson(
-  Map<String, dynamic> json,
-) => ClothesDetailResponse(
-  success: json['success'] as bool,
-  message: json['message'] as String?,
-  data: ClothesModel.fromJson(json['data'] as Map<String, dynamic>),
-);
-
-Map<String, dynamic> _$ClothesDetailResponseToJson(
-  ClothesDetailResponse instance,
-) => <String, dynamic>{
-  'success': instance.success,
-  'message': instance.message,
-  'data': instance.data,
-};

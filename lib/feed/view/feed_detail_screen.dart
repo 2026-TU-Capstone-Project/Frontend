@@ -25,9 +25,9 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
 
   // 더미 댓글 데이터
   final List<Comment> _comments = [
-    Comment(author: "패션피플", content: "와 코디 정보 좀 알 수 있을까요? 😍", time: "5분 전"),
+    Comment(author: "패션피플", content: "와 코디 정보 좀 알 수 있을까요? ", time: "5분 전"),
     Comment(author: "지나가던 행인", content: "성수동 어디인가요? 분위기 좋네요!", time: "12분 전"),
-    Comment(author: "데일리룩장인", content: "역시 믿고 보는 코디 센스 👍", time: "1시간 전"),
+    Comment(author: "데일리룩장인", content: "역시 믿고 보는 코디 센스 ", time: "1시간 전"),
   ];
 
   void _addComment() {
@@ -42,7 +42,6 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
       _commentController.clear();
     });
 
-    // 댓글 등록 후 스크롤을 맨 아래로 내리기
     Future.delayed(const Duration(milliseconds: 100), () {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -51,9 +50,11 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
       );
     });
 
-    // 키보드 내리기
+
     FocusScope.of(context).unfocus();
   }
+
+
 
   @override
   void dispose() {
@@ -66,11 +67,10 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // 키보드가 올라올 때 화면이 찌그러지지 않고 자연스럽게 올라가도록 설정
       resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // 1. 상단 콘텐츠 (스크롤 영역)
+
           Expanded(
             child: Stack(
               children: [
@@ -79,7 +79,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- 기존 이미지 영역 ---
+
                       Hero(
                         tag: widget.feed.title,
                         child: ClipRRect(
@@ -92,13 +92,13 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                         ),
                       ),
 
-                      // --- 본문 내용 ---
+
                       Padding(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 작성자 정보
+
                             Row(
                               children: [
                                 const CircleAvatar(
@@ -130,7 +130,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
 
                             const SizedBox(height: 24),
 
-                            // 제목 및 내용
+
                             Text(
                               widget.feed.title,
                               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -143,7 +143,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
 
                             const SizedBox(height: 30),
 
-                            // 좋아요 버튼
+
                             Center(
                               child: Column(
                                 children: [
@@ -171,18 +171,18 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                             const SizedBox(height: 30),
                             const Divider(thickness: 1, height: 40),
 
-                            // --- 댓글 헤더 ---
+
                             Text(
                               "댓글 ${_comments.length}개",
                               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 16),
 
-                            // --- 댓글 리스트 ---
+
                             ListView.builder(
                               padding: EdgeInsets.zero,
-                              shrinkWrap: true, // ScrollView 안에 ListView 넣을 때 필수
-                              physics: const NeverScrollableScrollPhysics(), // 스크롤은 부모에게 위임
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
                               itemCount: _comments.length,
                               itemBuilder: (context, index) {
                                 final comment = _comments[index];
@@ -222,7 +222,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                                 );
                               },
                             ),
-                            const SizedBox(height: 20), // 하단 여백 확보
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -230,7 +230,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                   ),
                 ),
 
-                // 뒤로가기 버튼 (상단 고정)
+
                 Positioned(
                   top: 0,
                   left: 0,
@@ -262,7 +262,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
             ),
           ),
 
-          // 2. 하단 댓글 입력창 (키보드 위로 올라옴)
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -281,7 +281,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                 children: [
                   const CircleAvatar(
                     radius: 16,
-                    backgroundColor: Colors.black, // 내 프로필 이미지 가정
+                    backgroundColor: Colors.black,
                     child: Icon(Icons.person, size: 20, color: Colors.white),
                   ),
                   const SizedBox(width: 12),

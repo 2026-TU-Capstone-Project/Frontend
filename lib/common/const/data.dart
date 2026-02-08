@@ -16,7 +16,7 @@ class SingleFeedModel {
   });
 }
 
-const ip = '35.224.102.23:8080';
+const ip = 'lookpick.kro.kr';
 
 // http 프로토콜 포함
 const baseUrl = 'http://$ip';
