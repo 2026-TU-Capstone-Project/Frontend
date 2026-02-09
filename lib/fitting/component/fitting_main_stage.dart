@@ -35,7 +35,6 @@ class _FittingMainStageState extends State<FittingMainStage> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    // 1. 스캐닝 애니메이션 컨트롤러 (2초마다 위아래 왕복)
     _scanController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),

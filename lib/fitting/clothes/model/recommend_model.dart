@@ -1,41 +1,26 @@
+// lib/fitting/recommend/model/recommend_model.dart
 import 'package:json_annotation/json_annotation.dart';
 
 part 'recommend_model.g.dart';
 
 @JsonSerializable()
-class RecommendResponse {
-  final bool success;
-  final String? message; // String? 으로 변경
-  final RecommendData? data;
+class RecommendResult {
+  final List<RecommendationModel>? recommendations; // 이름을 Model로 통일
 
-  RecommendResponse({
-    required this.success,
-    this.message,
-    this.data,
-  });
+  RecommendResult({this.recommendations});
 
-  factory RecommendResponse.fromJson(Map<String, dynamic> json) => _$RecommendResponseFromJson(json);
+  factory RecommendResult.fromJson(Map<String, dynamic> json) =>
+      _$RecommendResultFromJson(json);
 }
 
 @JsonSerializable()
-class RecommendData {
-  final List<RecommendationModel>? recommendations; // List? 로 변경
-
-  RecommendData({
-    this.recommendations,
-  });
-
-  factory RecommendData.fromJson(Map<String, dynamic> json) => _$RecommendDataFromJson(json);
-}
-
-@JsonSerializable()
-class RecommendationModel {
-  final int? taskId;         // int? 로 변경
-  final double? score;       // double? 로 변경
-  final String? resultImgUrl; // String? 로 변경
-  final String? styleAnalysis;// String? 로 변경
-  final int? topId;          // int? 로 변경
-  final int? bottomId;       // int? 로 변경
+class RecommendationModel { // Item -> RecommendationModel로 변경
+  final int? taskId;
+  final double? score;
+  final String? resultImgUrl;
+  final String? styleAnalysis;
+  final int? topId;
+  final int? bottomId;
 
   RecommendationModel({
     this.taskId,
@@ -46,5 +31,6 @@ class RecommendationModel {
     this.bottomId,
   });
 
-  factory RecommendationModel.fromJson(Map<String, dynamic> json) => _$RecommendationModelFromJson(json);
+  factory RecommendationModel.fromJson(Map<String, dynamic> json) =>
+      _$RecommendationModelFromJson(json);
 }

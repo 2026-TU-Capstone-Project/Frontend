@@ -34,17 +34,15 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      // 1. 서버로부터 응답 받기 (JSON 형태의 문자열)
+
       final responseString = await _client.login(LoginBody(
         email: email,
         password: password,
       ));
 
-      // 2. 👇 [수정됨] JSON 문자열을 분해해서 'accessToken'만 꺼내기
-      // 서버가 준 데이터 예시: {"accessToken": "eyJhb...", "message": "성공"}
       final Map<String, dynamic> json = jsonDecode(responseString);
 
-      // 여기서 진짜 토큰 알맹이만 가져옵니다.
+
       final accessToken = json['accessToken'];
 
       return accessToken;

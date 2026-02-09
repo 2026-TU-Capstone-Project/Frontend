@@ -44,9 +44,14 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       dio.options.headers['Authorization'] = 'Bearer $accessToken';
     }
 
-    // 👇 [수정됨] 로그 인터셉터 제거 (이제 콘솔창이 깨끗해집니다)
-    // dio.interceptors.add(LogInterceptor(responseBody: true));
+    // 👇 로그 확인용 (필요 없으면 주석 처리)
+    dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+    ));
 
+    // 👇 [주의] api/v1으로 경로가 바뀌었으므로 baseUrl도 확인 필요하지만,
+    // Repository 내부에서 경로를 바꿨다면 여기는 그대로 둬도 됩니다.
     _clothesRepository = ClothesRepository(dio, baseUrl: 'http://$ip');
     _loadWardrobe();
   }
@@ -60,13 +65,37 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           _allClothes = resp.data ?? [];
           _filterClothes();
         });
+        print("✅ 옷장 로딩 완료: ${_allClothes.length}개");
       }
     } catch (e) {
-      debugPrint("옷장 로딩 실패: $e");
+      debugPrint("🚨 옷장 로딩 실패: $e");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  // 👇 [복구] 삭제 기능 구현
+  Future<void> _deleteCloth(int id) async {
+    try {
+      Navigator.pop(context); // 바텀 시트 닫기
+
+      final resp = await _clothesRepository.deleteCloth(id: id);
+      if (resp.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("옷이 삭제되었습니다.")),
+        );
+        _loadWardrobe(); // 목록 갱신
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("삭제 실패: ${resp.message}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("에러 발생: $e")),
+      );
     }
   }
 
@@ -148,7 +177,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("옷 등록 완료! 목록을 갱신합니다.")),
         );
-        _loadWardrobe();
+        Future.delayed(const Duration(seconds: 1), () => _loadWardrobe());
       } else {
         throw Exception(resp.message);
       }
@@ -385,7 +414,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 이미지 영역
+              // 이미지 영역 (flex: 3)
               Expanded(
                 flex: 3,
                 child: Padding(
@@ -401,49 +430,54 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
 
-              // 정보 영역
+              // 👇 [수정됨] 정보 영역이 길어지면 스크롤 되도록 변경 (에러 해결!)
               Expanded(
                 flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(8),
+                child: SingleChildScrollView( // 여기가 핵심
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                cloth.category ?? "ETC",
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
                             ),
-                            child: Text(
-                              cloth.category ?? "ETC",
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const Spacer(),
+                            const Spacer(),
 
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () {
-                              // TODO: 삭제 구현
-                            },
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        cloth.name ?? "이름 없는 옷",
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
+                            // 👇 [복구] 삭제 기능 연결 완료
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () {
+                                _deleteCloth(cloth.id);
+                              },
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          cloth.name ?? "이름 없는 옷",
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
 
-                      Text(
-                        "브랜드: ${cloth.brand ?? '정보 없음'}\n소재: ${cloth.material ?? '정보 없음'}\n계절: ${cloth.season ?? '정보 없음'}",
-                        style: TextStyle(color: Colors.grey[600], height: 1.5),
-                      ),
-                    ],
+                        Text(
+                          "브랜드: ${cloth.brand ?? '정보 없음'}\n소재: ${cloth.material ?? '정보 없음'}\n계절: ${cloth.season ?? '정보 없음'}",
+                          style: TextStyle(color: Colors.grey[600], height: 1.5),
+                        ),
+                        // 하단 여유 공간
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),

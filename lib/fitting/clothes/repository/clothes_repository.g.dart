@@ -30,7 +30,7 @@ class _ClothesRepository implements ClothesRepository {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/clothes',
+            '/api/v1/clothes',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -67,7 +67,7 @@ class _ClothesRepository implements ClothesRepository {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/clothes/${id}',
+            '/api/v1/clothes/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -98,7 +98,7 @@ class _ClothesRepository implements ClothesRepository {
       Options(method: 'DELETE', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/clothes/${id}',
+            '/api/v1/clothes/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -146,7 +146,7 @@ class _ClothesRepository implements ClothesRepository {
           )
           .compose(
             _dio.options,
-            '/api/clothes',
+            '/api/v1/clothes',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -220,7 +220,7 @@ class _ClothesRepository implements ClothesRepository {
           )
           .compose(
             _dio.options,
-            '/api/clothes/analysis',
+            '/api/v1/clothes/analysis',
             queryParameters: queryParameters,
             data: _data,
           )

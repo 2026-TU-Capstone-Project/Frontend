@@ -8,10 +8,10 @@ part 'auth_client.g.dart';
 abstract class AuthClient {
   factory AuthClient(Dio dio , {String? baseUrl}) = _AuthClient;
 
-  @POST('/api/auth/signup')
+  @POST('/api/v1/auth/signup')
   Future<String> signup(@Body() SignupBody body);
 
-  @POST('/api/auth/login')
+  @POST('/api/v1/auth/login')
   Future<String> login(@Body() LoginBody body);
 
 }

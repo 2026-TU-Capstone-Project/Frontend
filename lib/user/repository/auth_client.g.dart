@@ -32,7 +32,7 @@ class _AuthClient implements AuthClient {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/auth/signup',
+            '/api/v1/auth/signup',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -60,7 +60,7 @@ class _AuthClient implements AuthClient {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/auth/login',
+            '/api/v1/auth/login',
             queryParameters: queryParameters,
             data: _data,
           )

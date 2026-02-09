@@ -12,26 +12,26 @@ abstract class ClothesRepository {
   factory ClothesRepository(Dio dio, {String? baseUrl}) = _ClothesRepository;
 
 
-  @GET('/api/clothes')
+  @GET('/api/v1/clothes')
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<List<ClothesModel>>> getClothesList();
 
 
-  @GET('/api/clothes/{id}')
+  @GET('/api/v1/clothes/{id}')
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<ClothesModel>> getClothDetail({
     @Path("id") required int id,
   });
 
 
-  @DELETE('/api/clothes/{id}')
+  @DELETE('/api/v1/clothes/{id}')
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<String>> deleteCloth({
     @Path("id") required int id,
   });
 
 
-  @POST('/api/clothes')
+  @POST('/api/v1/clothes')
   @MultiPart()
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<String>> uploadSingleCloth({
@@ -40,7 +40,7 @@ abstract class ClothesRepository {
   });
 
 
-  @POST('/api/clothes/analysis')
+  @POST('/api/v1/clothes/analysis')
   @MultiPart()
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<String>> uploadAnalysisCloth({
