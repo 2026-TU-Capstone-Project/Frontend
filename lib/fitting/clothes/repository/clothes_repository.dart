@@ -1,8 +1,8 @@
-import 'dart:io'; // 👈 파일 업로드 필수
+import 'dart:io';
 import 'package:dio/dio.dart' hide Headers;
 import 'package:retrofit/retrofit.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
-// 👇 1단계에서 만든 파일 import (경로 확인!)
+
 import 'package:capstone_fe/common/model/api_response.dart';
 
 part 'clothes_repository.g.dart';

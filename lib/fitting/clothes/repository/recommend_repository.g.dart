@@ -34,7 +34,7 @@ class _RecommendRepository implements RecommendRepository {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/virtual-fitting/recommend',
+            '/api/v1/virtual-fitting/recommendation/style',
             queryParameters: queryParameters,
             data: _data,
           )
