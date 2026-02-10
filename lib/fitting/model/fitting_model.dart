@@ -1,18 +1,8 @@
-
 import 'package:json_annotation/json_annotation.dart';
 
 part 'fitting_model.g.dart';
 
-@JsonSerializable()
-class FittingRequestResponse {
-  final bool success;
-  final FittingRequestData data;
-
-  FittingRequestResponse({required this.success, required this.data});
-
-  factory FittingRequestResponse.fromJson(Map<String, dynamic> json) =>
-      _$FittingRequestResponseFromJson(json);
-}
+// 껍데기(Response) 클래스들은 모두 지우고, 데이터(Data) 클래스만 남깁니다.
 
 @JsonSerializable()
 class FittingRequestData {
@@ -22,18 +12,6 @@ class FittingRequestData {
 
   factory FittingRequestData.fromJson(Map<String, dynamic> json) =>
       _$FittingRequestDataFromJson(json);
-}
-
-
-@JsonSerializable()
-class FittingStatusResponse {
-  final bool success;
-  final FittingStatusData data;
-
-  FittingStatusResponse({required this.success, required this.data});
-
-  factory FittingStatusResponse.fromJson(Map<String, dynamic> json) =>
-      _$FittingStatusResponseFromJson(json);
 }
 
 @JsonSerializable()

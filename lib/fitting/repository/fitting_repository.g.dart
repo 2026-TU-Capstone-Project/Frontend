@@ -20,15 +20,16 @@ class _FittingRepository implements FittingRepository {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<FittingRequestResponse> requestFitting({
+  Future<ApiResponse<FittingRequestData>> requestFitting({
     required File userImage,
-    File? topImage,
+    required File topImage,
     File? bottomImage,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
-    final _headers = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'accessToken': 'true'};
+    _headers.removeWhere((k, v) => v == null);
     final _data = FormData();
     _data.files.add(
       MapEntry(
@@ -39,17 +40,15 @@ class _FittingRepository implements FittingRepository {
         ),
       ),
     );
-    if (topImage != null) {
-      _data.files.add(
-        MapEntry(
-          'top_image',
-          MultipartFile.fromFileSync(
-            topImage.path,
-            filename: topImage.path.split(Platform.pathSeparator).last,
-          ),
+    _data.files.add(
+      MapEntry(
+        'top_image',
+        MultipartFile.fromFileSync(
+          topImage.path,
+          filename: topImage.path.split(Platform.pathSeparator).last,
         ),
-      );
-    }
+      ),
+    );
     if (bottomImage != null) {
       _data.files.add(
         MapEntry(
@@ -61,7 +60,7 @@ class _FittingRepository implements FittingRepository {
         ),
       );
     }
-    final _options = _setStreamType<FittingRequestResponse>(
+    final _options = _setStreamType<ApiResponse<FittingRequestData>>(
       Options(
             method: 'POST',
             headers: _headers,
@@ -77,9 +76,12 @@ class _FittingRepository implements FittingRepository {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late FittingRequestResponse _value;
+    late ApiResponse<FittingRequestData> _value;
     try {
-      _value = FittingRequestResponse.fromJson(_result.data!);
+      _value = ApiResponse<FittingRequestData>.fromJson(
+        _result.data!,
+        (json) => FittingRequestData.fromJson(json as Map<String, dynamic>),
+      );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -88,25 +90,31 @@ class _FittingRepository implements FittingRepository {
   }
 
   @override
-  Future<FittingStatusResponse> checkStatus({required int taskId}) async {
+  Future<ApiResponse<FittingStatusData>> checkStatus({
+    required int taskId,
+  }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
-    final _headers = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'accessToken': 'true'};
+    _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<FittingStatusResponse>(
+    final _options = _setStreamType<ApiResponse<FittingStatusData>>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/virtual-fitting/status/${taskId}',
+            '/api/v1/virtual-fitting/${taskId}/status',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late FittingStatusResponse _value;
+    late ApiResponse<FittingStatusData> _value;
     try {
-      _value = FittingStatusResponse.fromJson(_result.data!);
+      _value = ApiResponse<FittingStatusData>.fromJson(
+        _result.data!,
+        (json) => FittingStatusData.fromJson(json as Map<String, dynamic>),
+      );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
