@@ -1,8 +1,3 @@
-죄송합니다. 설명이나 잡담 없이 처음부터 끝까지 싹 다 복사해서 붙여넣기만 하면 되는 완벽한 마크다운 형태로 드리겠습니다.
-
-아래 내용을 그대로 복사(Ctrl+C)해서 README.md 파일에 전체 붙여넣기(Ctrl+V) 하시면 됩니다.
-
-Markdown
 # 🧢 2026 TU Capstone Project - Virtual Fitting App (Try-On)
 
 ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)
