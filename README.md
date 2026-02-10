@@ -53,7 +53,7 @@ flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 ## 3. Run APP (앱 실행)
-```Bash
+
 Option A. 에뮬레이터(Emulator) 실행
 
 Android Studio > Device Manager 실행.
@@ -71,6 +71,12 @@ Option B. 실물 기기(Physical Device) 연결
 PC와 USB 케이블로 연결합니다.
 
 Command (터미널에서 실행) 기기가 연결된 상태에서 아래 명령어를 입력하세요.
+```Bash
+# Debug Mode
+flutter run
+
+# Release Mode
+flutter run --release
 ```
 ## 4. Project Structure
 프로젝트의 폴더 구조입니다. (Last Update: 02/10)
