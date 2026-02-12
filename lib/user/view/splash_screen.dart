@@ -26,39 +26,34 @@ class _SplashScreenState extends State<SplashScreen> {
     final storage = FlutterSecureStorage();
     final accessToken = await storage.read(key: 'ACCESS_TOKEN');
 
-    // 1. 토큰이 아예 없으면 -> 로그인 화면으로
+
     if (accessToken == null) {
       _moveToLogin();
       return;
     }
 
-    // 2. 토큰이 있으면 -> 서버에 유효한지 찔러보기 (검증)
     try {
       final dio = Dio();
 
-      // 헤더에 토큰 심기
       dio.options.headers['Authorization'] = 'Bearer $accessToken';
 
-      // 💡 꿀팁: 로그인이 필요한 가벼운 API 아무거나 호출해보면 됩니다.
-      // (여기서는 '내 옷장 목록 조회' API를 사용해서 테스트합니다)
       await dio.get('http://$ip/api/clothes');
 
-      // 여기까지 에러 없이 왔다면 토큰은 살아있는 것! -> 홈으로
+
       _moveToRootTab();
 
     } catch (e) {
-      // 3. 에러 발생 (토큰 만료 or 서버 오류)
+
       print("토큰 만료 또는 에러 발생: $e");
 
-      // 썩은 토큰 삭제 (청소)
+
       await storage.deleteAll();
 
-      // 다시 로그인 하러 가라
+
       _moveToLogin();
     }
   }
 
-  // 화면 이동 함수들 (코드 깔끔하게 분리)
   void _moveToRootTab() {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

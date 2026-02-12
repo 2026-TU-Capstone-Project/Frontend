@@ -1,7 +1,7 @@
 import 'package:capstone_fe/common/const/data.dart';
-import 'package:capstone_fe/user/model%20/auth_model.dart';
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import '../model/auth_model.dart';
 
 part 'auth_client.g.dart';
 @RestApi(baseUrl: 'http://$ip')

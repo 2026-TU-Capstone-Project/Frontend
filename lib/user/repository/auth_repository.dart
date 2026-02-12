@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:capstone_fe/user/repository/auth_client.dart';
-import '../model /auth_model.dart';
+import '../model/auth_model.dart';
 
 
 class AuthRepository {
