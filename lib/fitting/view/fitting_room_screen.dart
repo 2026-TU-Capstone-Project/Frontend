@@ -9,6 +9,7 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
+
 import '../component/fitting_onboarding_sheet.dart';
 import '../theme/fitting_room_theme.dart';
 import '../component/fitting_room_header.dart';
@@ -69,8 +70,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
   Future<void> _initServices() async {
     final dio = Dio();
-    // 👇 LogInterceptor 제거됨 (깔끔!)
-
     const storage = FlutterSecureStorage();
     final accessToken = await storage.read(key: 'ACCESS_TOKEN');
 
@@ -111,7 +110,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         setState(() => _serverClothes = resp.data ?? []);
       }
     } catch (e) {
-      // 에러 처리는 필요하다면 남겨두거나, 조용히 넘어가도록 수정
+
     }
   }
 
@@ -131,25 +130,29 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     final isTop = category.contains("TOP") || category.contains("상의") || category.contains("SHIRT") || category.contains("OUTER");
 
     setState(() {
-      if (isTop) _selectedTopUrl = imageUrl;
-      else _selectedBottomUrl = imageUrl;
+      if (isTop) {
+        _selectedTopUrl = imageUrl;
+        _selectedTopFile = null;
+      } else {
+        _selectedBottomUrl = imageUrl;
+        _selectedBottomFile = null;
+      }
     });
+
 
     try {
       final tempDir = await getTemporaryDirectory();
       final fileName = 'cloth_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final tempPath = '${tempDir.path}/$fileName';
-
       await Dio().download(imageUrl, tempPath);
 
       if (!mounted) return;
-
       setState(() {
         if (isTop) _selectedTopFile = File(tempPath);
         else _selectedBottomFile = File(tempPath);
       });
     } catch (e) {
-      // 이미지 다운로드 실패 시 처리 (조용히 넘김)
+      debugPrint("이미지 다운로드 에러: $e");
     }
   }
 
@@ -170,28 +173,24 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         bottomImage: _selectedBottomFile,
       );
 
-      if (reqResp.data == null) {
-        throw Exception("서버 응답(data)이 비어있습니다.");
-      }
+      if (reqResp.data == null) throw Exception("서버 응답 오류");
 
       final taskId = reqResp.data!.taskId;
       String? finalUrl;
 
       while (true) {
         if (!mounted) break;
-
         await Future.delayed(const Duration(seconds: 2));
         final statusResp = await _fittingRepository.checkStatus(taskId: taskId);
 
         if (statusResp.data == null) continue;
-
         final statusData = statusResp.data!;
 
         if (statusData.status == 'COMPLETED') {
           finalUrl = statusData.resultImgUrl;
           break;
         } else if (statusData.status == 'FAILED') {
-          throw Exception('서버 작업 실패 (FAILED)');
+          throw Exception('피팅 실패');
         }
       }
 
@@ -201,7 +200,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('피팅 작업 중 오류가 발생했습니다.')),
+          SnackBar(content: Text('오류 발생: $e')),
         );
       }
     } finally {
@@ -231,7 +230,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
   @override
   Widget build(BuildContext context) {
     final bool hasUser = _selectedUserImage != null;
-    final bool hasTop = _selectedTopFile != null;
+    final bool hasTop = _selectedTopFile != null || _selectedTopUrl != null;
     final bool isReady = hasUser && hasTop;
 
     String buttonText;
@@ -252,7 +251,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
     return Scaffold(
       backgroundColor: FittingRoomTheme.kBackgroundColor,
-
       bottomNavigationBar: _BottomCtaBar(
         isReady: isReady,
         isLoading: _isFittingNow,
@@ -261,7 +259,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         latencyText: _latency != null ? "$_latency 소요" : null,
         onPressed: (_isFittingNow || !isReady) ? null : _startVirtualFitting,
       ),
-
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
@@ -271,12 +268,10 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
               const SizedBox(height: 20),
               const FittingRoomHeader(),
               const SizedBox(height: 20),
-
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1️⃣ 좌측: 전신 사진 (5/8)
                     Expanded(
                       flex: 5,
                       child: GestureDetector(
@@ -290,38 +285,48 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                       ),
                     ),
                     const SizedBox(width: 16),
-
-                    // 2️⃣ 우측: 상의/하의 슬롯 (3/8)
                     Expanded(
                       flex: 3,
                       child: Column(
                         children: [
-                          // 상의 슬롯
                           Expanded(
                             child: _ClothingSlot(
                               label: "상의 (필수)",
+                              imageFile: _selectedTopFile,
                               imageUrl: _selectedTopUrl,
                               placeholderIcon: Icons.checkroom,
-                              isActive: _selectedTopUrl != null,
+                              isActive: _selectedTopFile != null || _selectedTopUrl != null,
                               onTap: () => showAddClothingBottomSheet(
                                 context,
                                 '상의',
                                 onWardrobeTap: () => _openWardrobePicker('TOP'),
+                                onImageSelected: (file) {
+                                  setState(() {
+                                    _selectedTopFile = file;
+                                    _selectedTopUrl = null;
+                                  });
+                                },
                               ),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          // 하의 슬롯
                           Expanded(
                             child: _ClothingSlot(
                               label: "하의 (선택)",
+                              imageFile: _selectedBottomFile,
                               imageUrl: _selectedBottomUrl,
                               placeholderIcon: Icons.trolley,
-                              isActive: _selectedBottomUrl != null,
+                              isActive: _selectedBottomFile != null || _selectedBottomUrl != null,
                               onTap: () => showAddClothingBottomSheet(
                                 context,
                                 '하의',
                                 onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
+                                onImageSelected: (file) {
+                                  setState(() {
+                                    _selectedBottomFile = file;
+                                    _selectedBottomUrl = null;
+                                  });
+                                },
                               ),
                             ),
                           ),
@@ -331,7 +336,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                   ],
                 ),
               ),
-
               const SizedBox(height: 10),
               const Center(
                 child: Text(
@@ -339,10 +343,8 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                   style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
-
               const SizedBox(height: 24),
               AiStylistInput(controller: _promptController, chips: _quickChips),
-
               const SizedBox(height: 120),
             ],
           ),
@@ -352,8 +354,10 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
   }
 }
 
+
 class _ClothingSlot extends StatelessWidget {
   final String label;
+  final File? imageFile;
   final String? imageUrl;
   final IconData placeholderIcon;
   final bool isActive;
@@ -361,6 +365,7 @@ class _ClothingSlot extends StatelessWidget {
 
   const _ClothingSlot({
     required this.label,
+    this.imageFile,
     this.imageUrl,
     required this.placeholderIcon,
     required this.isActive,
@@ -393,12 +398,18 @@ class _ClothingSlot extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (imageUrl != null)
+
+              if (imageFile != null)
+                Image.file(
+                  imageFile!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, stack) => const Icon(Icons.error, color: Colors.grey),
+                )
+              else if (imageUrl != null)
                 Image.network(
                   imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.error_outline, color: Colors.grey),
+                  errorBuilder: (ctx, err, stack) => const Icon(Icons.error, color: Colors.grey),
                 )
               else
                 Column(
@@ -443,6 +454,7 @@ class _ClothingSlot extends StatelessWidget {
     );
   }
 }
+
 
 class _BottomCtaBar extends StatelessWidget {
   const _BottomCtaBar({
