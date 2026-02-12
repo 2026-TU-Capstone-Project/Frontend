@@ -51,15 +51,11 @@ class _AiStylistInputState extends State<AiStylistInput>
         dio.options.headers['Authorization'] = 'Bearer $accessToken';
       }
 
-      // 👇 [수정됨] 새 리포지토리 사용
       final repository = RecommendRepository(dio, baseUrl: 'http://$ip');
-      // ApiResponse<RecommendResult> 형태로 응답이 옵니다.
       final response = await repository.getRecommendations(query: query);
 
       if (mounted) {
         setState(() {
-          // response.data는 RecommendResult 객체이고,
-          // 그 안의 recommendations 리스트를 가져옵니다.
           _results = response.data?.recommendations ?? [];
         });
       }
@@ -79,9 +75,6 @@ class _AiStylistInputState extends State<AiStylistInput>
     }
   }
 
-  // ... (이하 _resetSearch, _buildAiProfileHeader 등 UI 코드는 동일)
-  // ... (단, 리스트 빌드 시 RecommendationModel의 필드명 score, resultImgUrl 등을 확인하세요)
-
   void _resetSearch() {
     setState(() {
       _hasSearched = false;
@@ -89,6 +82,95 @@ class _AiStylistInputState extends State<AiStylistInput>
       _userQuery = "";
       widget.controller.clear();
     });
+  }
+
+  // ✅ 상세 정보 모달 (이미지 클릭 시 호출)
+  void _showDetailModal(RecommendationModel item) {
+    final score = item.score ?? 0.0;
+    final analysis = item.styleAnalysis ?? "분석 정보가 없습니다.";
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: PRIMARYCOLOR,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          "AI 매칭률 ${(score * 100).toInt()}%",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "스타일 분석",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[900],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                analysis,
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.6,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   TextStyle get _baseTextStyle => const TextStyle(
@@ -99,7 +181,6 @@ class _AiStylistInputState extends State<AiStylistInput>
 
   @override
   Widget build(BuildContext context) {
-    // 기존 UI 빌드 코드 유지...
     return AnimatedSize(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -116,6 +197,8 @@ class _AiStylistInputState extends State<AiStylistInput>
           children: [
             _buildAiProfileHeader(),
             const SizedBox(height: 20),
+
+            // 검색 전 화면
             if (!_hasSearched) ...[
               _buildAiMessageBubble(
                 child: Column(
@@ -144,7 +227,10 @@ class _AiStylistInputState extends State<AiStylistInput>
               ),
               const SizedBox(height: 20),
               _buildInputArea(isEnabled: true),
-            ] else ...[
+            ]
+            // 검색 후 화면
+            else ...[
+              // ✅ [수정됨] 사용자 입력 말풍선 (평범한 회색)
               Align(
                 alignment: Alignment.centerRight,
                 child: Container(
@@ -154,29 +240,19 @@ class _AiStylistInputState extends State<AiStylistInput>
                   ),
                   margin: const EdgeInsets.only(left: 40, bottom: 20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [PRIMARYCOLOR, Color(0xFF7E57C2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: Colors.grey[200], // 평범한 회색 배경
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       bottomLeft: Radius.circular(20),
                       bottomRight: Radius.circular(20),
                       topRight: Radius.circular(4),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: PRIMARYCOLOR.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    // 그림자 제거
                   ),
                   child: Text(
                     _userQuery,
                     style: _baseTextStyle.copyWith(
-                      color: Colors.white,
+                      color: Colors.black87, // 텍스트 검정색
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       height: 1.4,
@@ -184,6 +260,7 @@ class _AiStylistInputState extends State<AiStylistInput>
                   ),
                 ),
               ),
+
               if (_isLoading)
                 _buildAiMessageBubble(
                   child: Row(
@@ -216,23 +293,26 @@ class _AiStylistInputState extends State<AiStylistInput>
                   ),
                 )
               else
-                _buildAiMessageBubble(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "요청하신 스타일에 딱 맞는 코디를 찾았어요! 🎁",
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildAiMessageBubble(
+                      child: Text(
+                        "요청하신 스타일에 딱 맞는 코디를 찾았어요!\n사진을 눌러 상세 정보를 확인해보세요. 👇",
                         style: _baseTextStyle.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildResultList(),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    // ✅ [수정됨] 가로 스크롤 결과 리스트
+                    _buildResultHorizontalList(),
+                  ],
                 ),
+
               const SizedBox(height: 20),
+
               if (!_isLoading)
                 SizedBox(
                   width: double.infinity,
@@ -263,7 +343,92 @@ class _AiStylistInputState extends State<AiStylistInput>
     );
   }
 
-  // 이하 헬퍼 위젯들은 동일하되 _buildResultList 내부 필드만 확인해주세요.
+  // ✅ [수정됨] 결과를 가로 스크롤로 보여주는 위젯
+  Widget _buildResultHorizontalList() {
+    return SizedBox(
+      height: 400, // 이미지 높이 확보
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _results.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final item = _results[index];
+          final imageUrl = item.resultImgUrl ?? "";
+
+          return GestureDetector(
+            onTap: () => _showDetailModal(item), // 클릭 시 모달 띄우기
+            child: Container(
+              width: 300, // 이미지 너비
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(
+                            Icons.broken_image_rounded,
+                            color: Colors.grey,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 힌트 오버레이 (클릭 유도)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.7),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "터치하여 분석 보기",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ... (헤더, 말풍선, 인풋, 칩 위젯 등 기존 코드는 그대로 사용)
+
   Widget _buildAiProfileHeader() {
     return Row(
       children: [
@@ -419,141 +584,43 @@ class _AiStylistInputState extends State<AiStylistInput>
       children: widget.chips
           .map(
             (chip) => Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  widget.controller.text = chip['label'];
-                  _searchAiStyle();
-                },
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              widget.controller.text = chip['label'];
+              _searchAiStyle();
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(chip['icon'], size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 6),
+                  Text(
+                    chip['label'].toString().split(' ')[0],
+                    style: _baseTextStyle.copyWith(
+                      color: Colors.grey[700],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(chip['icon'], size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 6),
-                      Text(
-                        chip['label'].toString().split(' ')[0],
-                        style: _baseTextStyle.copyWith(
-                          color: Colors.grey[700],
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
-          )
+          ),
+        ),
+      )
           .toList(),
-    );
-  }
-
-  Widget _buildResultList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _results.length,
-      itemBuilder: (context, index) {
-        final item = _results[index];
-        final imageUrl = item.resultImgUrl ?? "";
-        final score = item.score ?? 0.0;
-        final analysis = item.styleAnalysis ?? "분석 정보 없음";
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 24),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FB),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                child: Image.network(
-                  imageUrl,
-                  height: 450,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  errorBuilder: (ctx, err, stack) => Container(
-                    height: 450,
-                    width: double.infinity,
-                    color: Colors.grey[100],
-                    child: const Center(
-                      child: Icon(
-                        Icons.broken_image_rounded,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: PRIMARYCOLOR,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.auto_awesome,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            "AI 매칭률 ${(score * 100).toInt()}%",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      analysis,
-                      style: _baseTextStyle.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

@@ -120,7 +120,6 @@ lib/
 │   │   ├── fitting_main_stage.dart        # 아바타 합성 뷰 영역
 │   │   ├── fitting_onboarding_sheet.dart  # 피팅룸 사용 가이드
 │   │   ├── fitting_room_header.dart       # 피팅룸 상단 헤더
-│   │   └── wardrobe_section.dart          # 하단 옷 선택 리스트
 │   ├── 📂 model/
 │   │   ├── fitting_model.dart       # 피팅 로직 모델
 │   │   └── fitting_model.g.dart     # [Auto Generated]

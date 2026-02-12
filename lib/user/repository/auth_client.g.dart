@@ -105,4 +105,4 @@ class _AuthClient implements AuthClient {
   }
 }
 
-// dart format on
+

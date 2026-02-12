@@ -6,9 +6,6 @@ import 'package:image_picker/image_picker.dart'; // 사진 선택
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
-// 👇 경로 확인 필요
-import '../component/wardrobe_card.dart';
-import '../component/category_filter_bar.dart';
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
@@ -44,14 +41,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       dio.options.headers['Authorization'] = 'Bearer $accessToken';
     }
 
-    // 👇 로그 확인용 (필요 없으면 주석 처리)
-    dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-    ));
 
-    // 👇 [주의] api/v1으로 경로가 바뀌었으므로 baseUrl도 확인 필요하지만,
-    // Repository 내부에서 경로를 바꿨다면 여기는 그대로 둬도 됩니다.
     _clothesRepository = ClothesRepository(dio, baseUrl: 'http://$ip');
     _loadWardrobe();
   }
@@ -65,10 +55,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           _allClothes = resp.data ?? [];
           _filterClothes();
         });
-        print("✅ 옷장 로딩 완료: ${_allClothes.length}개");
       }
     } catch (e) {
-      debugPrint("🚨 옷장 로딩 실패: $e");
+
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -76,26 +65,31 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     }
   }
 
-  // 👇 [복구] 삭제 기능 구현
   Future<void> _deleteCloth(int id) async {
     try {
-      Navigator.pop(context); // 바텀 시트 닫기
+      Navigator.pop(context);
 
       final resp = await _clothesRepository.deleteCloth(id: id);
       if (resp.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("옷이 삭제되었습니다.")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("옷이 삭제되었습니다.")),
+          );
+        }
         _loadWardrobe(); // 목록 갱신
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("삭제 실패: ${resp.message}")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("삭제 실패: ${resp.message}")),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("에러 발생: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("에러 발생: $e")),
+        );
+      }
     }
   }
 
@@ -414,7 +408,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 이미지 영역 (flex: 3)
+              // 이미지 영역
               Expanded(
                 flex: 3,
                 child: Padding(
@@ -430,10 +424,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
 
-              // 👇 [수정됨] 정보 영역이 길어지면 스크롤 되도록 변경 (에러 해결!)
+              // 정보 영역
               Expanded(
                 flex: 2,
-                child: SingleChildScrollView( // 여기가 핵심
+                child: SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
@@ -454,7 +448,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             ),
                             const Spacer(),
 
-                            // 👇 [복구] 삭제 기능 연결 완료
                             IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.red),
                               onPressed: () {
@@ -474,7 +467,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                           "브랜드: ${cloth.brand ?? '정보 없음'}\n소재: ${cloth.material ?? '정보 없음'}\n계절: ${cloth.season ?? '정보 없음'}",
                           style: TextStyle(color: Colors.grey[600], height: 1.5),
                         ),
-                        // 하단 여유 공간
                         const SizedBox(height: 20),
                       ],
                     ),

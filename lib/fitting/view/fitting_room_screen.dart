@@ -9,14 +9,13 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
-// 👇 [필수] 모델 파일이 있어야 taskId, status 등을 인식합니다.
-import 'package:capstone_fe/fitting/model/fitting_model.dart';
-
 import '../component/fitting_onboarding_sheet.dart';
 import '../theme/fitting_room_theme.dart';
 import '../component/fitting_room_header.dart';
 import '../component/fitting_main_stage.dart';
 import '../component/ai_stylist_input.dart';
+import '../component/add_clothing_sheet.dart';
+import '../component/wardrobe_picker_sheet.dart';
 
 class FittingRoomScreen extends StatefulWidget {
   const FittingRoomScreen({super.key});
@@ -70,12 +69,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
   Future<void> _initServices() async {
     final dio = Dio();
-
-    // 👇 [디버깅] 서버 에러 확인을 위해 로그 활성화
-    dio.interceptors.add(LogInterceptor(
-        requestBody: true,
-        responseBody: true
-    ));
+    // 👇 LogInterceptor 제거됨 (깔끔!)
 
     const storage = FlutterSecureStorage();
     final accessToken = await storage.read(key: 'ACCESS_TOKEN');
@@ -117,7 +111,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         setState(() => _serverClothes = resp.data ?? []);
       }
     } catch (e) {
-      debugPrint(e.toString());
+      // 에러 처리는 필요하다면 남겨두거나, 조용히 넘어가도록 수정
     }
   }
 
@@ -134,7 +128,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
     final imageUrl = cloth.imgUrl!;
     final category = cloth.category?.toUpperCase() ?? "";
-    final isTop = category.contains("TOP") || category.contains("상의") || category.contains("SHIRT");
+    final isTop = category.contains("TOP") || category.contains("상의") || category.contains("SHIRT") || category.contains("OUTER");
 
     setState(() {
       if (isTop) _selectedTopUrl = imageUrl;
@@ -148,19 +142,18 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
       await Dio().download(imageUrl, tempPath);
 
-      if (!mounted) return; // ✅ 앱이 꺼졌으면 중단
+      if (!mounted) return;
 
       setState(() {
         if (isTop) _selectedTopFile = File(tempPath);
         else _selectedBottomFile = File(tempPath);
       });
     } catch (e) {
-      debugPrint("이미지 다운로드 에러: $e");
+      // 이미지 다운로드 실패 시 처리 (조용히 넘김)
     }
   }
 
   Future<void> _startVirtualFitting() async {
-    // 상의 필수 체크
     if (_selectedUserImage == null || _selectedTopFile == null) return;
 
     final stopwatch = Stopwatch()..start();
@@ -171,30 +164,25 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     });
 
     try {
-      // 1. 요청 (POST)
       final reqResp = await _fittingRepository.requestFitting(
         userImage: _selectedUserImage!,
         topImage: _selectedTopFile!,
         bottomImage: _selectedBottomFile,
       );
 
-      // ✅ [Null Check] 응답 데이터 확인
       if (reqResp.data == null) {
         throw Exception("서버 응답(data)이 비어있습니다.");
       }
 
-      // ✅ [경로 수정] ApiResponse -> Data -> taskId (중복 껍데기 제거됨)
       final taskId = reqResp.data!.taskId;
       String? finalUrl;
 
-      // 2. 폴링 (GET Status)
       while (true) {
-        if (!mounted) break; // ✅ 화면 나갔으면 루프 종료
+        if (!mounted) break;
 
         await Future.delayed(const Duration(seconds: 2));
         final statusResp = await _fittingRepository.checkStatus(taskId: taskId);
 
-        // ✅ [Null Check]
         if (statusResp.data == null) continue;
 
         final statusData = statusResp.data!;
@@ -213,7 +201,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류 발생: $e')),
+          const SnackBar(content: Text('피팅 작업 중 오류가 발생했습니다.')),
         );
       }
     } finally {
@@ -227,26 +215,48 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     }
   }
 
+  void _openWardrobePicker(String category) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => WardrobePickerSheet(
+        clothes: _serverClothes,
+        onClothSelected: _selectCloth,
+        category: category,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasUser = _selectedUserImage != null;
     final bool hasTop = _selectedTopFile != null;
     final bool isReady = hasUser && hasTop;
 
+    String buttonText;
+    if (_isFittingNow) {
+      buttonText = "스타일 분석 중...";
+    } else if (isReady) {
+      buttonText = "가상 피팅 시작하기";
+    } else if (!hasUser) {
+      buttonText = "전신 사진을 선택하세요";
+    } else {
+      buttonText = "상의를 선택하세요";
+    }
+
     String? helperText;
     if (!_isFittingNow && !isReady) {
-      if (!hasUser && !hasTop) helperText = "전신 사진과 상의를 선택해 주세요";
-      else if (!hasUser) helperText = "전신 사진을 먼저 선택해 주세요";
-      else if (!hasTop) helperText = "입어볼 상의를 선택해 주세요 (필수)";
+      helperText = buttonText;
     }
 
     return Scaffold(
       backgroundColor: FittingRoomTheme.kBackgroundColor,
 
-      // ✅ 하단 고정 CTA 바
       bottomNavigationBar: _BottomCtaBar(
         isReady: isReady,
         isLoading: _isFittingNow,
+        buttonText: buttonText,
         helperText: helperText,
         latencyText: _latency != null ? "$_latency 소요" : null,
         onPressed: (_isFittingNow || !isReady) ? null : _startVirtualFitting,
@@ -260,97 +270,185 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
             children: [
               const SizedBox(height: 20),
               const FittingRoomHeader(),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
 
-              GestureDetector(
-                onTap: _pickUserImage,
-                child: FittingMainStage(
-                  imagePath: _resultImageUrl ??
-                      _selectedUserImage?.path ??
-                      'asset/img/fitting1.jpg',
-                  isLoading: _isFittingNow,
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1️⃣ 좌측: 전신 사진 (5/8)
+                    Expanded(
+                      flex: 5,
+                      child: GestureDetector(
+                        onTap: _pickUserImage,
+                        child: FittingMainStage(
+                          imagePath: _resultImageUrl ??
+                              _selectedUserImage?.path ??
+                              'asset/img/fitting1.jpg',
+                          isLoading: _isFittingNow,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // 2️⃣ 우측: 상의/하의 슬롯 (3/8)
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          // 상의 슬롯
+                          Expanded(
+                            child: _ClothingSlot(
+                              label: "상의 (필수)",
+                              imageUrl: _selectedTopUrl,
+                              placeholderIcon: Icons.checkroom,
+                              isActive: _selectedTopUrl != null,
+                              onTap: () => showAddClothingBottomSheet(
+                                context,
+                                '상의',
+                                onWardrobeTap: () => _openWardrobePicker('TOP'),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // 하의 슬롯
+                          Expanded(
+                            child: _ClothingSlot(
+                              label: "하의 (선택)",
+                              imageUrl: _selectedBottomUrl,
+                              placeholderIcon: Icons.trolley,
+                              isActive: _selectedBottomUrl != null,
+                              onTap: () => showAddClothingBottomSheet(
+                                context,
+                                '하의',
+                                onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
               const SizedBox(height: 10),
               const Center(
                 child: Text(
-                  "이미지를 탭하여 전신 사진을 변경하세요",
+                  "좌측 이미지를 탭하여 전신 사진을 변경하세요",
                   style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               AiStylistInput(controller: _promptController, chips: _quickChips),
-              const SizedBox(height: 32),
 
-              const Text("내 옷장", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              _buildWardrobeList(),
-
-              const SizedBox(height: 120), // 하단 공간 확보
+              const SizedBox(height: 120),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildWardrobeList() {
-    return SizedBox(
-      height: 110,
-      child: _serverClothes.isEmpty
-          ? Center(child: Text("옷장이 비어있습니다.", style: TextStyle(color: Colors.grey[500])))
-          : ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _serverClothes.length,
-        itemBuilder: (context, index) {
-          final cloth = _serverClothes[index];
-          final isSelected = (cloth.imgUrl == _selectedTopUrl) || (cloth.imgUrl == _selectedBottomUrl);
-          return _buildClothItem(cloth, isSelected);
-        },
-      ),
-    );
-  }
+class _ClothingSlot extends StatelessWidget {
+  final String label;
+  final String? imageUrl;
+  final IconData placeholderIcon;
+  final bool isActive;
+  final VoidCallback onTap;
 
-  Widget _buildClothItem(ClothesModel cloth, bool isSelected) {
+  const _ClothingSlot({
+    required this.label,
+    this.imageUrl,
+    required this.placeholderIcon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => cloth.imgUrl != null ? _selectCloth(cloth) : null,
-      child: Stack(
-        children: [
-          Container(
-            width: 75,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? PRIMARYCOLOR : Colors.grey.shade300,
-                width: isSelected ? 3.0 : 1.0,
-              ),
-              image: cloth.imgUrl != null
-                  ? DecorationImage(image: NetworkImage(cloth.imgUrl!), fit: BoxFit.cover)
-                  : null,
-            ),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? PRIMARYCOLOR : Colors.grey.shade200,
+            width: isActive ? 1.5 : 1.0,
           ),
-          if (isSelected)
-            Positioned(
-              top: 4, right: 16,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(color: PRIMARYCOLOR, shape: BoxShape.circle),
-                child: const Icon(Icons.check, size: 14, color: Colors.white),
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-        ],
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (imageUrl != null)
+                Image.network(
+                  imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.error_outline, color: Colors.grey),
+                )
+              else
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(placeholderIcon, color: Colors.grey.shade300, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      "선택",
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-/// ✅ 하단 CTA 바 (디자인 유지)
 class _BottomCtaBar extends StatelessWidget {
   const _BottomCtaBar({
     required this.isReady,
     required this.isLoading,
+    required this.buttonText,
     required this.onPressed,
     this.helperText,
     this.latencyText,
@@ -358,6 +456,7 @@ class _BottomCtaBar extends StatelessWidget {
 
   final bool isReady;
   final bool isLoading;
+  final String buttonText;
   final VoidCallback? onPressed;
   final String? helperText;
   final String? latencyText;
@@ -391,15 +490,9 @@ class _BottomCtaBar extends StatelessWidget {
                   height: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    gradient: (isReady && !isLoading)
-                        ? const LinearGradient(
-                      colors: [PRIMARYCOLOR, Color(0xFF7E57C2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                        : LinearGradient(
-                      colors: [Colors.grey.shade300, Colors.grey.shade300],
-                    ),
+                    color: (isReady && !isLoading)
+                        ? PRIMARYCOLOR
+                        : Colors.grey.shade300,
                     boxShadow: (isReady && !isLoading)
                         ? [
                       BoxShadow(
@@ -413,7 +506,7 @@ class _BottomCtaBar extends StatelessWidget {
                   child: Center(
                     child: isLoading
                         ? const _LoadingIndicator()
-                        : _ButtonContent(isReady: isReady),
+                        : _ButtonContent(isReady: isReady, text: buttonText),
                   ),
                 ),
               ),
@@ -464,7 +557,10 @@ class _LoadingIndicator extends StatelessWidget {
 
 class _ButtonContent extends StatelessWidget {
   final bool isReady;
-  const _ButtonContent({required this.isReady});
+  final String text;
+
+  const _ButtonContent({required this.isReady, required this.text});
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -473,7 +569,7 @@ class _ButtonContent extends StatelessWidget {
         Icon(isReady ? Icons.auto_awesome : Icons.checkroom, color: isReady ? Colors.white : Colors.grey.shade500),
         const SizedBox(width: 10),
         Text(
-          isReady ? "스타일 완성하기" : "상의를 선택하세요",
+          text,
           style: TextStyle(color: isReady ? Colors.white : Colors.grey.shade500, fontWeight: FontWeight.w800, fontSize: 16),
         ),
       ],

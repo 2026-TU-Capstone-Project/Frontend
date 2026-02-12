@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
 import '../theme/fitting_room_theme.dart';
 
-void showAddClothingBottomSheet(BuildContext context, String type) {
+
+void showAddClothingBottomSheet(
+    BuildContext context,
+    String type, {
+      required VoidCallback onWardrobeTap,
+    }) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => AddClothingSheet(type: type),
+    builder: (context) => AddClothingSheet(
+      type: type,
+      onWardrobeTap: onWardrobeTap,
+    ),
   );
 }
 
 class AddClothingSheet extends StatelessWidget {
   final String type;
+  final VoidCallback onWardrobeTap;
 
-  const AddClothingSheet({required this.type, super.key});
+  const AddClothingSheet({
+    required this.type,
+    required this.onWardrobeTap,
+    super.key
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,23 +65,56 @@ class AddClothingSheet extends StatelessWidget {
                 style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               ),
               const SizedBox(height: 24),
-              _buildOption(context, Icons.camera_alt_rounded, '사진 촬영', '카메라로 직접 찍어서 올리기'),
-              _buildOption(context, Icons.checkroom_rounded, '나만의 옷장', '등록해둔 옷 중에서 선택하기'),
-              _buildOption(context, Icons.photo_library_rounded, '갤러리 선택', '앨범에서 사진 가져오기', isLast: true),
+
+              _buildOption(
+                  context,
+                  Icons.camera_alt_rounded,
+                  '사진 촬영',
+                  '카메라로 직접 찍어서 올리기',
+                  onTap: () => Navigator.pop(context)
+              ),
+
+
+              _buildOption(
+                  context,
+                  Icons.checkroom_rounded,
+                  '나만의 옷장',
+                  '등록해둔 옷 중에서 선택하기',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onWardrobeTap();
+                  }
+              ),
+
+              _buildOption(
+                  context,
+                  Icons.photo_library_rounded,
+                  '갤러리 선택',
+                  '앨범에서 사진 가져오기',
+                  isLast: true,
+                  onTap: () => Navigator.pop(context)
+              ),
             ],
           ),
         ),
       ),
     );
   }
-  Widget _buildOption(BuildContext context, IconData icon, String title, String subtitle, {bool isLast = false}) {
+
+  Widget _buildOption(
+      BuildContext context,
+      IconData icon,
+      String title,
+      String subtitle,
+      {
+        bool isLast = false,
+        required VoidCallback onTap,
+      }
+      ) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          Navigator.pop(context);
-
-        },
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
