@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:capstone_fe/common/const/data.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:capstone_fe/common/const/data.dart'; // ✅ baseUrl 가져오기
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 
 import '../../common/const/Component/custom_text_form_field.dart';
@@ -14,7 +15,6 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-
   String _email = '';
   String _password = '';
   String _nickname = '';
@@ -22,7 +22,6 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
 
   Future<void> _onSignupPressed() async {
-
     if (_email.isEmpty || _password.isEmpty || _nickname.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("모든 정보를 입력해주세요.")),
@@ -35,36 +34,60 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
+
       final dio = Dio();
 
-
-
-      final repository = AuthRepository(dio, baseUrl: 'http://$ip');
-
+      // ✅ data.dart에 선언된 baseUrl(https)을 사용합니다.
+      final repository = AuthRepository(dio, baseUrl: baseUrl);
 
       await repository.signUp(
         email: _email,
         password: _password,
         nickname: _nickname,
-        username: _email,
       );
 
-      if (!mounted) return;
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'NICKNAME', value: _nickname);
 
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("회원가입이 완료되었습니다! 로그인해주세요.")),
       );
 
-
       Navigator.of(context).pop();
 
     } catch (e) {
+      if (e is DioException) {
+        if (e.response?.statusCode == 301 || e.response?.statusCode == 308) {
+          final redirectUrl = e.response?.headers.value('location');
+          print('=============================================');
+          print('🚨 리다이렉트 이슈 발생!');
+          print('우리가 보낸 주소: ${e.requestOptions.uri}');
+          print('서버가 가라고 한 진짜 주소: $redirectUrl');
+          print('=============================================');
 
-      print(e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("회원가입 실패: ${e.toString()}")),
-      );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("서버 주소 문제 발생. 콘솔창을 확인하세요.")),
+            );
+          }
+        } else {
+          print('Dio 에러 발생: ${e.response?.data ?? e.message}');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("회원가입 실패: ${e.response?.data ?? e.message}")),
+            );
+          }
+        }
+      } else {
+        print('알 수 없는 에러: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("회원가입 실패: ${e.toString()}")),
+          );
+        }
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -134,14 +157,18 @@ class _SignupScreenState extends State<SignupScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: PRIMARYCOLOR,
+                  backgroundColor: AppColors.PRIMARYCOLOR,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
                 onPressed: _isLoading ? null : _onSignupPressed,
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
+                )
                     : const Text(
                   '가입하기',
                   style: TextStyle(

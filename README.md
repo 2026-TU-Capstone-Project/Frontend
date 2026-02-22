@@ -85,73 +85,107 @@ flutter run
 flutter run --release
 ```
 ## 4. Project Structure
-프로젝트의 폴더 구조입니다. (Last Update: 02/10)
-```Bash
+프로젝트의 폴더 구조입니다. (Last Update: 02/22)
+```bash
 lib/
-├── 📂 common/                  # [공통] 앱 전반 재사용 코드
+├── 📂 common/                        # [공통] 앱 전반 재사용 코드
 │   ├── 📂 const/
-│   │   ├── colors.dart         # 앱 메인 색상 정의
-│   │   └── data.dart           # 상수 데이터 (API URL, 토큰 등)
+│   │   ├── 📂 Component/
+│   │   │   └── custom_text_form_field.dart
+│   │   ├── colors.dart               # 앱 메인 색상 정의
+│   │   └── data.dart                # 상수 데이터 (API URL, 딥링크 등)
 │   ├── 📂 layout/
-│   │   └── default_layout.dart # 모든 화면 기본 레이아웃 (Scaffold)
-│   └── 📂 view/
-│       └── root_tab.dart       # 하단 탭바(BottomNavigation) 관리
-│
-├── 📂 feed/                    # [기능] 패션 피드
-│   ├── 📂 component/
-│   │   └── feed_card.dart      # 피드 리스트 아이템 UI
+│   │   └── default_layout.dart      # 기본 레이아웃 (Scaffold, AppBar)
 │   ├── 📂 model/
-│   │   └── feed_model.dart     # 피드 데이터 모델
-│   └── 📂 view/
-│       ├── fashion_feed_screen.dart  # 피드 메인 리스트 화면
-│       └── feed_detail_screen.dart   # 피드 상세 화면
+│   │   ├── api_response.dart         # API 공통 응답 모델
+│   │   └── api_response.g.dart      # [Generated]
+│   ├── 📂 network/
+│   │   └── auth_dio.dart            # Bearer 토큰 + 401 갱신 Dio
+│   ├── 📂 view/
+│   │   └── root_tab.dart            # 하단 탭바(홈/피팅룸/옷장/피드/유저)
+│   └── app_router.dart              # 전역 Navigator 키 (401 시 로그인 이동)
 │
-├── 📂 fitting/                 # [기능] 가상 피팅룸
-│   ├── 📂 clothes/             # (하위기능) 옷 데이터 관리
+├── 📂 feed/                          # [기능] 패션 피드
+│   ├── 📂 component/
+│   │   └── feed_card.dart           # 피드 리스트 아이템 UI
+│   ├── 📂 model/
+│   │   └── feed_model.dart
+│   └── 📂 view/
+│       ├── fashion_feed_screen.dart  # 피드 메인 리스트
+│       └── feed_detail_screen.dart  # 피드 상세
+│
+├── 📂 fitting/                       # [기능] 가상 피팅룸
+│   ├── 📂 clothes/                   # 옷 데이터·추천
 │   │   ├── 📂 model/
-│   │   │   ├── clothes_model.dart    # 옷 정보 모델
-│   │   │   └── clothes_model.g.dart  # [Auto Generated] 모델 생성 코드
+│   │   │   ├── clothes_model.dart
+│   │   │   ├── clothes_model.g.dart  # [Generated]
+│   │   │   ├── recommend_model.dart
+│   │   │   └── recommend_model.g.dart
 │   │   └── 📂 repository/
-│   │       ├── clothes_repository.dart    # 옷 데이터 API 통신
-│   │       └── clothes_repository.g.dart  # [Auto Generated] API 통신 코드
+│   │       ├── clothes_repository.dart
+│   │       ├── clothes_repository.g.dart
+│   │       ├── recommend_repository.dart
+│   │       └── recommend_repository.g.dart
+│   ├── 📂 clothes_set/               # 코디 폴더(착장 저장)
+│   │   ├── 📂 model/
+│   │   │   ├── clothes_set_model.dart
+│   │   │   └── clothes_set_model.g.dart
+│   │   └── 📂 repository/
+│   │       ├── clothes_set_repository.dart
+│   │       └── clothes_set_repository.g.dart
 │   ├── 📂 component/
-│   │   ├── add_clothing_sheet.dart        # 옷 추가 바텀시트
-│   │   ├── ai_stylist_input.dart          # AI 스타일링 입력창
-│   │   ├── fitting_main_stage.dart        # 아바타 합성 뷰 영역
-│   │   ├── fitting_onboarding_sheet.dart  # 피팅룸 사용 가이드
-│   │   ├── fitting_room_header.dart       # 피팅룸 상단 헤더
+│   │   ├── add_clothing_sheet.dart   # 옷 추가 바텀시트
+│   │   ├── ai_stylist_input.dart     # AI 스타일 입력
+│   │   ├── fitting_loading_effect.dart
+│   │   ├── fitting_main_stage.dart   # 아바타 합성 뷰
+│   │   ├── fitting_onboarding_sheet.dart  # 피팅룸 온보딩(사진·신체정보)
+│   │   ├── fitting_profile_edit_sheet.dart # 피팅 프로필 수정(유저 탭)
+│   │   ├── fitting_room_header.dart  # 피팅룸 상단 헤더
+│   │   └── wardrobe_picker_sheet.dart # 옷 선택 시트
 │   ├── 📂 model/
-│   │   ├── fitting_model.dart       # 피팅 로직 모델
-│   │   └── fitting_model.g.dart     # [Auto Generated]
+│   │   ├── fitting_model.dart
+│   │   └── fitting_model.g.dart
 │   ├── 📂 repository/
-│   │   ├── fitting_repository.dart   # 피팅 기능 API 통신
-│   │   └── fitting_repository.g.dart # [Auto Generated]
+│   │   ├── fitting_repository.dart
+│   │   └── fitting_repository.g.dart
 │   ├── 📂 theme/
-│   │   └── fitting_room_theme.dart   # 피팅룸 전용 테마/스타일
+│   │   └── fitting_room_theme.dart
 │   └── 📂 view/
-│       └── fitting_room_screen.dart  # 피팅룸 메인 화면
+│       └── fitting_room_screen.dart  # 피팅룸 메인
 │
-├── 📂 home/                    # [기능] 홈 화면
+├── 📂 home/                          # [기능] 홈 화면
 │   ├── 📂 component/
-│   │   ├── category_selector.dart    # 상단 카테고리 선택 버튼
-│   │   ├── single_feed_card.dart     # 홈 전용 피드 카드
-│   │   └── weather_card.dart         # 날씨 정보 위젯
+│   │   ├── category_selector.dart
+│   │   ├── single_feedCard.dart
+│   │   └── weather_card.dart
 │   └── 📂 view/
-│       └── home_screen.dart          # 홈 메인 화면
+│       └── home_screen.dart
 │
-├── 📂 personal_closet/         # [기능] 나만의 옷장
+├── 📂 personal_closet/               # [기능] 나만의 옷장
 │   ├── 📂 component/
-│   │   ├── category_filter_bar.dart  # 옷 종류 필터 (상의/하의 등)
-│   │   └── wardrobe_card.dart        # 옷 아이템 카드 UI
+│   │   ├── category_filter_bar.dart  # 옷 종류 필터
+│   │   └── wardrobe_card.dart
 │   └── 📂 view/
-│       └── wardrobe_screen.dart      # 옷장 메인 화면
+│       ├── clothes_set_detail_screen.dart  # 폴더 내 착장 상세
+│       ├── clothes_set_list_screen.dart    # 코디 폴더 목록
+│       └── wardrobe_screen.dart      # 옷장 메인
 │
-├── 📂 user/                    # [기능] 회원 관리
+├── 📂 user/                          # [기능] 회원·인증·프로필
 │   ├── 📂 component/
-│   │   └── social_login_button.dart  # 소셜 로그인 버튼
+│   │   └── social_login_button.dart
+│   ├── 📂 model/
+│   │   ├── auth_model.dart           # 로그인/회원가입 요청·응답 모델
+│   │   ├── auth_model.g.dart
+│   │   └── fitting_profile.dart      # 피팅 프로필(전신 사진·신체정보) 로컬 저장
+│   ├── 📂 repository/
+│   │   ├── auth_client.dart          # Retrofit 인증 API
+│   │   ├── auth_client.g.dart
+│   │   └── auth_repository.dart       # 인증·내 정보(닉네임) 로직
 │   └── 📂 view/
-│       ├── login_screen.dart   # 로그인 화면
-│       └── splash_screen.dart  # 앱 시작 로딩 화면
+│       ├── login_screen.dart
+│       ├── signup_screen.dart
+│       ├── splash_screen.dart        # 토큰 검증·딥링크 처리
+│       └── user_profile_screen.dart  # 유저 탭(피팅 프로필·닉네임)
 │
-└── 📄 main.dart                # 앱 진입점
+└── main.dart                         # 앱 진입점 (MaterialApp)
 ```

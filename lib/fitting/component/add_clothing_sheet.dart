@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // ✅ image_picker import
-import '../theme/fitting_room_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:capstone_fe/common/const/colors.dart'; // AppColors 경로 확인
 
-// 👇 [수정] onImageSelected 콜백 추가 (선택된 파일 반환용)
+// 호출 함수 (기존 파라미터 유지)
 void showAddClothingBottomSheet(
     BuildContext context,
     String type, {
       required VoidCallback onWardrobeTap,
-      required Function(File) onImageSelected, // ✅ 추가됨
+      required Function(File) onImageSelected,
     }) {
   showModalBottomSheet(
     context: context,
@@ -17,7 +17,7 @@ void showAddClothingBottomSheet(
     builder: (context) => AddClothingSheet(
       type: type,
       onWardrobeTap: onWardrobeTap,
-      onImageSelected: onImageSelected, // ✅ 전달
+      onImageSelected: onImageSelected,
     ),
   );
 }
@@ -25,7 +25,7 @@ void showAddClothingBottomSheet(
 class AddClothingSheet extends StatelessWidget {
   final String type;
   final VoidCallback onWardrobeTap;
-  final Function(File) onImageSelected; // ✅ 콜백 저장
+  final Function(File) onImageSelected;
 
   const AddClothingSheet({
     required this.type,
@@ -34,20 +34,17 @@ class AddClothingSheet extends StatelessWidget {
     super.key,
   });
 
-  // 👇 [New] 이미지 선택 로직 (카메라/갤러리 공통)
-  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+  Future<void> _pickImage(ImageSource source, BuildContext context) async {
     final picker = ImagePicker();
     try {
       final XFile? image = await picker.pickImage(
         source: source,
-        imageQuality: 80, // 용량 최적화
+        imageQuality: 80,
       );
 
-      if (image != null) {
-        if (context.mounted) {
-          Navigator.pop(context); // 바텀 시트 닫기
-          onImageSelected(File(image.path)); // ✅ 파일 전달
-        }
+      if (image != null && context.mounted) {
+        Navigator.pop(context);
+        onImageSelected(File(image.path));
       }
     } catch (e) {
       debugPrint("이미지 선택 오류: $e");
@@ -58,69 +55,75 @@ class AddClothingSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+              // 상단 핸들바 (중앙 정렬)
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.BORDER_COLOR,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
+
+              // 타이틀 영역
               Text(
                 '$type 추가하기',
                 style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: FittingRoomTheme.kTextColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.BLACK,
+                  letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
-                '어떤 방법으로 옷을 가져올까요?',
-                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                '이미지를 불러올 방법을 선택해주세요.',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.BODY_COLOR,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // 📸 카메라 촬영 연결
-              _buildOption(
+              // 옵션 리스트
+              _buildMinimalOption(
                 context,
-                Icons.camera_alt_rounded,
-                '사진 촬영',
-                '카메라로 직접 찍어서 올리기',
-                onTap: () => _pickImage(context, ImageSource.camera), // ✅ 연결
+                icon: Icons.camera_alt_outlined, // 라인 아이콘 사용
+                title: '사진 촬영',
+                onTap: () => _pickImage(ImageSource.camera, context),
               ),
+              const SizedBox(height: 12),
 
-              // 🧥 나만의 옷장 (기존 유지)
-              _buildOption(
+              _buildMinimalOption(
                 context,
-                Icons.checkroom_rounded,
-                '나만의 옷장',
-                '등록해둔 옷 중에서 선택하기',
+                icon: Icons.checkroom_outlined,
+                title: '나만의 옷장',
                 onTap: () {
                   Navigator.pop(context);
                   onWardrobeTap();
                 },
               ),
+              const SizedBox(height: 12),
 
-              // 🖼️ 갤러리 선택 연결
-              _buildOption(
+              _buildMinimalOption(
                 context,
-                Icons.photo_library_rounded,
-                '갤러리 선택',
-                '앨범에서 사진 가져오기',
-                isLast: true,
-                onTap: () => _pickImage(context, ImageSource.gallery), // ✅ 연결
+                icon: Icons.photo_library_outlined,
+                title: '갤러리 선택',
+                onTap: () => _pickImage(ImageSource.gallery, context),
               ),
             ],
           ),
@@ -129,56 +132,43 @@ class AddClothingSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildOption(
-      BuildContext context,
-      IconData icon,
-      String title,
-      String subtitle, {
-        bool isLast = false,
+  // 미니멀 스타일 옵션 버튼
+  Widget _buildMinimalOption(
+      BuildContext context, {
+        required IconData icon,
+        required String title,
         required VoidCallback onTap,
       }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           decoration: BoxDecoration(
-            border: isLast
-                ? null
-                : Border(bottom: BorderSide(color: Colors.grey[100]!)),
+            border: Border.all(color: AppColors.BORDER_COLOR), // 연한 회색 테두리
+            borderRadius: BorderRadius.circular(16),
+            color: AppColors.INPUT_BG_COLOR, // 아주 연한 회색 배경
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: FittingRoomTheme.kSecondarySoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: FittingRoomTheme.kPrimaryColor, size: 24),
-              ),
+              Icon(icon, color: AppColors.PRIMARYCOLOR, size: 22),
               const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: FittingRoomTheme.kTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.BLACK,
+                ),
               ),
               const Spacer(),
-              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[300]),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: AppColors.MEDIUM_GREY,
+              ),
             ],
           ),
         ),

@@ -51,5 +51,19 @@
     <string>옷 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>동영상 촬영을 위해 마이크 권한이 필요합니다.</string>
+    <!-- 소셜 로그인 OAuth2 리다이렉트: lookpick://auth?key= 임시키 -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>lookpick</string>
+            </array>
+            <key>CFBundleURLName</key>
+            <string>auth</string>
+        </dict>
+    </array>
 </dict>
 </plist>

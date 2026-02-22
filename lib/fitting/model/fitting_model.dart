@@ -29,3 +29,23 @@ class FittingStatusData {
   factory FittingStatusData.fromJson(Map<String, dynamic> json) =>
       _$FittingStatusDataFromJson(json);
 }
+
+/// 내가 저장한 코디 목록 응답 (GET /api/v1/virtual-fitting/my-closet)
+@JsonSerializable()
+class SavedFittingData {
+  final int? taskId;
+  final String? resultImgUrl;
+  final String? createdAt;
+  final String? setName;
+
+  SavedFittingData({
+    this.taskId,
+    this.resultImgUrl,
+    this.createdAt,
+    this.setName,
+  });
+
+  factory SavedFittingData.fromJson(Map<String, dynamic> json) =>
+      _$SavedFittingDataFromJson(json);
+  Map<String, dynamic> toJson() => _$SavedFittingDataToJson(this);
+}

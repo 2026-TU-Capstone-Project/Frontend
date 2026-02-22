@@ -34,14 +34,14 @@ class CustomTextFormField extends StatelessWidget {
 
         hintText: hintText,
         hintStyle: TextStyle(
-          color:  BODY_COLOR,
+          color:  AppColors.BODY_COLOR,
           fontSize: 14.0,
         ),
-        fillColor: INPUT_BG_COLOR,
+        fillColor: AppColors.INPUT_BG_COLOR,
         filled: true,
         border: baseBorder,
         enabledBorder: baseBorder,
-        focusedBorder: baseBorder.copyWith(borderSide: baseBorder.borderSide.copyWith(color: PRIMARYCOLOR))
+        focusedBorder: baseBorder.copyWith(borderSide: baseBorder.borderSide.copyWith(color: AppColors.PRIMARYCOLOR))
       ),
     );
   }

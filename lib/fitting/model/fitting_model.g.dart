@@ -25,3 +25,19 @@ Map<String, dynamic> _$FittingStatusDataToJson(FittingStatusData instance) =>
       'status': instance.status,
       'resultImgUrl': instance.resultImgUrl,
     };
+
+SavedFittingData _$SavedFittingDataFromJson(Map<String, dynamic> json) =>
+    SavedFittingData(
+      taskId: (json['taskId'] as num?)?.toInt(),
+      resultImgUrl: json['resultImgUrl'] as String?,
+      createdAt: json['createdAt'] as String?,
+      setName: json['setName'] as String?,
+    );
+
+Map<String, dynamic> _$SavedFittingDataToJson(SavedFittingData instance) =>
+    <String, dynamic>{
+      'taskId': instance.taskId,
+      'resultImgUrl': instance.resultImgUrl,
+      'createdAt': instance.createdAt,
+      'setName': instance.setName,
+    };

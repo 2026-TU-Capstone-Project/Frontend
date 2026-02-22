@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-import 'dart:io';
 class SingleFeedModel {
   final String title;
   final String author;
@@ -19,7 +17,16 @@ class SingleFeedModel {
 const ip = 'lookpick.kro.kr';
 
 // http 프로토콜 포함
-const baseUrl = 'http://$ip';
+const baseUrl = 'https://$ip';
+
+/// 소셜 로그인: 서버 OAuth2 진입 URL (브라우저로 열기 → 로그인 후 redirect_url?key= 임시키로 앱 복귀)
+const String oauth2GoogleUrl = 'https://$ip/oauth2/authorization/google';
+const String oauth2KakaoUrl = 'https://$ip/oauth2/authorization/kakao';
+
+/// 서버가 리다이렉트할 딥링크 스킴. redirect_url = lookpick://auth → 리다이렉트 시 lookpick://auth?key=UUID
+/// iOS Info.plist, Android intent-filter에 이 스킴 등록 필요.
+const String deepLinkScheme = 'lookpick';
+const String deepLinkHost = 'auth';
 
 
 final List<SingleFeedModel> dummyFeeds = [
