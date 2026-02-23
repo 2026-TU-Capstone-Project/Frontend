@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:app_links/app_links.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/common/view/root_tab.dart';
@@ -73,28 +72,10 @@ class _SplashScreenState extends State<SplashScreen> {
     final accessToken = await storage.read(key: 'ACCESS_TOKEN');
     final refreshToken = await storage.read(key: 'REFRESH_TOKEN');
 
-    // null 또는 빈 문자열: 소셜 로그인 리다이렉트(딥링크)로 앱이 열렸을 수 있음 → exchange 시도
+    // 토큰 없음 → 로그인 화면 (Native SDK 소셜 로그인은 로그인 화면에서 처리)
     final hasAccess = accessToken != null && accessToken.trim().isNotEmpty;
     final hasRefresh = refreshToken != null && refreshToken.trim().isNotEmpty;
     if (!hasAccess || !hasRefresh) {
-      try {
-        final uri = await AppLinks().getInitialLink();
-        if (uri != null &&
-            uri.scheme == deepLinkScheme &&
-            uri.host == deepLinkHost) {
-          final key = uri.queryParameters['key']?.trim();
-          if (key != null && key.isNotEmpty) {
-            final authRepository = AuthRepository(Dio(), baseUrl: baseUrl);
-            final response = await authRepository.exchangeTempKey(tempKey: key);
-            await storage.write(key: 'ACCESS_TOKEN', value: response.accessToken);
-            await storage.write(key: 'REFRESH_TOKEN', value: response.refreshToken);
-            await _syncNicknameFromServer(storage);
-            if (!mounted) return;
-            _moveToRootTab();
-            return;
-          }
-        }
-      } catch (_) {}
       _moveToLogin();
       return;
     }

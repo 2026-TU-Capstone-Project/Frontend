@@ -1,11 +1,16 @@
 import 'dart:io';
 
 import 'package:capstone_fe/common/app_router.dart';
+import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/user/view/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kakaoNativeAppKey.isNotEmpty) {
+    KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
+  }
   runApp(const MyApp());
 }
 

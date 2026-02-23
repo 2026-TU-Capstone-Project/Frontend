@@ -64,7 +64,10 @@ class _AiStylistInputState extends State<AiStylistInput>
       final response = await repository.getRecommendations(query: query);
 
       if (mounted) {
-        final list = response.data?.recommendations ?? [];
+        // API 스펙: { success, message, data: { recommendations: RecommendationItem[] } }
+        final list = response.success == true
+            ? (response.data?.recommendations ?? const [])
+            : <RecommendationModel>[];
         setState(() => _results = list);
         if (list.isEmpty && response.success) {
           ScaffoldMessenger.of(context).showSnackBar(

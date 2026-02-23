@@ -6,10 +6,11 @@ import '../model/recommend_model.dart';
 
 part 'recommend_repository.g.dart';
 
-@RestApi(baseUrl: 'http://$ip')
+/// 스타일 추천 API (GET /api/v1/virtual-fitting/recommendation/style)
+/// 응답: ApiResponse → data: { recommendations: RecommendationItem[] }
+@RestApi(baseUrl: 'https://$ip')
 abstract class RecommendRepository {
   factory RecommendRepository(Dio dio, {String? baseUrl}) = _RecommendRepository;
-
 
   @GET('/api/v1/virtual-fitting/recommendation/style')
   @Headers({'accessToken': 'true'})
