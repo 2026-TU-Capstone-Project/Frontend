@@ -2,7 +2,7 @@ import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/layout/default_layout.dart';
 import 'package:capstone_fe/feed/view/fashion_feed_screen.dart';
 import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
-import 'package:capstone_fe/home/view/diverva_home_v2.dart';
+import 'package:capstone_fe/home/view/home_screen.dart';
 import 'package:capstone_fe/personal_closet/view/wardrobe_screen.dart';
 import 'package:capstone_fe/user/view/user_profile_screen.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +15,7 @@ class RootTab extends StatefulWidget {
   State<RootTab> createState() => _RootTabState();
 }
 
-class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin{
+class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
   late TabController controller;
   int index = 0;
 
@@ -25,6 +25,7 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin{
     controller = TabController(length: 5, vsync: this);
     controller.addListener(tabListener);
   }
+
   @override
   void dispose() {
     controller.removeListener(tabListener);
@@ -59,60 +60,58 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin{
             ]
           : null,
       bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: AppColors.white,
-          selectedItemColor: AppColors.PRIMARYCOLOR,
-          unselectedItemColor: AppColors.MEDIUM_GREY,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-          type: BottomNavigationBarType.fixed,
-          onTap: (int index){
-            controller.animateTo(index);
-          },
-          currentIndex: index,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: '홈',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.checkroom_outlined),
-              activeIcon: Icon(Icons.checkroom),
-              label: '피팅룸',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.door_sliding_outlined),
-              activeIcon: Icon(Icons.door_sliding),
-              label: '옷장',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined),
-              activeIcon: Icon(Icons.grid_view),
-              label: '피드',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: '유저',
-            ),
-          ],
-        ),
+        backgroundColor: AppColors.white,
+        selectedItemColor: AppColors.PRIMARYCOLOR,
+        unselectedItemColor: AppColors.MEDIUM_GREY,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        type: BottomNavigationBarType.fixed,
+        onTap: (int index) {
+          controller.animateTo(index);
+        },
+        currentIndex: index,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: '홈',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.checkroom_outlined),
+            activeIcon: Icon(Icons.checkroom),
+            label: '피팅룸',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.door_sliding_outlined),
+            activeIcon: Icon(Icons.door_sliding),
+            label: '옷장',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_outlined),
+            activeIcon: Icon(Icons.grid_view),
+            label: '피드',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: '유저',
+          ),
+        ],
+      ),
 
-        child: TabBarView(
-          physics: NeverScrollableScrollPhysics(),
-            controller: controller,
-            children: [
-              DivervaHomeV2(
-                onGoToFittingRoom: () => controller.animateTo(1),
-              ),
-              FittingRoomScreen(),
-              WardrobeScreen(),
-              FashionFeedScreen(),
-              UserProfileScreen(),
-        ]
-        )
+      child: TabBarView(
+        physics: NeverScrollableScrollPhysics(),
+        controller: controller,
+        children: [
+          HomeScreen(onGoToFittingRoom: () => controller.animateTo(1)),
+          FittingRoomScreen(),
+          WardrobeScreen(),
+          FashionFeedScreen(),
+          UserProfileScreen(),
+        ],
+      ),
     );
   }
 }
