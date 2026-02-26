@@ -1,16 +1,11 @@
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/layout/default_layout.dart';
 import 'package:capstone_fe/feed/view/fashion_feed_screen.dart';
 import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
-import 'package:capstone_fe/home/view/home_screen.dart';
+import 'package:capstone_fe/home/view/diverva_home_v2.dart';
 import 'package:capstone_fe/personal_closet/view/wardrobe_screen.dart';
-import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:capstone_fe/user/view/user_profile_screen.dart';
-import 'package:capstone_fe/user/view/login_screen.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class RootTab extends StatefulWidget {
@@ -36,107 +31,82 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin{
     super.dispose();
   }
 
-  void tabListener(){
-    setState(() {
-      index = controller.index;
-    });
-  }
-
-  /// Swagger: POST /api/v1/auth/logout (RefreshTokenRequestDto) 후 로컬 토큰 삭제 → 로그인 화면
-  Future<void> _onLogout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('로그아웃'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    final storage = const FlutterSecureStorage();
-    final refreshToken = await storage.read(key: 'REFRESH_TOKEN');
-
-    try {
-      if (refreshToken != null && refreshToken.isNotEmpty) {
-        final authRepository = AuthRepository(Dio(), baseUrl: baseUrl);
-        await authRepository.logout(refreshToken: refreshToken);
-      }
-    } catch (_) {
-      // 서버 실패해도 로컬 토큰은 삭제하고 로그인으로 보냄
-    } finally {
-      await storage.deleteAll();
+  void tabListener() {
+    final newIndex = controller.index;
+    setState(() => index = newIndex);
+    // 피팅룸 탭으로 전환 시 헤더(키·사이즈) 갱신 → 마이페이지 수정 반영
+    if (newIndex == 1) {
+      FittingRoomScreen.onFittingTabSelected?.call();
     }
-
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+    // 옷장 탭으로 전환 시 닉네임 등 로컬 저장값 갱신
+    if (newIndex == 2) {
+      WardrobeScreen.onWardrobeTabSelected?.call();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 홈(0)에서만 앱바 표시, 피팅룸/옷장/피드/유저(1~4)에서는 앱바 없음
+    final showAppBar = (index == 0);
     return DefaultLayout(
-      title: SvgPicture.asset('asset/img/try-on.svg'),
-        actions: [
-          IconButton(onPressed: (){}, icon: const Icon(Icons.notifications_outlined)),
-          IconButton(onPressed: (){}, icon: const Icon(Icons.shopping_bag_outlined)),
-          IconButton(
-            onPressed: _onLogout,
-            icon: const Icon(Icons.logout_outlined),
-            tooltip: '로그아웃',
-          ),
-        ],
-        bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.PRIMARYCOLOR,
-            unselectedItemColor: AppColors.BODY_COLOR,
-            selectedFontSize: 12,
-            unselectedFontSize: 12,
-            type: BottomNavigationBarType.fixed,
-            onTap: (int index){
-            controller.animateTo(index);
-            },
-            currentIndex: index,
-            items: [
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.home_outlined),
-                  label: '홈'
-              ),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.checkroom_outlined),
-                  label: '피팅룸'
-              ),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.door_sliding_outlined),
-                  label: '옷장'
-              ),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.grid_view_outlined),
-                  label: '피드'
-              ),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline_rounded),
-                  label: '유저'
+      title: showAppBar ? SvgPicture.asset('asset/img/try-on.svg') : null,
+      actions: showAppBar
+          ? [
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.notifications_outlined),
               ),
             ]
+          : null,
+      bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: AppColors.white,
+          selectedItemColor: AppColors.PRIMARYCOLOR,
+          unselectedItemColor: AppColors.MEDIUM_GREY,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+          type: BottomNavigationBarType.fixed,
+          onTap: (int index){
+            controller.animateTo(index);
+          },
+          currentIndex: index,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: '홈',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.checkroom_outlined),
+              activeIcon: Icon(Icons.checkroom),
+              label: '피팅룸',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.door_sliding_outlined),
+              activeIcon: Icon(Icons.door_sliding),
+              label: '옷장',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.grid_view_outlined),
+              activeIcon: Icon(Icons.grid_view),
+              label: '피드',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline_rounded),
+              activeIcon: Icon(Icons.person_rounded),
+              label: '유저',
+            ),
+          ],
         ),
 
         child: TabBarView(
           physics: NeverScrollableScrollPhysics(),
             controller: controller,
             children: [
-              HomeScreen(),
+              DivervaHomeV2(
+                onGoToFittingRoom: () => controller.animateTo(1),
+              ),
               FittingRoomScreen(),
               WardrobeScreen(),
               FashionFeedScreen(),

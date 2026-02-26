@@ -16,22 +16,17 @@ class SingleFeedModel {
 
 const ip = 'lookpick.kro.kr';
 
-// http 프로토콜 포함
 const baseUrl = 'https://$ip';
 
-/// [Native SDK] Google idToken 검증용 Web Client ID (백엔드에서 전달, serverClientId로 사용)
 const String googleServerClientId =
     '591469667096-8u5m67p00l2b8ei6g2uk316m4snkmip4.apps.googleusercontent.com';
 
-/// [Native SDK] Google Android OAuth 클라이언트 ID (Cloud Console에서 패키지명 + SHA-1으로 생성한 Android용 클라이언트)
 const String googleAndroidClientId =
     '591469667096-vjrvhmeac7j35459eli7dti53vj4h5t1.apps.googleusercontent.com';
 
-/// [Native SDK] Google iOS OAuth 클라이언트 ID (Cloud Console에서 iOS 앱 번들 ID로 생성, Info.plist GIDClientID·URL scheme에 사용)
 const String googleIosClientId =
     '591469667096-ciiu857a9l3ve90bqjmt9gkk0116vfbl.apps.googleusercontent.com';
 
-/// [Native SDK] Kakao
 const String kakaoNativeAppKey = 'd0772fcff7b084d95095a1916acf8bd0';
 
 final List<SingleFeedModel> dummyFeeds = [

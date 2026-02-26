@@ -10,10 +10,13 @@ import '../clothes/repository/recommend_repository.dart';
 class AiStylistInput extends StatefulWidget {
   final TextEditingController controller;
   final List<Map<String, dynamic>> chips;
+  /// AI 추천 코디를 피팅룸에 적용할 때 호출 (상의/하의 ID 전달). null이면 입어보기 버튼 숨김.
+  final void Function(int? topId, int? bottomId)? onTryOnOutfit;
 
   const AiStylistInput({
     required this.controller,
     required this.chips,
+    this.onTryOnOutfit,
     super.key,
   });
 
@@ -54,7 +57,7 @@ class _AiStylistInputState extends State<AiStylistInput>
       _results.clear();
       widget.controller.clear();
     });
-    _resultPageController.jumpToPage(0);
+    // PageView는 결과가 있을 때만 빌드되므로 여기서 jumpToPage 호출 시 에러 발생 → 제거
 
     try {
       final dio = createAuthDio();
@@ -128,90 +131,219 @@ class _AiStylistInputState extends State<AiStylistInput>
     });
   }
 
-  // ✅ 상세 정보 모달 (미니멀 테마 적용)
+  // ✅ 상세 정보 모달 — 쇼핑몰·앱 상품 상세 느낌으로 재구성 (UX 개선)
   void _showDetailModal(RecommendationModel item) {
     final score = item.score ?? 0.0;
-    final analysis = item.styleAnalysis ?? "분석 정보가 없습니다.";
+    final analysis = item.styleAnalysis?.trim() ?? "";
+    final hasAnalysis = analysis.isNotEmpty && analysis != "분석 정보가 없습니다.";
+    final imageUrl = item.resultImgUrl ?? "";
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.BORDER_COLOR,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.88,
+          minChildSize: 0.4,
+          maxChildSize: 0.98,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.PRIMARYCOLOR, // 차콜 컬러
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.auto_awesome,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "AI 매칭률 ${(score * 100).toInt()}%",
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+              child: CustomScrollView(
+                controller: scrollController,
+                slivers: [
+                  // 상단 핸들
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
+                      child: Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.BORDER_COLOR,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                      ],
+                      ),
+                    ),
+                  ),
+                  // 추천 결과 이미지
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Stack(
+                          alignment: Alignment.bottomLeft,
+                          children: [
+                            AspectRatio(
+                              aspectRatio: 3 / 4,
+                              child: imageUrl.isEmpty
+                                  ? Container(
+                                      color: AppColors.INPUT_BG_COLOR,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.image_not_supported_outlined,
+                                          size: 48,
+                                          color: AppColors.MEDIUM_GREY,
+                                        ),
+                                      ),
+                                    )
+                                  : Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: AppColors.INPUT_BG_COLOR,
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.broken_image_rounded,
+                                            size: 48,
+                                            color: AppColors.MEDIUM_GREY,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            // 매칭률 뱃지 (이미지 하단 겹침)
+                            Positioned(
+                              left: 16,
+                              bottom: 16,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.PRIMARYCOLOR,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.auto_awesome,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "AI 매칭 ${(score * 100).toInt()}%",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 본문: 스타일 분석
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "스타일 분석",
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.BLACK,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.INPUT_BG_COLOR,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                  color: AppColors.BORDER_COLOR, width: 1),
+                            ),
+                            child: Text(
+                              hasAnalysis
+                                  ? analysis
+                                  : "이 코디에 대한 분석 정보가 없어요.",
+                              style: const TextStyle(
+                                fontSize: 15,
+                                height: 1.6,
+                                color: AppColors.BODY_COLOR,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          // 입어보기 버튼 (topId 또는 bottomId가 있고, 콜백이 있을 때만)
+                          if (widget.onTryOnOutfit != null &&
+                              (item.topId != null || item.bottomId != null)) ...[
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  widget.onTryOnOutfit!(item.topId, item.bottomId);
+                                },
+                                icon: const Icon(Icons.checkroom, size: 20),
+                                label: const Text("이 코디로 입어보기"),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.PRIMARYCOLOR,
+                                  foregroundColor: AppColors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          // 안내 문구
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb_outline_rounded,
+                                size: 18,
+                                color: AppColors.MEDIUM_GREY,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "다른 스타일이 궁금하면 검색창에서 다시 요청해보세요.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.MEDIUM_GREY,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Text(
-                "스타일 분석",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.BLACK,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                analysis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.6,
-                  color: AppColors.BODY_COLOR,
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            );
+          },
         );
       },
     );

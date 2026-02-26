@@ -145,4 +145,4 @@ id, category, name, imgUrl, color, season, material, thickness, neckLine, sleeve
 
 ### 참고: Swagger에 없는 클라이언트 API
 
-- `POST /api/v1/clothes/analysis` (`ClothesRepository.uploadAnalysisCloth`) — 스펙에는 없음. 백엔드 변경 시 제거/수정 검토.
+- `POST /api/v1/clothes/analysis` (`ClothesRepository.uploadAnalysisCloth`) — 상·하의·신발 **파일** 업로드용. AI 스타일리스트 추천 결과 상세에서는 사용하지 않음(추천 결과는 이미 서버에서 생성·분석된 상태).

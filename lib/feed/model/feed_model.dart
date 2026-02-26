@@ -1,3 +1,84 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'feed_model.g.dart';
+
+// --- API 응답 모델 (GET /api/v1/feeds, GET /api/v1/feeds/me) ---
+@JsonSerializable()
+class FeedListItem {
+  final int feedId;
+  final String feedTitle;
+  final String styleImageUrl;
+
+  FeedListItem({
+    required this.feedId,
+    required this.feedTitle,
+    required this.styleImageUrl,
+  });
+
+  factory FeedListItem.fromJson(Map<String, dynamic> json) =>
+      _$FeedListItemFromJson(json);
+  Map<String, dynamic> toJson() => _$FeedListItemToJson(this);
+}
+
+// --- 피드 상세 (GET /api/v1/feeds/{feedId}) ---
+@JsonSerializable()
+class FeedDetailData {
+  final int authorId;
+  final String authorNickname;
+  final String styleImageUrl;
+  final int styleImageId;
+  final String? topImageUrl;
+  final String? topName;
+  final int? topClothesId;
+  final String? bottomImageUrl;
+  final String? bottomName;
+  final int? bottomClothesId;
+  final String? feedTitle;
+  final String? feedContent;
+
+  FeedDetailData({
+    required this.authorId,
+    required this.authorNickname,
+    required this.styleImageUrl,
+    required this.styleImageId,
+    this.topImageUrl,
+    this.topName,
+    this.topClothesId,
+    this.bottomImageUrl,
+    this.bottomName,
+    this.bottomClothesId,
+    this.feedTitle,
+    this.feedContent,
+  });
+
+  factory FeedDetailData.fromJson(Map<String, dynamic> json) =>
+      _$FeedDetailDataFromJson(json);
+  Map<String, dynamic> toJson() => _$FeedDetailDataToJson(this);
+}
+
+// --- 피드 게시 전 미리보기 (GET /api/v1/feeds/preview/{fittingTaskId}) ---
+@JsonSerializable()
+class FeedPreviewData {
+  final String styleImageUrl;
+  final String? topImageUrl;
+  final String? topName;
+  final String? bottomImageUrl;
+  final String? bottomName;
+
+  FeedPreviewData({
+    required this.styleImageUrl,
+    this.topImageUrl,
+    this.topName,
+    this.bottomImageUrl,
+    this.bottomName,
+  });
+
+  factory FeedPreviewData.fromJson(Map<String, dynamic> json) =>
+      _$FeedPreviewDataFromJson(json);
+  Map<String, dynamic> toJson() => _$FeedPreviewDataToJson(this);
+}
+
+// --- 기존 더미용 (추후 제거 가능) ---
 class SingleFeedModel {
   final String title;
   final String author;

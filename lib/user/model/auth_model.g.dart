@@ -9,16 +9,14 @@ part of 'auth_model.dart';
 SignupBody _$SignupBodyFromJson(Map<String, dynamic> json) => SignupBody(
   email: json['email'] as String,
   password: json['password'] as String,
-  username: json['username'] as String?,
-  nickname: json['nickname'] as String?,
+  gender: json['gender'] as String,
 );
 
 Map<String, dynamic> _$SignupBodyToJson(SignupBody instance) =>
     <String, dynamic>{
       'email': instance.email,
       'password': instance.password,
-      'username': ?instance.username,
-      'nickname': ?instance.nickname,
+      'gender': instance.gender,
     };
 
 LoginBody _$LoginBodyFromJson(Map<String, dynamic> json) => LoginBody(
@@ -72,3 +70,23 @@ LogoutBody _$LogoutBodyFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$LogoutBodyToJson(LogoutBody instance) =>
     <String, dynamic>{'refreshToken': instance.refreshToken};
+
+UserMe _$UserMeFromJson(Map<String, dynamic> json) => UserMe(
+  userId: (json['userId'] as num?)?.toInt(),
+  email: json['email'] as String?,
+  nickname: json['nickname'] as String?,
+  profileImageUrl: json['profileImageUrl'] as String?,
+  height: (json['height'] as num?)?.toDouble(),
+  weight: (json['weight'] as num?)?.toDouble(),
+  gender: json['gender'] as String?,
+);
+
+Map<String, dynamic> _$UserMeToJson(UserMe instance) => <String, dynamic>{
+  'userId': instance.userId,
+  'email': instance.email,
+  'nickname': instance.nickname,
+  'profileImageUrl': instance.profileImageUrl,
+  'height': instance.height,
+  'weight': instance.weight,
+  'gender': instance.gender,
+};

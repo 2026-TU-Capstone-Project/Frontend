@@ -22,6 +22,13 @@ ClothesModel _$ClothesModelFromJson(Map<String, dynamic> json) => ClothesModel(
   texture: json['texture'] as String?,
   buyUrl: json['buyUrl'] as String?,
   createdAt: json['createdAt'] as String?,
+  thickness: json['thickness'] as String?,
+  neckLine: json['neckLine'] as String?,
+  sleeveType: json['sleeveType'] as String?,
+  pattern: json['pattern'] as String?,
+  closure: json['closure'] as String?,
+  length: json['length'] as String?,
+  occasion: json['occasion'] as String?,
 );
 
 Map<String, dynamic> _$ClothesModelToJson(ClothesModel instance) =>
@@ -41,4 +48,11 @@ Map<String, dynamic> _$ClothesModelToJson(ClothesModel instance) =>
       'texture': instance.texture,
       'buyUrl': instance.buyUrl,
       'createdAt': instance.createdAt,
+      'thickness': instance.thickness,
+      'neckLine': instance.neckLine,
+      'sleeveType': instance.sleeveType,
+      'pattern': instance.pattern,
+      'closure': instance.closure,
+      'length': instance.length,
+      'occasion': instance.occasion,
     };

@@ -2,19 +2,17 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'auth_model.g.dart';
 
-// 1. 회원가입 요청 Body (Swagger SignupDto: email, password 필수 / username, nickname 선택)
+// 1. 회원가입 요청 Body (POST /api/v1/auth/signup: email, password, gender)
 @JsonSerializable(includeIfNull: false)
 class SignupBody {
   final String email;
   final String password;
-  final String? username;
-  final String? nickname;
+  final String gender;
 
   SignupBody({
     required this.email,
     required this.password,
-    this.username,
-    this.nickname,
+    required this.gender,
   });
 
   Map<String, dynamic> toJson() => _$SignupBodyToJson(this);
@@ -96,4 +94,29 @@ class LogoutBody {
   LogoutBody({required this.refreshToken});
 
   Map<String, dynamic> toJson() => _$LogoutBodyToJson(this);
+}
+
+// 9. 마이페이지 조회 응답 (GET /api/v1/users/me data)
+@JsonSerializable()
+class UserMe {
+  final int? userId;
+  final String? email;
+  final String? nickname;
+  final String? profileImageUrl;
+  final double? height;
+  final double? weight;
+  final String? gender;
+
+  UserMe({
+    this.userId,
+    this.email,
+    this.nickname,
+    this.profileImageUrl,
+    this.height,
+    this.weight,
+    this.gender,
+  });
+
+  factory UserMe.fromJson(Map<String, dynamic> json) => _$UserMeFromJson(json);
+  Map<String, dynamic> toJson() => _$UserMeToJson(this);
 }

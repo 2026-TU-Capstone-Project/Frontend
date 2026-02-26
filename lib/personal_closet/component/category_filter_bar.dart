@@ -37,7 +37,13 @@ class CategoryFilterBar extends StatelessWidget {
                   color: isSelected ? Colors.black : Colors.grey.shade300,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))]
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
                     : [],
               ),
               child: Center(

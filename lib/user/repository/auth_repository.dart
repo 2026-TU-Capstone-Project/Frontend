@@ -1,17 +1,8 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:capstone_fe/user/repository/auth_client.dart';
 import '../model/auth_model.dart';
-
-/// 서버 "내 정보" 응답 (닉네임 등). API 경로/필드는 백엔드 스펙에 맞게 수정.
-class MeResponse {
-  final String? nickname;
-
-  MeResponse({this.nickname});
-
-  factory MeResponse.fromJson(Map<String, dynamic> json) => MeResponse(
-        nickname: json['nickname'] as String?,
-      );
-}
 
 class AuthRepository {
   final AuthClient _client;
@@ -25,15 +16,13 @@ class AuthRepository {
   Future<bool> signUp({
     required String email,
     required String password,
-    required String nickname,
-
+    required String gender,
   }) async {
     try {
       await _client.signup(SignupBody(
         email: email,
         password: password,
-        nickname: nickname,
-
+        gender: gender,
       ));
       return true;
     } catch (e) {
@@ -126,19 +115,69 @@ class AuthRepository {
     }
   }
 
-  /// 내 정보 조회 (Bearer 필요). 서버에 GET /api/v1/users/me 등이 있으면 호출.
-  /// 없거나 404면 null 반환 → 닉네임은 회원가입 시 로컬 저장분만 사용.
-  Future<MeResponse?> getMe(Dio authDio) async {
+  /// 마이페이지 조회 (GET /api/v1/users/me). Bearer 필요.
+  /// 응답이 { success, message, data } 래핑이면 data 안 객체로 파싱.
+  Future<UserMe?> getMe(Dio authDio) async {
     try {
       final response = await authDio.get<Map<String, dynamic>>(
         '/api/v1/users/me',
         options: Options(responseType: ResponseType.json),
       );
-      final data = response.data;
+      final body = response.data;
+      if (body == null) return null;
+      final data = body['data'] as Map<String, dynamic>?;
       if (data == null) return null;
-      return MeResponse.fromJson(data);
+      return UserMe.fromJson(data);
     } catch (_) {
       return null;
+    }
+  }
+
+  /// 마이페이지 수정 (PATCH /api/v1/users/me).
+  /// multipart/form-data: nickname, height, weight, gender(MALE|FEMALE) 필드 + file(선택). 보낸 필드만 수정.
+  /// (서버가 쿼리가 아닌 본문 필드만 읽는 경우가 많아, 모두 form 필드로 전송)
+  Future<UserMe?> patchMe(
+    Dio authDio, {
+    String? nickname,
+    double? height,
+    double? weight,
+    String? gender,
+    File? profileImage,
+  }) async {
+    try {
+      final formData = FormData();
+
+      if (nickname != null && nickname.isNotEmpty) {
+        formData.fields.add(MapEntry('nickname', nickname));
+      }
+      if (height != null) {
+        formData.fields.add(MapEntry('height', height.toString()));
+      }
+      if (weight != null) {
+        formData.fields.add(MapEntry('weight', weight.toString()));
+      }
+      if (gender != null && (gender == 'MALE' || gender == 'FEMALE')) {
+        formData.fields.add(MapEntry('gender', gender));
+      }
+      if (profileImage != null) {
+        formData.files.add(MapEntry(
+          'file',
+          await MultipartFile.fromFile(profileImage.path, filename: 'profile.jpg'),
+        ));
+      }
+
+      final response = await authDio.patch<Map<String, dynamic>>(
+        '/api/v1/users/me',
+        data: formData.fields.isEmpty && formData.files.isEmpty ? null : formData,
+        options: Options(responseType: ResponseType.json),
+      );
+      final body = response.data;
+      if (body == null) return null;
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      return UserMe.fromJson(data);
+    } catch (_) {
+      rethrow;
     }
   }
 }

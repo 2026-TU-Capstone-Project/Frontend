@@ -1,61 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 
-class FittingRoomHeader extends StatefulWidget {
-  const FittingRoomHeader({super.key});
+/// 피팅룸 상단 헤더. 왼쪽에 [leading](토글 등), 오른쪽에 키·사이즈 스펙
+class FittingRoomHeader extends StatelessWidget {
+  /// 왼쪽 영역 (토글 등). null이면 비움
+  final Widget? leading;
+  final String? heightLabel;
+  final String? sizeLabel;
 
-  @override
-  State<FittingRoomHeader> createState() => _FittingRoomHeaderState();
-}
-
-class _FittingRoomHeaderState extends State<FittingRoomHeader> {
-  String? _nickname;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNickname();
-  }
-
-  Future<void> _loadNickname() async {
-    final n = await const FlutterSecureStorage().read(key: 'NICKNAME');
-    if (mounted) setState(() => _nickname = n);
-  }
+  const FittingRoomHeader({
+    super.key,
+    this.leading,
+    this.heightLabel,
+    this.sizeLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final title = (_nickname != null && _nickname!.isNotEmpty)
-        ? '${_nickname!}의 피팅룸'
-        : '나의 피팅룸';
+    final heightStr = heightLabel?.trim();
+    final sizeStr = sizeLabel?.trim();
+    final hasHeight = heightStr != null && heightStr.isNotEmpty;
+    final hasSize = sizeStr != null && sizeStr.isNotEmpty;
+    String specText = '미입력';
+    if (hasHeight && hasSize) {
+      specText = '${heightStr}cm · $sizeStr size';
+    } else if (hasHeight) {
+      specText = '${heightStr}cm';
+    } else if (hasSize) {
+      specText = '$sizeStr size';
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'VIRTUAL STUDIO',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.PRIMARYCOLOR,
-                letterSpacing: 1.0,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: AppColors.BLACK,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
+        if (leading != null) Expanded(child: leading!),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
@@ -71,6 +50,7 @@ class _FittingRoomHeaderState extends State<FittingRoomHeader> {
             ],
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
                 Icons.straighten_rounded,
@@ -78,9 +58,9 @@ class _FittingRoomHeaderState extends State<FittingRoomHeader> {
                 color: AppColors.MEDIUM_GREY,
               ),
               const SizedBox(width: 6),
-              const Text(
-                '170cm · M size',
-                style: TextStyle(
+              Text(
+                specText,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.BODY_COLOR,

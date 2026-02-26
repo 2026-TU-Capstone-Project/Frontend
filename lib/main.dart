@@ -1,6 +1,6 @@
 import 'dart:io';
-
 import 'package:capstone_fe/common/app_router.dart';
+import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/user/view/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +25,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         platform: Platform.isIOS ? TargetPlatform.iOS : TargetPlatform.android,
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: AppColors.PRIMARYCOLOR,
+          circularTrackColor: AppColors.BORDER_COLOR,
+        ),
       ),
       home: const SplashScreen(),
     );

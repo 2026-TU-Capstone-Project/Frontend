@@ -2,55 +2,35 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
-/// 온보딩에서 입력한 가상 피팅용 유저 정보 (전신 사진 경로 + 신체 스펙)
+/// 가상 피팅용 유저 정보: 정면 사진 + 상의/하의 사이즈 3가지
 /// iOS 채널 오류 방지를 위해 SharedPreferences 대신 파일(JSON)로 저장
 class FittingProfile {
   final String? frontImagePath;
-  final String? sideImagePath;
-  final String? height;
-  final String? weight;
   final String? topSize;
   final String? bottomSize;
-  final String? shoeSize;
 
   FittingProfile({
     this.frontImagePath,
-    this.sideImagePath,
-    this.height,
-    this.weight,
     this.topSize,
     this.bottomSize,
-    this.shoeSize,
   });
 
   Map<String, dynamic> toJson() => {
         'frontImagePath': frontImagePath,
-        'sideImagePath': sideImagePath,
-        'height': height,
-        'weight': weight,
         'topSize': topSize,
         'bottomSize': bottomSize,
-        'shoeSize': shoeSize,
       };
 
   factory FittingProfile.fromJson(Map<String, dynamic> json) => FittingProfile(
         frontImagePath: json['frontImagePath'] as String?,
-        sideImagePath: json['sideImagePath'] as String?,
-        height: json['height'] as String?,
-        weight: json['weight'] as String?,
         topSize: json['topSize'] as String?,
         bottomSize: json['bottomSize'] as String?,
-        shoeSize: json['shoeSize'] as String?,
       );
 
   bool get hasAnyData =>
       frontImagePath != null ||
-      sideImagePath != null ||
-      (height != null && height!.isNotEmpty) ||
-      (weight != null && weight!.isNotEmpty) ||
       (topSize != null && topSize!.isNotEmpty) ||
-      (bottomSize != null && bottomSize!.isNotEmpty) ||
-      (shoeSize != null && shoeSize!.isNotEmpty);
+      (bottomSize != null && bottomSize!.isNotEmpty);
 
   static const String _fileName = 'fitting_profile.json';
 

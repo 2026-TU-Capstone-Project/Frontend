@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
+import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
 import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repository.dart';
 
@@ -67,25 +68,12 @@ class _ClothesSetDetailScreenState extends State<ClothesSetDetailScreen> {
   }
 
   Future<void> _deleteFolder() async {
-    final ok = await showDialog<bool>(
+    final ok = await AppDialog.confirm(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('폴더 삭제'),
-        content: const Text(
-          '이 폴더와 안에 있는 모든 코디가 삭제됩니다. 계속할까요?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.ERROR_COLOR),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
+      title: '폴더 삭제',
+      content: '이 폴더와 안에 있는 모든 코디가 삭제됩니다. 계속할까요?',
+      confirmLabel: '삭제',
+      confirmIsDestructive: true,
     );
     if (ok != true || !mounted) return;
 
@@ -115,23 +103,12 @@ class _ClothesSetDetailScreenState extends State<ClothesSetDetailScreen> {
   }
 
   Future<void> _deleteFittingFromSet(int taskId) async {
-    final ok = await showDialog<bool>(
+    final ok = await AppDialog.confirm(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('코디 삭제'),
-        content: const Text('이 코디를 폴더에서 삭제할까요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.ERROR_COLOR),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
+      title: '코디 삭제',
+      content: '이 코디를 폴더에서 삭제할까요?',
+      confirmLabel: '삭제',
+      confirmIsDestructive: true,
     );
     if (ok != true || !mounted) return;
 
@@ -171,43 +148,17 @@ class _ClothesSetDetailScreenState extends State<ClothesSetDetailScreen> {
   }
 
   void _showRenameDialog() {
-    final controller = TextEditingController(text: _folder.setName ?? '');
-    showDialog<void>(
+    AppDialog.prompt(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('폴더 이름 수정'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: '폴더 이름',
-            border: OutlineInputBorder(),
-          ),
-          autofocus: true,
-          onSubmitted: (value) {
-            if (value.trim().isNotEmpty) {
-              Navigator.pop(ctx);
-              _updateFolderName(value.trim());
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                Navigator.pop(ctx);
-                _updateFolderName(name);
-              }
-            },
-            child: const Text('저장'),
-          ),
-        ],
-      ),
-    );
+      title: '폴더 이름 수정',
+      hintText: '폴더 이름',
+      initialValue: _folder.setName ?? '',
+      confirmLabel: '저장',
+    ).then((name) {
+      if (name != null && name.isNotEmpty) {
+        _updateFolderName(name);
+      }
+    });
   }
 
   void _showImageFullScreen(String imageUrl) {

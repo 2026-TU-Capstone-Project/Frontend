@@ -2,10 +2,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:capstone_fe/common/const/colors.dart';
+import 'package:capstone_fe/common/const/data.dart';
+import 'package:capstone_fe/common/network/auth_dio.dart';
+import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/repository/feed_repository.dart';
+import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/fitting/component/fitting_profile_edit_sheet.dart';
+import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
+import 'package:capstone_fe/user/repository/auth_repository.dart';
+import 'package:capstone_fe/user/component/user_me_edit_sheet.dart';
+import 'package:capstone_fe/user/view/login_screen.dart';
+import 'package:dio/dio.dart';
 
-/// RootTab 유저 탭: 다른 앱의 마이페이지처럼 헤더 + 카드형 메뉴, 피팅 프로필 수정 가능
+/// RootTab 유저 탭: 마이페이지(서버 GET/PATCH /users/me) + 피팅 프로필(로컬)
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -14,9 +24,13 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
+  UserMe? _me;
   FittingProfile? _profile;
-  String? _nickname;
+  String? _nicknameFromStorage;
   bool _loading = true;
+  List<FeedListItem> _myFeeds = [];
+
+  final FeedRepository _feedRepo = FeedRepository(createAuthDio(), baseUrl: baseUrl);
 
   @override
   void initState() {
@@ -26,18 +40,58 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final authDio = createAuthDio();
+    final repo = AuthRepository(Dio(), baseUrl: baseUrl);
+    final me = await repo.getMe(authDio);
     final p = await FittingProfile.load();
-    final n = await const FlutterSecureStorage().read(key: 'NICKNAME');
+    final stored = await const FlutterSecureStorage().read(key: 'NICKNAME');
+    List<FeedListItem> myFeeds = [];
+    try {
+      final feedResp = await _feedRepo.getMyFeeds();
+      if (feedResp.success && feedResp.data != null) myFeeds = feedResp.data!;
+    } catch (_) {}
     if (mounted) {
       setState(() {
+        _me = me;
         _profile = p;
-        _nickname = n;
+        _nicknameFromStorage = stored;
+        _myFeeds = myFeeds;
         _loading = false;
       });
     }
   }
 
-  void _openEditSheet() {
+  void _openMeEditSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => UserMeEditSheet(
+        initial: _me,
+        onSaved: _load,
+        onLogout: _onLogout,
+      ),
+    );
+  }
+
+  Future<void> _onLogout() async {
+    final storage = const FlutterSecureStorage();
+    final refreshToken = await storage.read(key: 'REFRESH_TOKEN');
+    try {
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        final authRepository = AuthRepository(Dio(), baseUrl: baseUrl);
+        await authRepository.logout(refreshToken: refreshToken);
+      }
+    } catch (_) {}
+    await storage.deleteAll();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  void _openFittingProfileEditSheet() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -59,42 +113,126 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     final hasProfile = _profile != null && _profile!.hasAnyData;
     final p = _profile;
+    final me = _me;
+    // 수정 후 저장된 닉네임(스토리지) 우선, 없으면 서버 값
+    final nickname = _nicknameFromStorage?.trim().isNotEmpty == true
+        ? _nicknameFromStorage!.trim()
+        : me?.nickname?.trim();
+    final displayName = (nickname != null && nickname.isNotEmpty) ? nickname : '내 프로필';
+    final gender = me?.gender?.trim();
 
     return SafeArea(
       child: CustomScrollView(
         slivers: [
-          // 프로필 헤더 (다른 앱 유저 탭 스타일)
+          // 프로필 헤더: 서버 프로필 이미지/닉네임, 탭 시 마이페이지 수정 시트
+          SliverToBoxAdapter(
+            child: InkWell(
+              onTap: _openMeEditSheet,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: Row(
+                  children: [
+                    _buildAvatar(me, p),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                displayName,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.BLACK,
+                                ),
+                              ),
+                              if (gender != null && gender.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                _buildGenderBadge(gender),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            hasProfile ? '피팅 프로필이 등록되어 있어요' : '피팅 프로필을 등록해보세요',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.BODY_COLOR,
+                            ),
+                          ),
+                          if (me != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '프로필 수정하기',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.ACCENT_COLOR,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 인스타 스타일: 게시물 수 · 프로필 편집/공유
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Column(
                 children: [
-                  _buildAvatar(p),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          (_nickname != null && _nickname!.isNotEmpty)
-                              ? '$_nickname 프로필'
-                              : '내 프로필',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.BLACK,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem('${_myFeeds.length}', '게시물'),
+                      _buildStatItem('0', '팔로워'),
+                      _buildStatItem('0', '팔로잉'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _openMeEditSheet,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.BLACK,
+                            side: const BorderSide(color: AppColors.BORDER_COLOR),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: const Text('프로필 편집'),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          hasProfile ? '피팅 프로필이 등록되어 있어요' : '피팅 프로필을 등록해보세요',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.BODY_COLOR,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('프로필 공유 기능은 준비 중이에요.')),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.BLACK,
+                            side: const BorderSide(color: AppColors.BORDER_COLOR),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: const Text('프로필 공유'),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -112,15 +250,74 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ]),
             ),
           ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            sliver: _myFeeds.isEmpty
+                ? SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: Text(
+                          '아직 게시한 피드가 없어요.\n피드 탭에서 올려보세요.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.MEDIUM_GREY,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 2,
+                      crossAxisSpacing: 2,
+                      childAspectRatio: 1,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = _myFeeds[index];
+                        return GestureDetector(
+                          onTap: () async {
+                            final deleted = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FeedDetailScreen(
+                                  feedId: item.feedId,
+                                  isMine: true,
+                                ),
+                              ),
+                            );
+                            if (deleted == true) _load();
+                          },
+                          child: Image.network(
+                            item.styleImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: AppColors.INPUT_BG_COLOR,
+                              child: Icon(Icons.broken_image_outlined, color: AppColors.MEDIUM_GREY),
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: _myFeeds.length,
+                    ),
+                  ),
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
   }
 
-  /// 헤더용 아바타: 프로필에 정면 사진이 있으면 썸네일, 없으면 기본 아이콘
-  Widget _buildAvatar(FittingProfile? p) {
-    String? path = p?.frontImagePath;
+  /// 헤더용 아바타: 서버 profileImageUrl 우선, 없으면 로컬 피팅 정면 사진, 없으면 기본 아이콘
+  Widget _buildAvatar(UserMe? me, FittingProfile? p) {
+    final networkUrl = me?.profileImageUrl?.trim();
+    final localPath = p?.frontImagePath;
     return Container(
       width: 72,
       height: 72,
@@ -137,21 +334,80 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ],
       ),
       child: ClipOval(
-        child: path != null
-            ? _imageFromPath(path)
-            : Icon(
-                Icons.person_rounded,
-                size: 40,
-                color: AppColors.MEDIUM_GREY,
-              ),
+        child: networkUrl != null && networkUrl.isNotEmpty
+            ? Image.network(networkUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _defaultAvatarIcon())
+            : localPath != null
+                ? _imageFromPath(localPath)
+                : _defaultAvatarIcon(),
       ),
+    );
+  }
+
+  /// 성별 뱃지: 남성 파란색, 여성 빨간색(핑크)
+  Widget _buildGenderBadge(String gender) {
+    final isMale = gender.toUpperCase() == 'MALE';
+    final color = isMale ? Colors.blue : Colors.pink;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.5), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isMale ? Icons.male : Icons.female,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isMale ? '남' : '여',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _defaultAvatarIcon() {
+    return Icon(Icons.person_rounded, size: 40, color: AppColors.MEDIUM_GREY);
+  }
+
+  /// 인스타 스타일 통계 한 칸 (게시물 / 팔로워 / 팔로잉)
+  Widget _buildStatItem(String count, String label) {
+    return Column(
+      children: [
+        Text(
+          count,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.BLACK,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.BODY_COLOR,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _imageFromPath(String path) {
     final file = File(path);
     if (!file.existsSync()) {
-      return Icon(Icons.person_rounded, size: 40, color: AppColors.MEDIUM_GREY);
+      return _defaultAvatarIcon();
     }
     return Image.file(file, fit: BoxFit.cover);
   }
@@ -164,7 +420,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       elevation: 0,
       shadowColor: Colors.black.withOpacity(0.06),
       child: InkWell(
-        onTap: _openEditSheet,
+        onTap: _openFittingProfileEditSheet,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: double.infinity,
@@ -215,7 +471,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
-                    onPressed: _openEditSheet,
+                    onPressed: _openFittingProfileEditSheet,
                     icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.ACCENT_COLOR),
                     label: const Text(
                       '수정',
@@ -229,7 +485,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ] else ...[
                 const Text(
-                  '가상 피팅을 위해 전신 사진과 신체 정보를 등록해주세요.',
+                  '정면 사진과 상의·하의 사이즈를 등록해주세요.',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.BODY_COLOR,
@@ -240,7 +496,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: _openEditSheet,
+                    onPressed: _openFittingProfileEditSheet,
                     icon: const Icon(Icons.add_rounded, size: 20),
                     label: const Text('등록하기'),
                     style: OutlinedButton.styleFrom(
@@ -261,14 +517,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// 신체 정보 한 줄 요약 (키 · 상의 · 신발 등)
+  /// 피팅 프로필 한 줄 요약 (상의·하의 사이즈)
   Widget _buildProfileSummary(FittingProfile p) {
     final parts = <String>[];
-    if (p.height != null && p.height!.isNotEmpty) parts.add('키 ${p.height}cm');
-    if (p.weight != null && p.weight!.isNotEmpty) parts.add('${p.weight}kg');
     if (p.topSize != null && p.topSize!.isNotEmpty) parts.add('상의 ${p.topSize}');
     if (p.bottomSize != null && p.bottomSize!.isNotEmpty) parts.add('하의 ${p.bottomSize}');
-    if (p.shoeSize != null && p.shoeSize!.isNotEmpty) parts.add('신발 ${p.shoeSize}mm');
     final summary = parts.isEmpty ? '미입력' : parts.join(' · ');
 
     return Container(

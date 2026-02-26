@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:capstone_fe/common/const/data.dart'; // ✅ baseUrl 가져오기
+import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 
 import '../../common/const/Component/custom_text_form_field.dart';
@@ -17,14 +16,14 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   String _email = '';
   String _password = '';
-  String _nickname = '';
+  String _gender = 'MALE';
 
   bool _isLoading = false;
 
   Future<void> _onSignupPressed() async {
-    if (_email.isEmpty || _password.isEmpty || _nickname.isEmpty) {
+    if (_email.isEmpty || _password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("모든 정보를 입력해주세요.")),
+        const SnackBar(content: Text("이메일과 비밀번호를 입력해주세요.")),
       );
       return;
     }
@@ -34,20 +33,14 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-
       final dio = Dio();
-
-      // ✅ data.dart에 선언된 baseUrl(https)을 사용합니다.
       final repository = AuthRepository(dio, baseUrl: baseUrl);
 
       await repository.signUp(
         email: _email,
         password: _password,
-        nickname: _nickname,
+        gender: _gender,
       );
-
-      const storage = FlutterSecureStorage();
-      await storage.write(key: 'NICKNAME', value: _nickname);
 
       if (!mounted) return;
 
@@ -144,13 +137,17 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 24.0),
 
-              const Text("닉네임", style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text("성별", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8.0),
-              CustomTextFormField(
-                onChanged: (String value) {
-                  _nickname = value;
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'MALE', label: Text('남성'), icon: Icon(Icons.male)),
+                  ButtonSegment(value: 'FEMALE', label: Text('여성'), icon: Icon(Icons.female)),
+                ],
+                selected: {_gender},
+                onSelectionChanged: (Set<String> v) {
+                  if (v.isNotEmpty) setState(() => _gender = v.first);
                 },
-                hintText: '닉네임을 입력해 주세요',
               ),
               const SizedBox(height: 40.0),
 

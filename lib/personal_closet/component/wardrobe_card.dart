@@ -35,9 +35,7 @@ class WardrobeCard extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(kBorderRadius),
                     border: Border.all(
-                      color: isSelected
-                          ? kPrimaryColor
-                          : Colors.grey.shade200,
+                      color: isSelected ? kPrimaryColor : Colors.grey.shade200,
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -57,7 +55,11 @@ class WardrobeCard extends StatelessWidget {
                         color: kPrimaryColor,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check, size: 14, color: Colors.white),
+                      child: const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
               ],
@@ -70,10 +72,7 @@ class WardrobeCard extends StatelessWidget {
               title!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ],
         ],

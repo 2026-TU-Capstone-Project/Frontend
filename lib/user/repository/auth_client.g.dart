@@ -12,7 +12,7 @@ part of 'auth_client.dart';
 
 class _AuthClient implements AuthClient {
   _AuthClient(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://lookpick.kro.kr';
+    baseUrl ??= 'https://lookpick.kro.kr';
   }
 
   final Dio _dio;

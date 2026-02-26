@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -22,53 +23,37 @@ class FittingProfileEditSheet extends StatefulWidget {
 }
 
 class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
   final _topSizeController = TextEditingController();
   final _bottomSizeController = TextEditingController();
-  final _shoeSizeController = TextEditingController();
 
   File? _frontImage;
-  File? _sideImage;
 
   static const List<String> _topSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   static final List<String> _bottomSizeOptions = List.generate(15, (i) => '${26 + i}');
-  static final List<String> _shoeSizeOptions = List.generate(17, (i) => '${220 + i * 5}');
 
   @override
   void initState() {
     super.initState();
     final p = widget.initialProfile;
     if (p != null) {
-      _heightController.text = p.height ?? '';
-      _weightController.text = p.weight ?? '';
       _topSizeController.text = p.topSize ?? '';
       _bottomSizeController.text = p.bottomSize ?? '';
-      _shoeSizeController.text = p.shoeSize ?? '';
       if (p.frontImagePath != null) {
         final f = File(p.frontImagePath!);
         if (f.existsSync()) _frontImage = f;
-      }
-      if (p.sideImagePath != null) {
-        final f = File(p.sideImagePath!);
-        if (f.existsSync()) _sideImage = f;
       }
     }
   }
 
   @override
   void dispose() {
-    _heightController.dispose();
-    _weightController.dispose();
     _topSizeController.dispose();
     _bottomSizeController.dispose();
-    _shoeSizeController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     String? savedFrontPath;
-    String? savedSidePath;
     try {
       final dir = await getApplicationDocumentsDirectory();
       final profileDir = Directory('${dir.path}/fitting_profile');
@@ -82,23 +67,10 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
       } else if (widget.initialProfile?.frontImagePath != null) {
         savedFrontPath = widget.initialProfile!.frontImagePath;
       }
-      if (_sideImage != null) {
-        final ext = _sideImage!.path.split('.').last;
-        final name = 'side_${DateTime.now().millisecondsSinceEpoch}.$ext';
-        final dest = File('${profileDir.path}/$name');
-        await _sideImage!.copy(dest.path);
-        savedSidePath = dest.path;
-      } else if (widget.initialProfile?.sideImagePath != null) {
-        savedSidePath = widget.initialProfile!.sideImagePath;
-      }
       final profile = FittingProfile(
         frontImagePath: savedFrontPath,
-        sideImagePath: savedSidePath,
-        height: _heightController.text.trim().isEmpty ? null : _heightController.text.trim(),
-        weight: _weightController.text.trim().isEmpty ? null : _weightController.text.trim(),
         topSize: _topSizeController.text.trim().isEmpty ? null : _topSizeController.text.trim(),
         bottomSize: _bottomSizeController.text.trim().isEmpty ? null : _bottomSizeController.text.trim(),
-        shoeSize: _shoeSizeController.text.trim().isEmpty ? null : _shoeSizeController.text.trim(),
       );
       await FittingProfile.save(profile);
     } catch (e) {
@@ -114,21 +86,55 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
     final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('사진 촬영하기'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('갤러리에서 선택'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.BORDER_COLOR,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                '사진 선택',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.BLACK,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _photoSourceTile(
+                context: ctx,
+                icon: Icons.camera_alt_outlined,
+                label: '사진 촬영하기',
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Divider(height: 1, color: AppColors.BORDER_COLOR),
+              ),
+              _photoSourceTile(
+                context: ctx,
+                icon: Icons.photo_library_outlined,
+                label: '갤러리에서 선택',
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -137,10 +143,39 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
     if (x != null && mounted) setState(() => _frontImage = File(x.path));
   }
 
-  Future<void> _pickSideImage() async {
-    final picker = ImagePicker();
-    final x = await picker.pickImage(source: ImageSource.gallery);
-    if (x != null && mounted) setState(() => _sideImage = File(x.path));
+  Widget _photoSourceTile({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.BLACK,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -185,21 +220,15 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildPhotoSection('정면 사진', _frontImage, _pickFrontImage),
-                  const SizedBox(height: 20),
-                  _buildPhotoSection('측면 사진 (선택)', _sideImage, _pickSideImage),
                   const SizedBox(height: 28),
                   const Text(
-                    '신체 정보',
+                    '사이즈',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: AppColors.BLACK,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildTextField(controller: _heightController, label: '키 (cm)', hint: '예: 170', keyboardType: TextInputType.number),
-                  const SizedBox(height: 16),
-                  _buildTextField(controller: _weightController, label: '몸무게 (kg)', hint: '예: 65', keyboardType: TextInputType.number),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -230,17 +259,6 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  _buildDropdownField(
-                    label: '신발 사이즈 (mm)',
-                    value: _shoeSizeController.text.isEmpty ? null : _shoeSizeController.text,
-                    hint: '선택',
-                    items: _shoeSizeOptions,
-                    onChanged: (v) {
-                      _shoeSizeController.text = v ?? '';
-                      setState(() {});
-                    },
-                  ),
                 ],
               ),
             ),
@@ -266,7 +284,7 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
         GestureDetector(
           onTap: onTap,
           child: Container(
-            height: 180,
+            height: 360,
             width: double.infinity,
             decoration: BoxDecoration(
               color: AppColors.INPUT_BG_COLOR,
@@ -301,8 +319,143 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
     );
   }
 
-  /// Material 드롭다운: 상의/하의/신발 사이즈 선택
+  /// iOS: Cupertino 피커. Android: Material 드롭다운
   Widget _buildDropdownField({
+    required String label,
+    required String? value,
+    required String hint,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    if (Platform.isIOS) {
+      return _buildCupertinoSizeField(
+        label: label,
+        value: value,
+        hint: hint,
+        items: items,
+        onSelected: onChanged,
+      );
+    }
+    return _buildMaterialDropdownField(
+      label: label,
+      value: value,
+      hint: hint,
+      items: items,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildCupertinoSizeField({
+    required String label,
+    required String? value,
+    required String hint,
+    required List<String> items,
+    required ValueChanged<String?> onSelected,
+  }) {
+    final display = (value != null && items.contains(value)) ? value : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.BLACK,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () => _showCupertinoSizePicker(
+            context: context,
+            title: label,
+            options: items,
+            initialValue: display,
+            onSelected: (v) {
+              onSelected(v);
+              setState(() {});
+            },
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.INPUT_BG_COLOR,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.BORDER_COLOR),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  display ?? hint,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: display != null ? AppColors.BLACK : AppColors.MEDIUM_GREY,
+                  ),
+                ),
+                const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.MEDIUM_GREY, size: 24),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showCupertinoSizePicker({
+    required BuildContext context,
+    required String title,
+    required List<String> options,
+    required String? initialValue,
+    required ValueChanged<String?> onSelected,
+  }) {
+    int index = initialValue != null && options.contains(initialValue)
+        ? options.indexOf(initialValue)
+        : 0;
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => Container(
+        height: 280,
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('취소'),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () {
+                      onSelected(options[index]);
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: CupertinoPicker(
+                itemExtent: 36,
+                scrollController: FixedExtentScrollController(initialItem: index.clamp(0, options.length - 1)),
+                onSelectedItemChanged: (i) => index = i,
+                children: options.map((e) => Center(child: Text(e))).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Material 드롭다운: Android용
+  Widget _buildMaterialDropdownField({
     required String label,
     required String? value,
     required String hint,
@@ -342,47 +495,6 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
           ),
           items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.BLACK,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.MEDIUM_GREY),
-            filled: true,
-            fillColor: AppColors.INPUT_BG_COLOR,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.BORDER_COLOR),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.BORDER_COLOR),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
         ),
       ],
     );

@@ -34,9 +34,9 @@ class FittingMainStage extends StatefulWidget {
 class _FittingMainStageState extends State<FittingMainStage> {
   @override
   Widget build(BuildContext context) {
-    // ✅ 높이를 420으로 줄임 (적절한 크기)
+    // 전신·상의·하의 3개 선택 카드를 크게 표시
     return SizedBox(
-      height: 420,
+      height: 520,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -73,9 +73,19 @@ class _FittingMainStageState extends State<FittingMainStage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               // 아이콘 크기 축소 40 -> 32
-                              Icon(Icons.add_a_photo_outlined, size: 32, color: AppColors.MEDIUM_GREY),
+                              Icon(
+                                Icons.add_a_photo_outlined,
+                                size: 32,
+                                color: AppColors.MEDIUM_GREY,
+                              ),
                               SizedBox(height: 8),
-                              Text("전신 사진 추가", style: TextStyle(color: AppColors.MEDIUM_GREY, fontSize: 13)),
+                              Text(
+                                "전신 사진 추가",
+                                style: TextStyle(
+                                  color: AppColors.MEDIUM_GREY,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -87,7 +97,6 @@ class _FittingMainStageState extends State<FittingMainStage> {
           ),
 
           const SizedBox(width: 14), // 간격도 살짝 줄임
-
           // -------------------------------------------------------
           // 2. 우측: 옷 선택 슬롯
           // -------------------------------------------------------
@@ -101,7 +110,9 @@ class _FittingMainStageState extends State<FittingMainStage> {
                     imageFile: widget.topImageFile,
                     imageUrl: widget.topImageUrl,
                     placeholderIcon: Icons.checkroom_outlined,
-                    isActive: widget.topImageFile != null || widget.topImageUrl != null,
+                    isActive:
+                        widget.topImageFile != null ||
+                        widget.topImageUrl != null,
                     onTap: widget.onTopTap,
                   ),
                 ),
@@ -112,7 +123,9 @@ class _FittingMainStageState extends State<FittingMainStage> {
                     imageFile: widget.bottomImageFile,
                     imageUrl: widget.bottomImageUrl,
                     placeholderIcon: Icons.accessibility_new_outlined,
-                    isActive: widget.bottomImageFile != null || widget.bottomImageUrl != null,
+                    isActive:
+                        widget.bottomImageFile != null ||
+                        widget.bottomImageUrl != null,
                     onTap: widget.onBottomTap,
                   ),
                 ),
@@ -128,15 +141,62 @@ class _FittingMainStageState extends State<FittingMainStage> {
     if (path == null) {
       return Container(color: AppColors.INPUT_BG_COLOR);
     }
+
+    // 1. 서버에서 받아온 결과 이미지 (네트워크 URL)
     if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover);
-    } else if (path.startsWith('/') || path.contains('content://')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        // 💡 [추가] 다운로드 중일 때 로딩 스피너 표시
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                        (loadingProgress.expectedTotalBytes ?? 1)
+                  : null,
+              color: AppColors.PRIMARYCOLOR,
+            ),
+          );
+        },
+        // 🚨 [추가] URL이 가짜이거나 깨져있을 때 (에러 발생 시) 엑스박스 표시
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('🚨 피팅 결과 이미지 로드 실패: $error');
+          debugPrint('🚨 실패한 URL: $path');
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image_outlined,
+                  size: 40,
+                  color: AppColors.MEDIUM_GREY,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "이미지 링크가 끊어졌습니다",
+                  style: TextStyle(
+                    color: AppColors.MEDIUM_GREY,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+    // 2. 핸드폰 갤러리에서 고른 로컬 파일
+    else if (path.startsWith('/') || path.contains('content://')) {
       return Image.file(File(path), fit: BoxFit.cover);
-    } else {
+    }
+    // 3. 앱 내장 에셋 이미지
+    else {
       return Image.asset(path, fit: BoxFit.cover);
     }
   }
-
 }
 
 class _ClothingSlot extends StatelessWidget {
@@ -191,7 +251,11 @@ class _ClothingSlot extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // 아이콘 크기 축소 40 -> 32
-                    Icon(placeholderIcon, color: AppColors.BORDER_COLOR, size: 32),
+                    Icon(
+                      placeholderIcon,
+                      color: AppColors.BORDER_COLOR,
+                      size: 32,
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       "선택하기",
@@ -208,7 +272,10 @@ class _ClothingSlot extends StatelessWidget {
                 top: 10,
                 left: 10,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.BLACK.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(6),
