@@ -9,9 +9,8 @@ class AuthRepository {
   final String? baseUrl;
 
   AuthRepository(Dio dio, {String? baseUrl})
-      : _client = AuthClient(dio, baseUrl: baseUrl),
-        baseUrl = baseUrl;
-
+    : _client = AuthClient(dio, baseUrl: baseUrl),
+      baseUrl = baseUrl;
 
   Future<bool> signUp({
     required String email,
@@ -19,27 +18,23 @@ class AuthRepository {
     required String gender,
   }) async {
     try {
-      await _client.signup(SignupBody(
-        email: email,
-        password: password,
-        gender: gender,
-      ));
+      await _client.signup(
+        SignupBody(email: email, password: password, gender: gender),
+      );
       return true;
     } catch (e) {
       throw Exception('회원가입 실패: $e');
     }
   }
 
-
   Future<TokenResponse> login({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await _client.login(LoginBody(
-        email: email,
-        password: password,
-      ));
+      final response = await _client.login(
+        LoginBody(email: email, password: password),
+      );
       return response;
     } catch (e) {
       if (e is DioException && e.response?.statusCode == 401) {
@@ -49,7 +44,6 @@ class AuthRepository {
     }
   }
 
-
   Future<void> logout({required String refreshToken}) async {
     try {
       await _client.logout(LogoutBody(refreshToken: refreshToken));
@@ -58,11 +52,10 @@ class AuthRepository {
     }
   }
 
-
   Future<TokenResponse> refreshTokens({required String refreshToken}) async {
     try {
       final response = await _client.refreshToken(
-          RefreshTokenBody(refreshToken: refreshToken)
+        RefreshTokenBody(refreshToken: refreshToken),
       );
       return response;
     } catch (e) {
@@ -72,7 +65,6 @@ class AuthRepository {
       throw Exception('토큰 갱신 실패: $e');
     }
   }
-
 
   Future<TokenResponse> exchangeTempKey({required String tempKey}) async {
     try {
@@ -84,7 +76,6 @@ class AuthRepository {
       throw Exception('토큰 교환 실패: $e');
     }
   }
-
 
   Future<TokenResponse> loginWithGoogle({required String idToken}) async {
     try {
@@ -100,10 +91,11 @@ class AuthRepository {
     }
   }
 
-
   Future<TokenResponse> loginWithKakao({required String accessToken}) async {
     try {
-      return await _client.loginWithKakao(KakaoLoginBody(accessToken: accessToken));
+      return await _client.loginWithKakao(
+        KakaoLoginBody(accessToken: accessToken),
+      );
     } catch (e) {
       if (e is DioException && e.response?.statusCode == 401) {
         throw Exception('Kakao 로그인 검증에 실패했습니다.');
@@ -160,15 +152,22 @@ class AuthRepository {
         formData.fields.add(MapEntry('gender', gender));
       }
       if (profileImage != null) {
-        formData.files.add(MapEntry(
-          'file',
-          await MultipartFile.fromFile(profileImage.path, filename: 'profile.jpg'),
-        ));
+        formData.files.add(
+          MapEntry(
+            'file',
+            await MultipartFile.fromFile(
+              profileImage.path,
+              filename: 'profile.jpg',
+            ),
+          ),
+        );
       }
 
       final response = await authDio.patch<Map<String, dynamic>>(
         '/api/v1/users/me',
-        data: formData.fields.isEmpty && formData.files.isEmpty ? null : formData,
+        data: formData.fields.isEmpty && formData.files.isEmpty
+            ? null
+            : formData,
         options: Options(responseType: ResponseType.json),
       );
       final body = response.data;

@@ -15,7 +15,7 @@ import 'package:capstone_fe/user/component/user_me_edit_sheet.dart';
 import 'package:capstone_fe/user/view/login_screen.dart';
 import 'package:dio/dio.dart';
 
-/// RootTab 유저 탭: 마이페이지(서버 GET/PATCH /users/me) + 피팅 프로필(로컬)
+/// RootTab 유저 탭: 마이페이지 (GET/PATCH /users/me) + 피팅 프로필(로컬) + 내 피드
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -30,7 +30,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _loading = true;
   List<FeedListItem> _myFeeds = [];
 
-  final FeedRepository _feedRepo = FeedRepository(createAuthDio(), baseUrl: baseUrl);
+  final FeedRepository _feedRepo = FeedRepository(
+    createAuthDio(),
+    baseUrl: baseUrl,
+  );
 
   @override
   void initState() {
@@ -42,7 +45,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() => _loading = true);
     final authDio = createAuthDio();
     final repo = AuthRepository(Dio(), baseUrl: baseUrl);
-    final me = await repo.getMe(authDio);
+    UserMe? me;
+    try {
+      me = await repo.getMe(authDio);
+    } catch (_) {}
     final p = await FittingProfile.load();
     final stored = await const FlutterSecureStorage().read(key: 'NICKNAME');
     List<FeedListItem> myFeeds = [];
@@ -66,11 +72,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UserMeEditSheet(
-        initial: _me,
-        onSaved: _load,
-        onLogout: _onLogout,
-      ),
+      builder: (context) =>
+          UserMeEditSheet(initial: _me, onSaved: _load, onLogout: _onLogout),
     );
   }
 
@@ -96,10 +99,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => FittingProfileEditSheet(
-        initialProfile: _profile,
-        onSaved: _load,
-      ),
+      builder: (context) =>
+          FittingProfileEditSheet(initialProfile: _profile, onSaved: _load),
     );
   }
 
@@ -114,17 +115,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final hasProfile = _profile != null && _profile!.hasAnyData;
     final p = _profile;
     final me = _me;
-    // 수정 후 저장된 닉네임(스토리지) 우선, 없으면 서버 값
     final nickname = _nicknameFromStorage?.trim().isNotEmpty == true
         ? _nicknameFromStorage!.trim()
         : me?.nickname?.trim();
-    final displayName = (nickname != null && nickname.isNotEmpty) ? nickname : '내 프로필';
+    final displayName = (nickname != null && nickname.isNotEmpty)
+        ? nickname
+        : '내 프로필';
     final gender = me?.gender?.trim();
 
     return SafeArea(
       child: CustomScrollView(
         slivers: [
-          // 프로필 헤더: 서버 프로필 이미지/닉네임, 탭 시 마이페이지 수정 시트
           SliverToBoxAdapter(
             child: InkWell(
               onTap: _openMeEditSheet,
@@ -156,7 +157,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            hasProfile ? '피팅 프로필이 등록되어 있어요' : '피팅 프로필을 등록해보세요',
+                            hasProfile
+                                ? '피팅 프로필이 등록되어 있어요'
+                                : '피팅 프로필을 등록해보세요',
                             style: const TextStyle(
                               fontSize: 14,
                               color: AppColors.BODY_COLOR,
@@ -181,8 +184,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
           ),
-
-          // 인스타 스타일: 게시물 수 · 프로필 편집/공유
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -204,7 +205,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           onPressed: _openMeEditSheet,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.BLACK,
-                            side: const BorderSide(color: AppColors.BORDER_COLOR),
+                            side: const BorderSide(
+                              color: AppColors.BORDER_COLOR,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -218,12 +221,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         child: OutlinedButton(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('프로필 공유 기능은 준비 중이에요.')),
+                              const SnackBar(
+                                content: Text('프로필 공유 기능은 준비 중이에요.'),
+                              ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.BLACK,
-                            side: const BorderSide(color: AppColors.BORDER_COLOR),
+                            side: const BorderSide(
+                              color: AppColors.BORDER_COLOR,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -238,8 +245,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
           ),
-
-          // 메뉴/카드 영역
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverList(
@@ -250,7 +255,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ]),
             ),
           ),
-
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -272,40 +276,41 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   )
                 : SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       mainAxisSpacing: 2,
                       crossAxisSpacing: 2,
                       childAspectRatio: 1,
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = _myFeeds[index];
-                        return GestureDetector(
-                          onTap: () async {
-                            final deleted = await Navigator.push<bool>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FeedDetailScreen(
-                                  feedId: item.feedId,
-                                  isMine: true,
-                                ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = _myFeeds[index];
+                      return GestureDetector(
+                        onTap: () async {
+                          final deleted = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FeedDetailScreen(
+                                feedId: item.feedId,
+                                isMine: true,
                               ),
-                            );
-                            if (deleted == true) _load();
-                          },
-                          child: Image.network(
-                            item.styleImageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.INPUT_BG_COLOR,
-                              child: Icon(Icons.broken_image_outlined, color: AppColors.MEDIUM_GREY),
+                            ),
+                          );
+                          if (deleted == true) _load();
+                        },
+                        child: Image.network(
+                          item.styleImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: AppColors.INPUT_BG_COLOR,
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              color: AppColors.MEDIUM_GREY,
                             ),
                           ),
-                        );
-                      },
-                      childCount: _myFeeds.length,
-                    ),
+                        ),
+                      );
+                    }, childCount: _myFeeds.length),
                   ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -314,7 +319,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// 헤더용 아바타: 서버 profileImageUrl 우선, 없으면 로컬 피팅 정면 사진, 없으면 기본 아이콘
   Widget _buildAvatar(UserMe? me, FittingProfile? p) {
     final networkUrl = me?.profileImageUrl?.trim();
     final localPath = p?.frontImagePath;
@@ -335,7 +339,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       child: ClipOval(
         child: networkUrl != null && networkUrl.isNotEmpty
-            ? Image.network(networkUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _defaultAvatarIcon())
+            ? Image.network(
+                networkUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _defaultAvatarIcon(),
+              )
             : localPath != null
                 ? _imageFromPath(localPath)
                 : _defaultAvatarIcon(),
@@ -343,7 +351,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// 성별 뱃지: 남성 파란색, 여성 빨간색(핑크)
   Widget _buildGenderBadge(String gender) {
     final isMale = gender.toUpperCase() == 'MALE';
     final color = isMale ? Colors.blue : Colors.pink;
@@ -357,11 +364,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isMale ? Icons.male : Icons.female,
-            size: 14,
-            color: color,
-          ),
+          Icon(isMale ? Icons.male : Icons.female, size: 14, color: color),
           const SizedBox(width: 4),
           Text(
             isMale ? '남' : '여',
@@ -380,7 +383,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Icon(Icons.person_rounded, size: 40, color: AppColors.MEDIUM_GREY);
   }
 
-  /// 인스타 스타일 통계 한 칸 (게시물 / 팔로워 / 팔로잉)
   Widget _buildStatItem(String count, String label) {
     return Column(
       children: [
@@ -395,10 +397,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.BODY_COLOR,
-          ),
+          style: const TextStyle(fontSize: 13, color: AppColors.BODY_COLOR),
         ),
       ],
     );
@@ -412,7 +411,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Image.file(file, fit: BoxFit.cover);
   }
 
-  /// 피팅 프로필 카드: 있으면 요약 + 수정, 없으면 등록 유도
   Widget _buildFittingProfileCard(bool hasProfile, FittingProfile? p) {
     return Material(
       color: AppColors.white,
@@ -472,7 +470,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: _openFittingProfileEditSheet,
-                    icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.ACCENT_COLOR),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.ACCENT_COLOR,
+                    ),
                     label: const Text(
                       '수정',
                       style: TextStyle(
@@ -517,11 +519,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// 피팅 프로필 한 줄 요약 (상의·하의 사이즈)
   Widget _buildProfileSummary(FittingProfile p) {
     final parts = <String>[];
-    if (p.topSize != null && p.topSize!.isNotEmpty) parts.add('상의 ${p.topSize}');
-    if (p.bottomSize != null && p.bottomSize!.isNotEmpty) parts.add('하의 ${p.bottomSize}');
+    if (p.topSize != null && p.topSize!.isNotEmpty)
+      parts.add('상의 ${p.topSize}');
+    if (p.bottomSize != null && p.bottomSize!.isNotEmpty)
+      parts.add('하의 ${p.bottomSize}');
     final summary = parts.isEmpty ? '미입력' : parts.join(' · ');
 
     return Container(
@@ -561,7 +564,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// 안내 카드 (선택)
   Widget _buildInfoCard() {
     return Container(
       width: double.infinity,
@@ -574,7 +576,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, size: 20, color: AppColors.ACCENT_COLOR),
+          Icon(
+            Icons.info_outline_rounded,
+            size: 20,
+            color: AppColors.ACCENT_COLOR,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

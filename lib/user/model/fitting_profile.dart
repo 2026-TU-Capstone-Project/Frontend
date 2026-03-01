@@ -9,23 +9,19 @@ class FittingProfile {
   final String? topSize;
   final String? bottomSize;
 
-  FittingProfile({
-    this.frontImagePath,
-    this.topSize,
-    this.bottomSize,
-  });
+  FittingProfile({this.frontImagePath, this.topSize, this.bottomSize});
 
   Map<String, dynamic> toJson() => {
-        'frontImagePath': frontImagePath,
-        'topSize': topSize,
-        'bottomSize': bottomSize,
-      };
+    'frontImagePath': frontImagePath,
+    'topSize': topSize,
+    'bottomSize': bottomSize,
+  };
 
   factory FittingProfile.fromJson(Map<String, dynamic> json) => FittingProfile(
-        frontImagePath: json['frontImagePath'] as String?,
-        topSize: json['topSize'] as String?,
-        bottomSize: json['bottomSize'] as String?,
-      );
+    frontImagePath: json['frontImagePath'] as String?,
+    topSize: json['topSize'] as String?,
+    bottomSize: json['bottomSize'] as String?,
+  );
 
   bool get hasAnyData =>
       frontImagePath != null ||
@@ -44,10 +40,7 @@ class FittingProfile {
   static Future<void> save(FittingProfile profile) async {
     try {
       final file = await _getFile();
-      await file.writeAsString(
-        jsonEncode(profile.toJson()),
-        flush: true,
-      );
+      await file.writeAsString(jsonEncode(profile.toJson()), flush: true);
     } catch (e) {
       rethrow;
     }
@@ -59,9 +52,7 @@ class FittingProfile {
       if (!await file.exists()) return null;
       final raw = await file.readAsString();
       if (raw.isEmpty) return null;
-      return FittingProfile.fromJson(
-        jsonDecode(raw) as Map<String, dynamic>,
-      );
+      return FittingProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
       return null;
     }

@@ -12,6 +12,11 @@ class AppColors {
   /// 용도: 링크 텍스트, '선택됨' 상태 표시, 알림 뱃지
   static const Color ACCENT_COLOR = Color(0xFF4A90E2);
 
+  /// 액센트 블루 (피팅룸 FAB 그라데이션 등)
+  static const Color ACCENT_BLUE = Color(0xFF5B7FFF);
+  /// 액센트 퍼플 (피팅룸 FAB, 검색바 포인트 등)
+  static const Color ACCENT_PURPLE = Color(0xFF8B7BFF);
+
   // --------------------------------------------------------------------------
   // 2. Grayscale (무채색 계열 - Cool Grey Tone)
   // --------------------------------------------------------------------------

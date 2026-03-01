@@ -6,7 +6,7 @@ import 'package:capstone_fe/home/view/home_screen.dart';
 import 'package:capstone_fe/personal_closet/view/wardrobe_screen.dart';
 import 'package:capstone_fe/user/view/user_profile_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class RootTab extends StatefulWidget {
   const RootTab({super.key});
@@ -35,22 +35,29 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
   void tabListener() {
     final newIndex = controller.index;
     setState(() => index = newIndex);
-    // 피팅룸 탭으로 전환 시 헤더(키·사이즈) 갱신 → 마이페이지 수정 반영
-    if (newIndex == 1) {
+    if (newIndex == 2) {
       FittingRoomScreen.onFittingTabSelected?.call();
     }
-    // 옷장 탭으로 전환 시 닉네임 등 로컬 저장값 갱신
-    if (newIndex == 2) {
+    if (newIndex == 1) {
       WardrobeScreen.onWardrobeTabSelected?.call();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 홈(0)에서만 앱바 표시, 피팅룸/옷장/피드/유저(1~4)에서는 앱바 없음
     final showAppBar = (index == 0);
     return DefaultLayout(
-      title: showAppBar ? SvgPicture.asset('asset/img/try-on.svg') : null,
+      title: showAppBar
+          ? Text(
+              '다이버바',
+              style: GoogleFonts.blackHanSans(
+                fontSize: 26,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF1D1D1F),
+                letterSpacing: -0.5,
+              ),
+            )
+          : null,
       actions: showAppBar
           ? [
               IconButton(
@@ -59,58 +66,177 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
               ),
             ]
           : null,
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.PRIMARYCOLOR,
-        unselectedItemColor: AppColors.MEDIUM_GREY,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-        type: BottomNavigationBarType.fixed,
-        onTap: (int index) {
-          controller.animateTo(index);
-        },
+      bottomNavigationBar: _CustomBottomBar(
         currentIndex: index,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: '홈',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.checkroom_outlined),
-            activeIcon: Icon(Icons.checkroom),
-            label: '피팅룸',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.door_sliding_outlined),
-            activeIcon: Icon(Icons.door_sliding),
-            label: '옷장',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_outlined),
-            activeIcon: Icon(Icons.grid_view),
-            label: '피드',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: '유저',
-          ),
-        ],
+        onTap: (i) => controller.animateTo(i),
       ),
-
       child: TabBarView(
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         controller: controller,
         children: [
-          HomeScreen(onGoToFittingRoom: () => controller.animateTo(1)),
-          FittingRoomScreen(),
+          HomeScreen(
+            onGoToFittingRoom: () => controller.animateTo(2),
+            onGoToStyleRecommendation: () {
+              FittingRoomScreen.requestOpenAiStylist = true;
+              controller.animateTo(2);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Future.delayed(const Duration(milliseconds: 350), () {
+                  FittingRoomScreen.onFittingTabSelected?.call();
+                });
+              });
+            },
+            onWeather: () {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('날씨 기반 추천 기능을 준비 중입니다.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+          ),
           WardrobeScreen(),
+          FittingRoomScreen(),
           FashionFeedScreen(),
           UserProfileScreen(),
         ],
+      ),
+    );
+  }
+}
+
+class _CustomBottomBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _CustomBottomBar({
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  static const double _centerButtonSize = 56.0;
+  static const double _centerButtonElevation = 8.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 60,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildTab(0, Icons.home_outlined, Icons.home, '홈'),
+                  _buildTab(1, Icons.door_sliding_outlined, Icons.door_sliding, '옷장'),
+                  const SizedBox(width: _centerButtonSize + 8),
+                  _buildTab(3, Icons.grid_view_outlined, Icons.grid_view, '피드'),
+                  _buildTab(4, Icons.person_outline_rounded, Icons.person_rounded, 'MY'),
+                ],
+              ),
+              Positioned(
+                top: -_centerButtonElevation - 4,
+                child: GestureDetector(
+                  onTap: () => onTap(2),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: _centerButtonSize,
+                        height: _centerButtonSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.ACCENT_BLUE,
+                              AppColors.ACCENT_PURPLE,
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.ACCENT_BLUE.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          currentIndex == 2 ? Icons.checkroom : Icons.checkroom_outlined,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '피팅룸',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: currentIndex == 2
+                              ? AppColors.ACCENT_BLUE
+                              : AppColors.MEDIUM_GREY,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTab(int i, IconData icon, IconData activeIcon, String label) {
+    final selected = currentIndex == i;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(i),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                selected ? activeIcon : icon,
+                size: 26,
+                color: selected
+                    ? AppColors.PRIMARYCOLOR
+                    : AppColors.MEDIUM_GREY,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected
+                      ? AppColors.PRIMARYCOLOR
+                      : AppColors.MEDIUM_GREY,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
@@ -122,7 +123,8 @@ class MainFittingBanner extends StatefulWidget {
     super.key,
     List<String>? backgroundImagePaths,
     this.onBannerTap,
-  }) : backgroundImagePaths = backgroundImagePaths ?? const ['asset/img/App.jpg'];
+  }) : backgroundImagePaths =
+           backgroundImagePaths ?? const ['asset/img/App.jpg'];
 
   @override
   State<MainFittingBanner> createState() => _MainFittingBannerState();
@@ -141,19 +143,16 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
         ? 1
         : widget.backgroundImagePaths.length;
     if (_pageCount > 1) {
-      _autoAdvanceTimer = Timer.periodic(
-        const Duration(seconds: 4),
-        (_) {
-          if (!mounted) return;
-          final next = (_pageController.page?.round() ?? 0) + 1;
-          final index = next % _pageCount;
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeInOut,
-          );
-        },
-      );
+      _autoAdvanceTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+        if (!mounted) return;
+        final next = (_pageController.page?.round() ?? 0) + 1;
+        final index = next % _pageCount;
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+        );
+      });
     }
   }
 
@@ -166,8 +165,8 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width -
-        DivervaDesign.kPadding * 2;
+    final width =
+        MediaQuery.of(context).size.width - DivervaDesign.kPadding * 2;
     final height = width * 0.95;
 
     return Padding(
@@ -187,8 +186,9 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
                 controller: _pageController,
                 itemCount: _pageCount,
                 itemBuilder: (context, index) {
-                  final path = widget.backgroundImagePaths[
-                      index % widget.backgroundImagePaths.length];
+                  final path =
+                      widget.backgroundImagePaths[index %
+                          widget.backgroundImagePaths.length];
                   return Image.asset(
                     path,
                     fit: BoxFit.cover,
@@ -267,7 +267,8 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
                       (i) => AnimatedBuilder(
                         animation: _pageController,
                         builder: (context, _) {
-                          final page = _pageController.position.hasContentDimensions
+                          final page =
+                              _pageController.position.hasContentDimensions
                               ? (_pageController.page ?? 0).round()
                               : 0;
                           final active = (page % _pageCount) == i;
@@ -296,6 +297,252 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
 
   Widget _buildFallbackColor() {
     return Container(color: const Color(0xFFE5E5EA));
+  }
+}
+
+// =============================================================================
+// 검색바 — "AI 스타일리스트에게 물어보세요" (탭 시 AI 스타일리스트)
+// =============================================================================
+class HomeSearchBar extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const HomeSearchBar({super.key, this.onTap});
+
+  static const double _radius = 28;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(DivervaDesign.kPadding, 12, DivervaDesign.kPadding, 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_radius),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(_radius),
+              border: Border.all(
+                width: 1.5,
+                color: AppColors.ACCENT_PURPLE.withOpacity(0.4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ACCENT_PURPLE.withOpacity(0.22),
+                  blurRadius: 20,
+                  offset: const Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: AppColors.ACCENT_PURPLE.withOpacity(0.16),
+                  blurRadius: 12,
+                  offset: const Offset(0, -1),
+                ),
+              ],
+            ),
+            child: DefaultTextStyle(
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.BODY_COLOR,
+                fontWeight: FontWeight.w500,
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, size: 24, color: AppColors.ACCENT_PURPLE),
+                  const SizedBox(width: 14),
+                  const Expanded(child: Text('AI 스타일리스트에게 물어보세요')),
+                  Icon(Icons.mic_none_outlined, size: 24, color: AppColors.ACCENT_PURPLE),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 오늘은 어떻게 입을까요? — 날씨 / 사진 / 추천
+// =============================================================================
+class HowToDressTodaySection extends StatelessWidget {
+  final VoidCallback? onWeather;
+  final VoidCallback? onPhotoFitting;
+  final VoidCallback? onStyleRecommendation;
+
+  const HowToDressTodaySection({
+    super.key,
+    this.onWeather,
+    this.onPhotoFitting,
+    this.onStyleRecommendation,
+  });
+
+  static const double _blockRadius = 20.0;
+  static const double _cardGap = 10.0;
+  static const double _borderWidth = 2.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(DivervaDesign.kPadding, 20, DivervaDesign.kPadding, 16),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_blockRadius),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFB8C8F0),
+              Color(0xFFD4C0E0),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(_borderWidth),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(_blockRadius - _borderWidth),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '오늘은 어떻게 입을까요?',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D1D1F),
+                  letterSpacing: -0.5,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _HowToDressCard(
+                      imageAsset: 'asset/img/Frame.png',
+                      title: '날씨',
+                      subtitle: '날씨 기반',
+                      onTap: onWeather,
+                      isEnabled: true,
+                    ),
+                  ),
+                  const SizedBox(width: _cardGap),
+                  Expanded(
+                    child: _HowToDressCard(
+                      imageAsset: 'asset/img/Frame-1.png',
+                      title: '사진',
+                      subtitle: '가상 피팅',
+                      onTap: onPhotoFitting,
+                      isEnabled: true,
+                      isPrimary: true,
+                    ),
+                  ),
+                  const SizedBox(width: _cardGap),
+                  Expanded(
+                    child: _HowToDressCard(
+                      imageAsset: 'asset/img/Frame-2.png',
+                      title: '추천',
+                      subtitle: 'AI 추천',
+                      onTap: onStyleRecommendation,
+                      isEnabled: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HowToDressCard extends StatelessWidget {
+  final String? imageAsset;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final bool isEnabled;
+  final bool isPrimary;
+
+  const _HowToDressCard({
+    this.imageAsset,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+    this.isEnabled = true,
+    this.isPrimary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isEnabled ? AppColors.PRIMARYCOLOR : AppColors.BODY_COLOR;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (imageAsset != null)
+                Image.asset(
+                  imageAsset!,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, size: 32, color: color),
+                )
+              else
+                Icon(Icons.circle_outlined, size: 32, color: color),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isEnabled ? const Color(0xFF1D1D1F) : AppColors.BODY_COLOR,
+                  letterSpacing: -0.25,
+                  height: 1.25,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.BODY_COLOR,
+                  height: 1.25,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -336,10 +583,7 @@ class SavedOutfitCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.7),
-                    ],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                   ),
                 ),
               ),
@@ -616,8 +860,15 @@ class ProductGridCard extends StatelessWidget {
 // =============================================================================
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onGoToFittingRoom;
+  final VoidCallback? onGoToStyleRecommendation;
+  final VoidCallback? onWeather;
 
-  const HomeScreen({super.key, this.onGoToFittingRoom});
+  const HomeScreen({
+    super.key,
+    this.onGoToFittingRoom,
+    this.onGoToStyleRecommendation,
+    this.onWeather,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -651,10 +902,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DivervaDesign.background,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
+            SliverToBoxAdapter(
+              child: HomeSearchBar(onTap: widget.onGoToStyleRecommendation),
+            ),
+            SliverToBoxAdapter(
+              child: HowToDressTodaySection(
+                onWeather: widget.onWeather,
+                onPhotoFitting: widget.onGoToFittingRoom,
+                onStyleRecommendation: widget.onGoToStyleRecommendation,
+              ),
+            ),
             SliverToBoxAdapter(
               child: MainFittingBanner(
                 backgroundImagePaths: const [
@@ -672,13 +933,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 200,
                       child: Center(child: CircularProgressIndicator()),
                     )
-                  : SavedOutfitRack(
-                      items: _savedOutfits,
-                      onItemTap: (_) {},
-                    ),
+                  : SavedOutfitRack(items: _savedOutfits, onItemTap: (_) {}),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            const SliverToBoxAdapter(child: SectionHeader(title: '전체 아이템 진열')),
+            const SliverToBoxAdapter(child: SectionHeader(title: '인기 스타일')),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
               sliver: SliverGrid(

@@ -39,7 +39,11 @@ class _FittingProgressHolder extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setResult({required int taskId, required String url, String? latencySec}) {
+  void setResult({
+    required int taskId,
+    required String url,
+    String? latencySec,
+  }) {
     isFittingNow = false;
     currentTaskId = taskId;
     resultImageUrl = url;
@@ -66,8 +70,12 @@ class FittingRoomScreen extends StatefulWidget {
   /// 피팅룸 탭 선택 시 RootTab에서 호출. 마이페이지 수정 반영용
   static void Function()? onFittingTabSelected;
 
+  /// 홈에서 "추천" 또는 검색바 탭 시 true로 설정 → 탭 전환 후 AI 스타일리스트 세그먼트로 전환
+  static bool requestOpenAiStylist = false;
+
   /// 탭 전환 시에도 피팅 진행/결과 상태 유지용 (화면 바깥 보관)
-  static final _FittingProgressHolder _fittingProgress = _FittingProgressHolder();
+  static final _FittingProgressHolder _fittingProgress =
+      _FittingProgressHolder();
 
   @override
   State<FittingRoomScreen> createState() => _FittingRoomScreenState();
@@ -143,9 +151,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       final me = await authRepo.getMe(authDio);
       final profile = await FittingProfile.load();
       if (mounted) {
+        final openAiStylist = FittingRoomScreen.requestOpenAiStylist;
+        if (openAiStylist) FittingRoomScreen.requestOpenAiStylist = false;
         setState(() {
           _userMeForHeader = me;
           _fittingProfileForHeader = profile;
+          if (openAiStylist) _isFittingRoomTab = false;
         });
       }
     } catch (_) {}
@@ -282,18 +293,26 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
           );
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('저장된 전신 사진 파일을 찾을 수 없어요. 유저 탭에서 피팅 프로필을 다시 등록해주세요.')),
+            const SnackBar(
+              content: Text(
+                '저장된 전신 사진 파일을 찾을 수 없어요. 유저 탭에서 피팅 프로필을 다시 등록해주세요.',
+              ),
+            ),
           );
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('저장된 피팅 프로필이 없어요. 유저 탭에서 정면 사진을 등록해주세요.')),
+          const SnackBar(
+            content: Text('저장된 피팅 프로필이 없어요. 유저 탭에서 정면 사진을 등록해주세요.'),
+          ),
         );
       }
       return;
     }
 
-    final source = result == 'camera' ? ImageSource.camera : ImageSource.gallery;
+    final source = result == 'camera'
+        ? ImageSource.camera
+        : ImageSource.gallery;
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
     if (image != null && mounted) {
@@ -476,9 +495,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     }
     if (_selectedTopFile == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('상의를 선택해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('상의를 선택해주세요.')));
       return;
     }
 
@@ -574,8 +593,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
             },
             onDone: () {
               if (!completer.isCompleted) {
-                completer.completeError(Exception(
-                    '결과를 받기 전에 서버 연결이 종료되었습니다.'));
+                completer.completeError(Exception('결과를 받기 전에 서버 연결이 종료되었습니다.'));
               }
             },
           );
@@ -590,7 +608,11 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       final latencySec =
           "${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)}s";
       if (finalUrl != null) {
-        _progress.setResult(taskId: taskId, url: finalUrl, latencySec: latencySec);
+        _progress.setResult(
+          taskId: taskId,
+          url: finalUrl,
+          latencySec: latencySec,
+        );
         debugPrint(" [SSE 완료] 화면 업데이트: $finalUrl");
       } else {
         _progress.setStopped(latencySec: latencySec);
@@ -611,12 +633,14 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                 "${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)}s";
             if (polledUrl != null && polledUrl.isNotEmpty) {
               _progress.setResult(
-                  taskId: taskId, url: polledUrl, latencySec: latencySec);
+                taskId: taskId,
+                url: polledUrl,
+                latencySec: latencySec,
+              );
               debugPrint(" [폴링 복구] 결과 수신: $polledUrl");
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('연결이 끊어졌지만 결과를 불러왔어요.')),
+                  const SnackBar(content: Text('연결이 끊어졌지만 결과를 불러왔어요.')),
                 );
               }
               return;
@@ -628,8 +652,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       }
 
       _progress.setStopped(
-          latencySec:
-              "${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)}s");
+        latencySec:
+            "${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)}s",
+      );
       if (mounted) {
         debugPrint(" [피팅 에러 발생] $e");
         final msg = e.toString().contains('피팅 실패')
@@ -834,12 +859,13 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
               onSaveToFolder: _saveToFolder,
             )
           : _isFittingRoomTab
-              ? _BottomCtaBar(
+          ? _BottomCtaBar(
               isReady: isReady,
               isLoading: _progress.isFittingNow,
               buttonText: buttonText,
-              helperText:
-                  (!_progress.isFittingNow && !isReady) ? buttonText : null,
+              helperText: (!_progress.isFittingNow && !isReady)
+                  ? buttonText
+                  : null,
               latencyText: _progress.latency != null
                   ? '${_progress.latency} 소요'
                   : null,
@@ -847,7 +873,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                   ? null
                   : _startVirtualFitting,
             )
-              : null,
+          : null,
       body: SafeArea(
         top: true,
         child: SingleChildScrollView(
@@ -858,79 +884,82 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
               children: [
                 const SizedBox(height: 16),
                 FittingRoomHeader(
-                leading: _FittingRoomSegmentedControl(
-                  selectedIndex: _isFittingRoomTab ? 0 : 1,
-                  onChanged: (index) {
-                    setState(() => _isFittingRoomTab = (index == 0));
-                  },
-                ),
-                heightLabel: _userMeForHeader?.height != null
-                    ? _userMeForHeader!.height!.toStringAsFixed(0)
-                    : null,
-                sizeLabel: _fittingProfileForHeader?.topSize,
-              ),
-              const SizedBox(height: 20),
-
-              // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
-              if (_isFittingRoomTab) ...[
-                FittingMainStage(
-                mainImagePath:
-                    _progress.resultImageUrl ??
-                    _selectedUserImage?.path ??
-                    'asset/img/fitting1.jpg',
-                isLoading: _progress.isFittingNow,
-
-                // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
-                onUserImageTap: _progress.resultImageUrl != null
-                    ? _openResultImageFullScreen
-                    : _pickUserImage,
-
-                // 상의 선택 로직
-                topImageFile: _selectedTopFile,
-                topImageUrl: _selectedTopUrl,
-                onTopTap: () => showAddClothingBottomSheet(
-                  context,
-                  '상의',
-                  onWardrobeTap: () => _openWardrobePicker('TOP'),
-                  onImageSelected: (file) {
-                    setState(() {
-                      _selectedTopFile = file;
-                      _selectedTopUrl = null;
-                    });
-                  },
-                ),
-
-                // 하의 선택 로직
-                bottomImageFile: _selectedBottomFile,
-                bottomImageUrl: _selectedBottomUrl,
-                onBottomTap: () => showAddClothingBottomSheet(
-                  context,
-                  '하의',
-                  onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
-                  onImageSelected: (file) {
-                    setState(() {
-                      _selectedBottomFile = file;
-                      _selectedBottomUrl = null;
-                    });
-                  },
-                ),
-              ),
-                const SizedBox(height: 16),
-                const Center(
-                  child: Text(
-                    "좌측 이미지를 탭하여 전신 사진을 변경하세요",
-                    style: TextStyle(color: AppColors.MEDIUM_GREY, fontSize: 13),
+                  leading: _FittingRoomSegmentedControl(
+                    selectedIndex: _isFittingRoomTab ? 0 : 1,
+                    onChanged: (index) {
+                      setState(() => _isFittingRoomTab = (index == 0));
+                    },
                   ),
+                  heightLabel: _userMeForHeader?.height != null
+                      ? _userMeForHeader!.height!.toStringAsFixed(0)
+                      : null,
+                  sizeLabel: _fittingProfileForHeader?.topSize,
                 ),
-              ] else ...[
-                AiStylistInput(
-                  controller: _promptController,
-                  chips: _quickChips,
-                  onTryOnOutfit: _applyRecommendationOutfit,
-                ),
+                const SizedBox(height: 20),
+
+                // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
+                if (_isFittingRoomTab) ...[
+                  FittingMainStage(
+                    mainImagePath:
+                        _progress.resultImageUrl ??
+                        _selectedUserImage?.path ??
+                        'asset/img/fitting1.jpg',
+                    isLoading: _progress.isFittingNow,
+
+                    // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
+                    onUserImageTap: _progress.resultImageUrl != null
+                        ? _openResultImageFullScreen
+                        : _pickUserImage,
+
+                    // 상의 선택 로직
+                    topImageFile: _selectedTopFile,
+                    topImageUrl: _selectedTopUrl,
+                    onTopTap: () => showAddClothingBottomSheet(
+                      context,
+                      '상의',
+                      onWardrobeTap: () => _openWardrobePicker('TOP'),
+                      onImageSelected: (file) {
+                        setState(() {
+                          _selectedTopFile = file;
+                          _selectedTopUrl = null;
+                        });
+                      },
+                    ),
+
+                    // 하의 선택 로직
+                    bottomImageFile: _selectedBottomFile,
+                    bottomImageUrl: _selectedBottomUrl,
+                    onBottomTap: () => showAddClothingBottomSheet(
+                      context,
+                      '하의',
+                      onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
+                      onImageSelected: (file) {
+                        setState(() {
+                          _selectedBottomFile = file;
+                          _selectedBottomUrl = null;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Text(
+                      "좌측 이미지를 탭하여 전신 사진을 변경하세요",
+                      style: TextStyle(
+                        color: AppColors.MEDIUM_GREY,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  AiStylistInput(
+                    controller: _promptController,
+                    chips: _quickChips,
+                    onTryOnOutfit: _applyRecommendationOutfit,
+                  ),
+                ],
+                const SizedBox(height: 120),
               ],
-              const SizedBox(height: 120),
-            ],
             ),
           ),
         ),
@@ -1012,9 +1041,7 @@ class _Segment extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: isSelected
-                  ? Colors.white
-                  : AppColors.MEDIUM_GREY,
+              color: isSelected ? Colors.white : AppColors.MEDIUM_GREY,
             ),
           ),
         ),

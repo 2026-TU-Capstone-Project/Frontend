@@ -26,8 +26,18 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
   final _topSizeController = TextEditingController();
   final _bottomSizeController = TextEditingController();
 
-  static const List<String> _topSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  static final List<String> _bottomSizeOptions = List.generate(15, (i) => '${26 + i}');
+  static const List<String> _topSizeOptions = [
+    'XS',
+    'S',
+    'M',
+    'L',
+    'XL',
+    'XXL',
+  ];
+  static final List<String> _bottomSizeOptions = List.generate(
+    15,
+    (i) => '${26 + i}',
+  );
 
   @override
   void dispose() {
@@ -68,8 +78,12 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
       }
       final profile = FittingProfile(
         frontImagePath: savedFrontPath,
-        topSize: _topSizeController.text.trim().isEmpty ? null : _topSizeController.text.trim(),
-        bottomSize: _bottomSizeController.text.trim().isEmpty ? null : _bottomSizeController.text.trim(),
+        topSize: _topSizeController.text.trim().isEmpty
+            ? null
+            : _topSizeController.text.trim(),
+        bottomSize: _bottomSizeController.text.trim().isEmpty
+            ? null
+            : _bottomSizeController.text.trim(),
       );
       await FittingProfile.save(profile);
     } catch (e) {
@@ -225,7 +239,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                 value: progress,
                 minHeight: 4,
                 backgroundColor: AppColors.BORDER_COLOR,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.PRIMARYCOLOR),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.PRIMARYCOLOR,
+                ),
               ),
             ),
           ),
@@ -254,14 +270,13 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           fit: StackFit.expand,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    'asset/img/fitting1.jpg',
-                    fit: BoxFit.cover,
-                  ),
+                  Image.asset('asset/img/fitting1.jpg', fit: BoxFit.cover),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -336,15 +351,21 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                         color: AppColors.INPUT_BG_COLOR,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: _isAgreed ? AppColors.PRIMARYCOLOR : Colors.transparent,
+                          color: _isAgreed
+                              ? AppColors.PRIMARYCOLOR
+                              : Colors.transparent,
                           width: 1.5,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            _isAgreed ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: _isAgreed ? AppColors.PRIMARYCOLOR : AppColors.MEDIUM_GREY,
+                            _isAgreed
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: _isAgreed
+                                ? AppColors.PRIMARYCOLOR
+                                : AppColors.MEDIUM_GREY,
                             size: 24,
                           ),
                           const SizedBox(width: 12),
@@ -386,7 +407,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: _isAgreed ? Colors.white : AppColors.MEDIUM_GREY,
+                                color: _isAgreed
+                                    ? Colors.white
+                                    : AppColors.MEDIUM_GREY,
                               ),
                             ),
                           ),
@@ -395,7 +418,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                             backgroundColor: Colors.white,
                             child: Icon(
                               Icons.arrow_forward,
-                              color: _isAgreed ? AppColors.PRIMARYCOLOR : AppColors.MEDIUM_GREY,
+                              color: _isAgreed
+                                  ? AppColors.PRIMARYCOLOR
+                                  : AppColors.MEDIUM_GREY,
                               size: 20,
                             ),
                           ),
@@ -463,7 +488,11 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.MEDIUM_GREY),
+                        Icon(
+                          Icons.camera_alt_outlined,
+                          size: 48,
+                          color: AppColors.MEDIUM_GREY,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           '사진 촬영하기',
@@ -480,10 +509,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           const SizedBox(height: 8),
           const Text(
             '정면을 바라보고 전신이 나오게',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.MEDIUM_GREY,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.MEDIUM_GREY),
           ),
           const SizedBox(height: 40),
           _buildNextButton('다음'),
@@ -521,7 +547,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               Expanded(
                 child: _buildDropdownField(
                   label: '상의 사이즈',
-                  value: _topSizeController.text.isEmpty ? null : _topSizeController.text,
+                  value: _topSizeController.text.isEmpty
+                      ? null
+                      : _topSizeController.text,
                   hint: '선택',
                   items: _topSizeOptions,
                   onChanged: (v) {
@@ -534,7 +562,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               Expanded(
                 child: _buildDropdownField(
                   label: '하의 사이즈',
-                  value: _bottomSizeController.text.isEmpty ? null : _bottomSizeController.text,
+                  value: _bottomSizeController.text.isEmpty
+                      ? null
+                      : _bottomSizeController.text,
                   hint: '선택',
                   items: _bottomSizeOptions,
                   onChanged: (v) {
@@ -551,12 +581,18 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
             decoration: BoxDecoration(
               color: AppColors.ACCENT_COLOR.withOpacity(0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.ACCENT_COLOR.withOpacity(0.2)),
+              border: Border.all(
+                color: AppColors.ACCENT_COLOR.withOpacity(0.2),
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lock_outline, size: 20, color: AppColors.ACCENT_COLOR),
+                Icon(
+                  Icons.lock_outline,
+                  size: 20,
+                  color: AppColors.ACCENT_COLOR,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -587,10 +623,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               ),
               child: const Text(
                 '피팅룸 시작하기',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -671,10 +704,16 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                   display ?? hint,
                   style: TextStyle(
                     fontSize: 16,
-                    color: display != null ? AppColors.BLACK : AppColors.MEDIUM_GREY,
+                    color: display != null
+                        ? AppColors.BLACK
+                        : AppColors.MEDIUM_GREY,
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.MEDIUM_GREY, size: 24),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.MEDIUM_GREY,
+                  size: 24,
+                ),
               ],
             ),
           ),
@@ -724,7 +763,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
             Expanded(
               child: CupertinoPicker(
                 itemExtent: 36,
-                scrollController: FixedExtentScrollController(initialItem: index.clamp(0, options.length - 1)),
+                scrollController: FixedExtentScrollController(
+                  initialItem: index.clamp(0, options.length - 1),
+                ),
                 onSelectedItemChanged: (i) => index = i,
                 children: options.map((e) => Center(child: Text(e))).toList(),
               ),
@@ -772,9 +813,14 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.BORDER_COLOR),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
           onChanged: onChanged,
         ),
       ],
@@ -797,10 +843,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
         ),
       ),
     );

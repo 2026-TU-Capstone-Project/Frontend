@@ -12,14 +12,11 @@ class FittingProfileEditSheet extends StatefulWidget {
   final FittingProfile? initialProfile;
   final VoidCallback? onSaved;
 
-  const FittingProfileEditSheet({
-    this.initialProfile,
-    this.onSaved,
-    super.key,
-  });
+  const FittingProfileEditSheet({this.initialProfile, this.onSaved, super.key});
 
   @override
-  State<FittingProfileEditSheet> createState() => _FittingProfileEditSheetState();
+  State<FittingProfileEditSheet> createState() =>
+      _FittingProfileEditSheetState();
 }
 
 class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
@@ -28,8 +25,18 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
 
   File? _frontImage;
 
-  static const List<String> _topSizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  static final List<String> _bottomSizeOptions = List.generate(15, (i) => '${26 + i}');
+  static const List<String> _topSizeOptions = [
+    'XS',
+    'S',
+    'M',
+    'L',
+    'XL',
+    'XXL',
+  ];
+  static final List<String> _bottomSizeOptions = List.generate(
+    15,
+    (i) => '${26 + i}',
+  );
 
   @override
   void initState() {
@@ -69,8 +76,12 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
       }
       final profile = FittingProfile(
         frontImagePath: savedFrontPath,
-        topSize: _topSizeController.text.trim().isEmpty ? null : _topSizeController.text.trim(),
-        bottomSize: _bottomSizeController.text.trim().isEmpty ? null : _bottomSizeController.text.trim(),
+        topSize: _topSizeController.text.trim().isEmpty
+            ? null
+            : _topSizeController.text.trim(),
+        bottomSize: _bottomSizeController.text.trim().isEmpty
+            ? null
+            : _bottomSizeController.text.trim(),
       );
       await FittingProfile.save(profile);
     } catch (e) {
@@ -196,7 +207,13 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소', style: TextStyle(color: AppColors.MEDIUM_GREY, fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    '취소',
+                    style: TextStyle(
+                      color: AppColors.MEDIUM_GREY,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 const Text(
                   '피팅 프로필',
@@ -208,7 +225,13 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
                 ),
                 TextButton(
                   onPressed: _save,
-                  child: const Text('저장', style: TextStyle(color: AppColors.PRIMARYCOLOR, fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    '저장',
+                    style: TextStyle(
+                      color: AppColors.PRIMARYCOLOR,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -235,7 +258,9 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
                       Expanded(
                         child: _buildDropdownField(
                           label: '상의 사이즈',
-                          value: _topSizeController.text.isEmpty ? null : _topSizeController.text,
+                          value: _topSizeController.text.isEmpty
+                              ? null
+                              : _topSizeController.text,
                           hint: '선택',
                           items: _topSizeOptions,
                           onChanged: (v) {
@@ -248,7 +273,9 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
                       Expanded(
                         child: _buildDropdownField(
                           label: '하의 사이즈',
-                          value: _bottomSizeController.text.isEmpty ? null : _bottomSizeController.text,
+                          value: _bottomSizeController.text.isEmpty
+                              ? null
+                              : _bottomSizeController.text,
                           hint: '선택',
                           items: _bottomSizeOptions,
                           onChanged: (v) {
@@ -309,7 +336,11 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.add_photo_alternate_outlined, size: 40, color: AppColors.MEDIUM_GREY),
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 40,
+          color: AppColors.MEDIUM_GREY,
+        ),
         const SizedBox(height: 8),
         Text(
           '사진 추가',
@@ -390,10 +421,16 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
                   display ?? hint,
                   style: TextStyle(
                     fontSize: 16,
-                    color: display != null ? AppColors.BLACK : AppColors.MEDIUM_GREY,
+                    color: display != null
+                        ? AppColors.BLACK
+                        : AppColors.MEDIUM_GREY,
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.MEDIUM_GREY, size: 24),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.MEDIUM_GREY,
+                  size: 24,
+                ),
               ],
             ),
           ),
@@ -443,7 +480,9 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
             Expanded(
               child: CupertinoPicker(
                 itemExtent: 36,
-                scrollController: FixedExtentScrollController(initialItem: index.clamp(0, options.length - 1)),
+                scrollController: FixedExtentScrollController(
+                  initialItem: index.clamp(0, options.length - 1),
+                ),
                 onSelectedItemChanged: (i) => index = i,
                 children: options.map((e) => Center(child: Text(e))).toList(),
               ),
@@ -491,9 +530,14 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.BORDER_COLOR),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
           onChanged: onChanged,
         ),
       ],

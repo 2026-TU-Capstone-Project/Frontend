@@ -36,6 +36,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.3
+  google_fonts: ^6.2.1
   dio: ^5.9.1
   retrofit: ^4.9.2
   logger: ^2.6.2

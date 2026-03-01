@@ -19,30 +19,24 @@ class UserMeEditSheet extends StatefulWidget {
   final VoidCallback? onSaved;
   final VoidCallback? onLogout;
 
-  const UserMeEditSheet({
-    this.initial,
-    this.onSaved,
-    this.onLogout,
-    super.key,
-  });
+  const UserMeEditSheet({this.initial, this.onSaved, this.onLogout, super.key});
 
   @override
   State<UserMeEditSheet> createState() => _UserMeEditSheetState();
 }
 
 /// 키 목록: 100.0 ~ 250.0 cm, 0.1 단위
-List<double> get _heightOptions =>
-    List.generate(1501, (i) => 100.0 + i * 0.1);
+List<double> get _heightOptions => List.generate(1501, (i) => 100.0 + i * 0.1);
 
 /// 몸무게 목록: 30.0 ~ 200.0 kg, 0.1 단위
-List<double> get _weightOptions =>
-    List.generate(1701, (i) => 30.0 + i * 0.1);
+List<double> get _weightOptions => List.generate(1701, (i) => 30.0 + i * 0.1);
 
 class _UserMeEditSheetState extends State<UserMeEditSheet> {
   final _nicknameController = TextEditingController();
 
   double? _height;
   double? _weight;
+
   /// MALE | FEMALE (API 명세)
   String? _gender;
 
@@ -99,14 +93,26 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('취소', style: TextStyle(color: AppColors.MEDIUM_GREY, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          color: AppColors.MEDIUM_GREY,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
                         setState(() => _height = options[selectedIndex]);
                         Navigator.pop(context);
                       },
-                      child: Text('확인', style: TextStyle(color: AppColors.ACCENT_COLOR, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        '확인',
+                        style: TextStyle(
+                          color: AppColors.ACCENT_COLOR,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -114,9 +120,23 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 36,
-                  scrollController: FixedExtentScrollController(initialItem: initialIndex),
+                  scrollController: FixedExtentScrollController(
+                    initialItem: initialIndex,
+                  ),
                   onSelectedItemChanged: (i) => selectedIndex = i,
-                  children: options.map((v) => Center(child: Text('${v.toStringAsFixed(1)} cm', style: const TextStyle(color: AppColors.BLACK, fontSize: 17)))).toList(),
+                  children: options
+                      .map(
+                        (v) => Center(
+                          child: Text(
+                            '${v.toStringAsFixed(1)} cm',
+                            style: const TextStyle(
+                              color: AppColors.BLACK,
+                              fontSize: 17,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
             ],
@@ -151,14 +171,26 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('취소', style: TextStyle(color: AppColors.MEDIUM_GREY, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          color: AppColors.MEDIUM_GREY,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
                         setState(() => _weight = options[selectedIndex]);
                         Navigator.pop(context);
                       },
-                      child: Text('확인', style: TextStyle(color: AppColors.ACCENT_COLOR, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        '확인',
+                        style: TextStyle(
+                          color: AppColors.ACCENT_COLOR,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -166,9 +198,23 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
               Expanded(
                 child: CupertinoPicker(
                   itemExtent: 36,
-                  scrollController: FixedExtentScrollController(initialItem: initialIndex),
+                  scrollController: FixedExtentScrollController(
+                    initialItem: initialIndex,
+                  ),
                   onSelectedItemChanged: (i) => selectedIndex = i,
-                  children: options.map((v) => Center(child: Text('${v.toStringAsFixed(1)} kg', style: const TextStyle(color: AppColors.BLACK, fontSize: 17)))).toList(),
+                  children: options
+                      .map(
+                        (v) => Center(
+                          child: Text(
+                            '${v.toStringAsFixed(1)} kg',
+                            style: const TextStyle(
+                              color: AppColors.BLACK,
+                              fontSize: 17,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
             ],
@@ -306,16 +352,19 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
           ? nickname
           : updated?.nickname?.trim();
       if (newNickname != null && newNickname.isNotEmpty) {
-        await const FlutterSecureStorage().write(key: 'NICKNAME', value: newNickname);
+        await const FlutterSecureStorage().write(
+          key: 'NICKNAME',
+          value: newNickname,
+        );
       }
       if (!mounted) return;
       Navigator.of(context).pop();
       widget.onSaved?.call();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('수정 실패: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('수정 실패: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -379,12 +428,19 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                         backgroundColor: AppColors.INPUT_BG_COLOR,
                         backgroundImage: _pickedImage != null
                             ? FileImage(_pickedImage!)
-                            : (u?.profileImageUrl != null && u!.profileImageUrl!.isNotEmpty)
-                                ? NetworkImage(u.profileImageUrl!)
-                                : null,
-                        child: _pickedImage == null &&
-                                (u?.profileImageUrl == null || u!.profileImageUrl!.isEmpty)
-                            ? Icon(Icons.camera_alt_outlined, size: 36, color: AppColors.MEDIUM_GREY)
+                            : (u?.profileImageUrl != null &&
+                                  u!.profileImageUrl!.isNotEmpty)
+                            ? NetworkImage(u.profileImageUrl!)
+                            : null,
+                        child:
+                            _pickedImage == null &&
+                                (u?.profileImageUrl == null ||
+                                    u!.profileImageUrl!.isEmpty)
+                            ? Icon(
+                                Icons.camera_alt_outlined,
+                                size: 36,
+                                color: AppColors.MEDIUM_GREY,
+                              )
                             : null,
                       ),
                     ),
@@ -393,7 +449,10 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                   Center(
                     child: TextButton(
                       onPressed: _pickImage,
-                      child: const Text('사진 변경', style: TextStyle(color: AppColors.ACCENT_COLOR)),
+                      child: const Text(
+                        '사진 변경',
+                        style: TextStyle(color: AppColors.ACCENT_COLOR),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -409,13 +468,15 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                   const SizedBox(height: 12),
                   _buildPickerRow(
                     label: '키 (cm)',
-                    value: '${_height?.toStringAsFixed(1) ?? _defaultHeight.toStringAsFixed(1)} cm',
+                    value:
+                        '${_height?.toStringAsFixed(1) ?? _defaultHeight.toStringAsFixed(1)} cm',
                     onTap: _showHeightPicker,
                   ),
                   const SizedBox(height: 12),
                   _buildPickerRow(
                     label: '몸무게 (kg)',
-                    value: '${_weight?.toStringAsFixed(1) ?? _defaultWeight.toStringAsFixed(1)} kg',
+                    value:
+                        '${_weight?.toStringAsFixed(1) ?? _defaultWeight.toStringAsFixed(1)} kg',
                     onTap: _showWeightPicker,
                   ),
                   const SizedBox(height: 12),
@@ -442,7 +503,8 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                           ),
                         ),
                         selected: _gender == 'MALE',
-                        onSelected: (v) => setState(() => _gender = v ? 'MALE' : null),
+                        onSelected: (v) =>
+                            setState(() => _gender = v ? 'MALE' : null),
                         selectedColor: AppColors.ACCENT_COLOR.withOpacity(0.3),
                         backgroundColor: AppColors.INPUT_BG_COLOR,
                         side: BorderSide(
@@ -464,7 +526,8 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                           ),
                         ),
                         selected: _gender == 'FEMALE',
-                        onSelected: (v) => setState(() => _gender = v ? 'FEMALE' : null),
+                        onSelected: (v) =>
+                            setState(() => _gender = v ? 'FEMALE' : null),
                         selectedColor: AppColors.ACCENT_COLOR.withOpacity(0.3),
                         backgroundColor: AppColors.INPUT_BG_COLOR,
                         side: BorderSide(
@@ -491,7 +554,10 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text('저장'),
                     ),
@@ -553,7 +619,11 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 22, color: AppColors.MEDIUM_GREY),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 22,
+              color: AppColors.MEDIUM_GREY,
+            ),
           ],
         ),
       ),
