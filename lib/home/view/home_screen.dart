@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:capstone_fe/chat/view/ai_search_screen.dart' show showAiSearchOverlay;
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
@@ -202,8 +203,8 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.1),
-                      Colors.black.withOpacity(0.5),
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.black.withValues(alpha: 0.5),
                     ],
                   ),
                 ),
@@ -228,7 +229,7 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -249,7 +250,7 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -279,7 +280,7 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
                             decoration: BoxDecoration(
                               color: active
                                   ? Colors.white
-                                  : Colors.white.withOpacity(0.4),
+                                  : Colors.white.withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(3),
                             ),
                           );
@@ -313,7 +314,12 @@ class HomeSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(DivervaDesign.kPadding, 12, DivervaDesign.kPadding, 16),
+      padding: const EdgeInsets.fromLTRB(
+        DivervaDesign.kPadding,
+        12,
+        DivervaDesign.kPadding,
+        16,
+      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -326,16 +332,16 @@ class HomeSearchBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(_radius),
               border: Border.all(
                 width: 1.5,
-                color: AppColors.ACCENT_PURPLE.withOpacity(0.4),
+                color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.4),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.ACCENT_PURPLE.withOpacity(0.22),
+                  color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.22),
                   blurRadius: 20,
                   offset: const Offset(0, 2),
                 ),
                 BoxShadow(
-                  color: AppColors.ACCENT_PURPLE.withOpacity(0.16),
+                  color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.16),
                   blurRadius: 12,
                   offset: const Offset(0, -1),
                 ),
@@ -349,10 +355,18 @@ class HomeSearchBar extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.search_rounded, size: 24, color: AppColors.ACCENT_PURPLE),
+                  Icon(
+                    Icons.search_rounded,
+                    size: 24,
+                    color: AppColors.ACCENT_PURPLE,
+                  ),
                   const SizedBox(width: 14),
                   const Expanded(child: Text('AI 스타일리스트에게 물어보세요')),
-                  Icon(Icons.mic_none_outlined, size: 24, color: AppColors.ACCENT_PURPLE),
+                  Icon(
+                    Icons.mic_none_outlined,
+                    size: 24,
+                    color: AppColors.ACCENT_PURPLE,
+                  ),
                 ],
               ),
             ),
@@ -385,7 +399,12 @@ class HowToDressTodaySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(DivervaDesign.kPadding, 20, DivervaDesign.kPadding, 16),
+      padding: const EdgeInsets.fromLTRB(
+        DivervaDesign.kPadding,
+        20,
+        DivervaDesign.kPadding,
+        16,
+      ),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -393,14 +412,11 @@ class HowToDressTodaySection extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFB8C8F0),
-              Color(0xFFD4C0E0),
-            ],
+            colors: [Color(0xFFB8C8F0), Color(0xFFD4C0E0)],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -507,7 +523,11 @@ class _HowToDressCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, size: 32, color: color),
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 32,
+                    color: color,
+                  ),
                 )
               else
                 Icon(Icons.circle_outlined, size: 32, color: color),
@@ -517,7 +537,9 @@ class _HowToDressCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isEnabled ? const Color(0xFF1D1D1F) : AppColors.BODY_COLOR,
+                  color: isEnabled
+                      ? const Color(0xFF1D1D1F)
+                      : AppColors.BODY_COLOR,
                   letterSpacing: -0.25,
                   height: 1.25,
                 ),
@@ -583,7 +605,7 @@ class SavedOutfitCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
                   ),
                 ),
               ),
@@ -613,7 +635,7 @@ class SavedOutfitCard extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      color: DivervaDesign.textSecondary.withOpacity(0.2),
+      color: DivervaDesign.textSecondary.withValues(alpha: 0.2),
       child: const Icon(Icons.checkroom, size: 48),
     );
   }
@@ -698,7 +720,7 @@ class RecommendedItemCard extends StatelessWidget {
                 item.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: DivervaDesign.textSecondary.withOpacity(0.2),
+                  color: DivervaDesign.textSecondary.withValues(alpha: 0.2),
                   child: const Icon(Icons.checkroom, size: 48),
                 ),
               ),
@@ -707,7 +729,7 @@ class RecommendedItemCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
                   ),
                 ),
               ),
@@ -789,7 +811,7 @@ class ProductGridCard extends StatelessWidget {
                 item.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: DivervaDesign.textSecondary.withOpacity(0.2),
+                  color: DivervaDesign.textSecondary.withValues(alpha: 0.2),
                   child: const Icon(Icons.checkroom, size: 40),
                 ),
               ),
@@ -801,7 +823,7 @@ class ProductGridCard extends StatelessWidget {
                     stops: const [0.5, 1.0],
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.75),
+                      Colors.black.withValues(alpha: 0.75),
                     ],
                   ),
                 ),
@@ -838,7 +860,7 @@ class ProductGridCard extends StatelessWidget {
                           '${item.likeCount}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -878,6 +900,18 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SavedFittingData> _savedOutfits = [];
   bool _loadingOutfits = true;
 
+  // 검색바 하단 y좌표 측정용
+  final _searchBarKey = GlobalKey();
+
+  void _openSearchOverlay() {
+    final box =
+        _searchBarKey.currentContext?.findRenderObject() as RenderBox?;
+    final bottomY = box == null
+        ? MediaQuery.of(context).padding.top + 88.0
+        : box.localToGlobal(Offset(0, box.size.height)).dy;
+    showAiSearchOverlay(context, topOffset: bottomY);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -907,13 +941,16 @@ class _HomeScreenState extends State<HomeScreen> {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: HomeSearchBar(onTap: widget.onGoToStyleRecommendation),
+              child: HomeSearchBar(
+                key: _searchBarKey,
+                onTap: _openSearchOverlay,
+              ),
             ),
             SliverToBoxAdapter(
               child: HowToDressTodaySection(
                 onWeather: widget.onWeather,
                 onPhotoFitting: widget.onGoToFittingRoom,
-                onStyleRecommendation: widget.onGoToStyleRecommendation,
+                onStyleRecommendation: _openSearchOverlay,
               ),
             ),
             SliverToBoxAdapter(

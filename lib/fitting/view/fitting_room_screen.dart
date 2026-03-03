@@ -557,19 +557,25 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
                 try {
                   // 백엔드가 넘겨준 JSON 스트링을 Map으로 파싱합니다.
-                  final jsonData = jsonDecode(dataStr);
-                  final status = jsonData['status']?.toString().toUpperCase();
+                  final jsonData = jsonDecode(dataStr) as Map<String, dynamic>;
+                  // 서버가 { "data": { "status": ... } } 형식으로 감싸서 보낼 수도 있고
+                  // { "status": ... } 형식으로 직접 보낼 수도 있으므로 양쪽 지원
+                  final payload = (jsonData['data'] is Map<String, dynamic>)
+                      ? jsonData['data'] as Map<String, dynamic>
+                      : jsonData;
+                  final status = payload['status']?.toString().toUpperCase();
 
                   if (status == 'COMPLETED') {
-                    final resultUrl = jsonData['resultImgUrl'];
-                    if (resultUrl != null && resultUrl.toString().isNotEmpty) {
+                    final resultUrl = payload['resultImgUrl']?.toString();
+                    if (resultUrl != null && resultUrl.isNotEmpty) {
                       if (!completer.isCompleted) {
                         completer.complete(resultUrl);
                       }
                     } else {
+                      // URL이 없으면 폴링 폴백이 트리거되도록 동일한 패턴의 메시지 사용
                       if (!completer.isCompleted) {
                         completer.completeError(
-                          Exception('완료 상태이지만 이미지 URL이 없습니다.'),
+                          Exception('결과를 받기 전에 서버 연결이 종료되었습니다. (URL 없음)'),
                         );
                       }
                     }
@@ -621,7 +627,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       stopwatch.stop();
       final isConnectionClosed =
           e.toString().contains('서버 연결이 종료') ||
-          e.toString().contains('결과를 받기 전에');
+          e.toString().contains('결과를 받기 전에') ||
+          e.toString().contains('스트림 연결 오류') ||
+          e.toString().contains('Connection closed');
 
       if (isConnectionClosed) {
         // SSE가 끊겼을 때 상태 API로 폴링해서 결과 복구 시도

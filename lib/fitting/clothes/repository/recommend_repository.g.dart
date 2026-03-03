@@ -55,7 +55,8 @@ class _RecommendRepository implements RecommendRepository {
   }
 
   @override
-  Future<ApiResponse<WeatherStyleResult>> getWeatherStyleRecommendations() async {
+  Future<ApiResponse<WeatherStyleResult>>
+  getWeatherStyleRecommendations() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{r'accessToken': 'true'};

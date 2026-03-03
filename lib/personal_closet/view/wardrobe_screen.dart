@@ -152,8 +152,68 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _onAddCloth() async {
+    // 1단계: 사진 소스 선택 (카메라 / 갤러리)
+    final String? source = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.BORDER_COLOR,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                "옷 사진 선택",
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.BLACK,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _imageSourceTile(
+                context: ctx,
+                icon: Icons.camera_alt_outlined,
+                label: "사진 촬영하기",
+                onTap: () => Navigator.pop(ctx, "camera"),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Divider(height: 1, color: AppColors.BORDER_COLOR),
+              ),
+              _imageSourceTile(
+                context: ctx,
+                icon: Icons.photo_library_outlined,
+                label: "갤러리에서 선택",
+                onTap: () => Navigator.pop(ctx, "gallery"),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null || !mounted) return;
+
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final ImageSource imageSource =
+        source == "camera" ? ImageSource.camera : ImageSource.gallery;
+    final XFile? image = await picker.pickImage(source: imageSource);
 
     if (image == null) return;
     if (!mounted) return;
@@ -223,6 +283,41 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     }
   }
 
+  Widget _imageSourceTile({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.BLACK,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryOption(String label, String value) {
     return InkWell(
       onTap: () => Navigator.pop(context, value),
@@ -245,12 +340,28 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white, // 전체 배경 흰색
-      floatingActionButton: FloatingActionButton(
-        onPressed: _onAddCloth,
-        backgroundColor: AppColors.PRIMARYCOLOR, // 차콜색 버튼
-        elevation: 0, // 그림자 제거
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: GestureDetector(
+        onTap: _onAddCloth,
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [AppColors.ACCENT_BLUE, AppColors.ACCENT_PURPLE],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
       body: _isLoading
           ? const Center(

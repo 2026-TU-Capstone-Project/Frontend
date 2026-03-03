@@ -31,12 +31,11 @@ abstract class ClothesRepository {
   Future<ApiResponse<String>> deleteCloth({
     @Path("id") required int id,
   });
-
-
+  
   @POST('/api/v1/clothes')
   @MultiPart()
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<String>> uploadSingleCloth({
+  Future<ApiResponse<dynamic>> uploadSingleCloth({
     @Query("category") required String category,
     @Part(name: "file") required File file,
   });

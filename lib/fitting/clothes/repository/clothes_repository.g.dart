@@ -122,7 +122,7 @@ class _ClothesRepository implements ClothesRepository {
   }
 
   @override
-  Future<ApiResponse<String>> uploadSingleCloth({
+  Future<ApiResponse<dynamic>> uploadSingleCloth({
     required String category,
     required File file,
   }) async {
@@ -140,7 +140,7 @@ class _ClothesRepository implements ClothesRepository {
         ),
       ),
     );
-    final _options = _setStreamType<ApiResponse<String>>(
+    final _options = _setStreamType<ApiResponse<dynamic>>(
       Options(
             method: 'POST',
             headers: _headers,
@@ -156,11 +156,11 @@ class _ClothesRepository implements ClothesRepository {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late ApiResponse<String> _value;
+    late ApiResponse<dynamic> _value;
     try {
-      _value = ApiResponse<String>.fromJson(
+      _value = ApiResponse<dynamic>.fromJson(
         _result.data!,
-        (json) => json as String,
+        (json) => json as dynamic,
       );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
