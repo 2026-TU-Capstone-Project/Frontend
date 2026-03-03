@@ -20,7 +20,6 @@ class AiChatScreen extends ConsumerStatefulWidget {
 
 class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   final TextEditingController _inputController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
 
   // 디자인 상수
   static const Color _bgColor = Color(0xFFF5F5F7);
@@ -40,7 +39,6 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   @override
   void dispose() {
     _inputController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -48,55 +46,47 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     if (text.trim().isEmpty) return;
     _inputController.clear();
     ref.read(chatProvider.notifier).sendMessage(text);
-    // 전송 후 스크롤 최하단으로
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
 
-    // 새 메시지 도착 시 자동 스크롤
-    ref.listen(chatProvider, (_, __) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-    });
-
     return Scaffold(
       backgroundColor: _bgColor,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          Expanded(
-            child: chatState.messages.isEmpty
-                ? _EmptyState(
-                    onSuggestionTap: _sendMessage,
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    itemCount: chatState.messages.length,
-                    itemBuilder: (context, index) {
-                      return _buildMessageItem(chatState.messages[index]);
-                    },
-                  ),
-          ),
-          _InputBar(
-            controller: _inputController,
-            isSending: chatState.isSending,
-            onSend: () => _sendMessage(_inputController.text),
-          ),
-        ],
+      // 외부 탭 시 키보드 닫기
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Column(
+          children: [
+            Expanded(
+              child: chatState.messages.isEmpty
+                  ? _EmptyState(
+                      onSuggestionTap: _sendMessage,
+                    )
+                  : ListView.builder(
+                      // reverse: true — 새 메시지가 항상 하단에 표시, 수동 스크롤 불필요
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      itemCount: chatState.messages.length,
+                      itemBuilder: (context, index) {
+                        final reversedIndex =
+                            chatState.messages.length - 1 - index;
+                        return _buildMessageItem(
+                            chatState.messages[reversedIndex]);
+                      },
+                    ),
+            ),
+            _InputBar(
+              controller: _inputController,
+              isSending: chatState.isSending,
+              onSend: () => _sendMessage(_inputController.text),
+            ),
+          ],
+        ),
       ),
     );
   }

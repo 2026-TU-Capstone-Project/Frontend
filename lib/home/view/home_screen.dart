@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
 import 'package:capstone_fe/chat/view/ai_search_screen.dart' show showAiSearchOverlay;
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
@@ -302,17 +303,101 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
 }
 
 // =============================================================================
-// 검색바 — "AI 스타일리스트에게 물어보세요" (탭 시 AI 스타일리스트)
+// 검색바 — 상단 TextField에서 직접 입력, 포커스 시 실시간 검색어 패널 표시
 // =============================================================================
-class HomeSearchBar extends StatelessWidget {
-  final VoidCallback? onTap;
+class HomeSearchBar extends StatefulWidget {
+  final void Function(String query)? onSubmit;
 
-  const HomeSearchBar({super.key, this.onTap});
+  const HomeSearchBar({super.key, this.onSubmit});
 
   static const double _radius = 28;
 
   @override
+  State<HomeSearchBar> createState() => _HomeSearchBarState();
+}
+
+class _HomeSearchBarState extends State<HomeSearchBar> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  OverlayEntry? _overlayEntry;
+
+  static const List<String> _trending = [
+    '오늘 날씨에 맞는 코디 추천해줘',
+    '데이트 코디 추천해줘',
+    '캐주얼한 오피스룩 알려줘',
+    '미니멀한 스타일 보여줘',
+    '봄 신상 코디 추천해줘',
+    '출근룩 추천해줘',
+    '주말 나들이 코디 알려줘',
+    '여름 데일리룩 추천해줘',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (_focusNode.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showTrendingOverlay());
+    } else {
+      _removeOverlay();
+    }
+  }
+
+  void _showTrendingOverlay() {
+    _removeOverlay();
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    _overlayEntry = OverlayEntry(
+      builder: (_) => _TrendingDropdown(
+        top: offset.dy + size.height - 16,
+        trending: _trending,
+        onSelect: (query) {
+          _removeOverlay();
+          _focusNode.unfocus();
+          widget.onSubmit?.call(query);
+        },
+        onDismiss: () {
+          _removeOverlay();
+          _focusNode.unfocus();
+        },
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _onSubmit() {
+    final q = _controller.text.trim();
+    if (q.isEmpty) return;
+    _removeOverlay();
+    _focusNode.unfocus();
+    widget.onSubmit?.call(q);
+    _controller.clear();
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final hasText = _controller.text.trim().isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DivervaDesign.kPadding,
@@ -320,59 +405,307 @@ class HomeSearchBar extends StatelessWidget {
         DivervaDesign.kPadding,
         16,
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(_radius),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(_radius),
-              border: Border.all(
-                width: 1.5,
-                color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.4),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.22),
-                  blurRadius: 20,
-                  offset: const Offset(0, 2),
-                ),
-                BoxShadow(
-                  color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.16),
-                  blurRadius: 12,
-                  offset: const Offset(0, -1),
-                ),
-              ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(HomeSearchBar._radius),
+          border: Border.all(
+            width: 1.5,
+            color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.22),
+              blurRadius: 20,
+              offset: const Offset(0, 2),
             ),
-            child: DefaultTextStyle(
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.BODY_COLOR,
-                fontWeight: FontWeight.w500,
+            BoxShadow(
+              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.16),
+              blurRadius: 12,
+              offset: const Offset(0, -1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search_rounded, size: 24, color: AppColors.ACCENT_PURPLE),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF1D1D1F)),
+                decoration: const InputDecoration(
+                  hintText: 'AI 스타일리스트에게 물어보세요',
+                  hintStyle: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.BODY_COLOR,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+                ),
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _onSubmit(),
+                onChanged: (_) => setState(() {}),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.search_rounded,
-                    size: 24,
-                    color: AppColors.ACCENT_PURPLE,
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: hasText ? _onSubmit : null,
+              child: Icon(
+                Icons.send_rounded,
+                size: 22,
+                color: hasText ? AppColors.ACCENT_PURPLE : AppColors.BORDER_COLOR,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 실시간 검색어 드롭다운 — OverlayEntry로 표시, 아래로 드래그 시 닫힘
+// =============================================================================
+class _TrendingDropdown extends StatefulWidget {
+  final double top;
+  final List<String> trending;
+  final void Function(String) onSelect;
+  final VoidCallback onDismiss;
+
+  const _TrendingDropdown({
+    required this.top,
+    required this.trending,
+    required this.onSelect,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_TrendingDropdown> createState() => _TrendingDropdownState();
+}
+
+class _TrendingDropdownState extends State<_TrendingDropdown>
+    with SingleTickerProviderStateMixin {
+  double _dragOffset = 0;
+  late final AnimationController _snapController;
+  Animation<double>? _snapAnim;
+
+  static const double _dismissThreshold = 100.0;
+  static const double _dismissVelocity = 500.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    )..addListener(() {
+        if (mounted && _snapAnim != null) {
+          setState(() => _dragOffset = _snapAnim!.value);
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _snapController.dispose();
+    super.dispose();
+  }
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (d.delta.dy < 0 && _dragOffset == 0) return;
+    setState(() {
+      _dragOffset = (_dragOffset + d.delta.dy).clamp(0.0, double.infinity);
+    });
+  }
+
+  void _onDragEnd(DragEndDetails d) {
+    final velocity = d.primaryVelocity ?? 0;
+    if (_dragOffset > _dismissThreshold || velocity > _dismissVelocity) {
+      widget.onDismiss();
+    } else {
+      _snapAnim = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _snapController, curve: Curves.easeOutCubic),
+      );
+      _snapController.forward(from: 0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return Stack(
+      children: [
+        // 배경 터치 시 닫힘
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: widget.onDismiss,
+            behavior: HitTestBehavior.opaque,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        // 검색어 패널
+        Positioned(
+          top: widget.top,
+          left: 0,
+          right: 0,
+          bottom: keyboardHeight,
+          child: Transform.translate(
+            offset: Offset(0, _dragOffset),
+            child: Material(
+              color: Colors.transparent,
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, -6),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(child: Text('AI 스타일리스트에게 물어보세요')),
-                  Icon(
-                    Icons.mic_none_outlined,
-                    size: 24,
-                    color: AppColors.ACCENT_PURPLE,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 핸들 바 — 드래그 제스처 영역
+                      GestureDetector(
+                        onVerticalDragUpdate: _onDragUpdate,
+                        onVerticalDragEnd: _onDragEnd,
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 10, bottom: 8),
+                            child: Container(
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD1D1D6),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 헤더
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 18,
+                              color: AppColors.ACCENT_PURPLE,
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              '실시간 검색어',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1D1D1F),
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'AI 추천',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.ACCENT_PURPLE,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1, color: Color(0xFFF2F2F7)),
+                      // 검색어 목록
+                      Expanded(
+                        child: ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: widget.trending.length,
+                          itemBuilder: (_, i) {
+                            final isHot = i < 3;
+                            return InkWell(
+                              onTap: () => widget.onSelect(widget.trending[i]),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 26,
+                                      child: Text(
+                                        '${i + 1}',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: isHot
+                                              ? AppColors.ACCENT_PURPLE
+                                              : const Color(0xFFAEAEB2),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        widget.trending[i],
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xFF1D1D1F),
+                                        ),
+                                      ),
+                                    ),
+                                    if (isHot)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.ACCENT_PURPLE
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                        ),
+                                        child: Text(
+                                          'HOT',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.ACCENT_PURPLE,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -900,16 +1233,19 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SavedFittingData> _savedOutfits = [];
   bool _loadingOutfits = true;
 
-  // 검색바 하단 y좌표 측정용
-  final _searchBarKey = GlobalKey();
-
   void _openSearchOverlay() {
-    final box =
-        _searchBarKey.currentContext?.findRenderObject() as RenderBox?;
-    final bottomY = box == null
-        ? MediaQuery.of(context).padding.top + 88.0
-        : box.localToGlobal(Offset(0, box.size.height)).dy;
-    showAiSearchOverlay(context, topOffset: bottomY);
+    showAiSearchOverlay(
+      context,
+      topOffset: MediaQuery.of(context).padding.top + 88.0,
+    );
+  }
+
+  void _onSearchSubmit(String query) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AiChatScreen(initialMessage: query),
+      ),
+    );
   }
 
   @override
@@ -942,8 +1278,7 @@ class _HomeScreenState extends State<HomeScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: HomeSearchBar(
-                key: _searchBarKey,
-                onTap: _openSearchOverlay,
+                onSubmit: _onSearchSubmit,
               ),
             ),
             SliverToBoxAdapter(
