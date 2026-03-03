@@ -20,9 +20,12 @@ class _ClothesRepository implements ClothesRepository {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<ApiResponse<List<ClothesModel>>> getClothesList() async {
+  Future<ApiResponse<List<ClothesModel>>> getClothesList({
+    String? category,
+  }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'category': category};
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'accessToken': 'true'};
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;

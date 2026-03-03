@@ -4,6 +4,7 @@ import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/user/view/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 void main() {
@@ -11,7 +12,7 @@ void main() {
   if (kakaoNativeAppKey.isNotEmpty) {
     KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
   }
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {

@@ -12,8 +12,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// 마이페이지 수정 시트 (PATCH /api/v1/users/me)
-/// 닉네임, 키, 몸무게, 프로필 이미지. 보낸 필드만 서버에 반영. 로그아웃 버튼 포함.
 class UserMeEditSheet extends StatefulWidget {
   final UserMe? initial;
   final VoidCallback? onSaved;
@@ -25,10 +23,10 @@ class UserMeEditSheet extends StatefulWidget {
   State<UserMeEditSheet> createState() => _UserMeEditSheetState();
 }
 
-/// 키 목록: 100.0 ~ 250.0 cm, 0.1 단위
+
 List<double> get _heightOptions => List.generate(1501, (i) => 100.0 + i * 0.1);
 
-/// 몸무게 목록: 30.0 ~ 200.0 kg, 0.1 단위
+
 List<double> get _weightOptions => List.generate(1701, (i) => 30.0 + i * 0.1);
 
 class _UserMeEditSheetState extends State<UserMeEditSheet> {
@@ -37,7 +35,6 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
   double? _height;
   double? _weight;
 
-  /// MALE | FEMALE (API 명세)
   String? _gender;
 
   File? _pickedImage;

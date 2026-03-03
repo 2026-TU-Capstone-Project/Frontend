@@ -12,7 +12,8 @@ class DefaultLayout extends StatelessWidget {
     this.bottomNavigationBar,
     this.backgroundColor,
     this.actions,
-    super.key});
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +25,10 @@ class DefaultLayout extends StatelessWidget {
     );
   }
 
-  AppBar ?renderAppbar(){
-    if(title == null){
+  AppBar? renderAppbar() {
+    if (title == null) {
       return null;
-    }else{
+    } else {
       return AppBar(
         backgroundColor: Colors.white,
         title: title,

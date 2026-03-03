@@ -1,51 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/common/const/data.dart';
-import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
-import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repository.dart';
+import 'package:capstone_fe/fitting/clothes_set/provider/clothes_set_provider.dart';
 import 'package:capstone_fe/personal_closet/view/clothes_set_detail_screen.dart';
 
-/// 코디 폴더 목록 화면 (폴더로 나눠서 관리)
-class ClothesSetListScreen extends StatefulWidget {
+/// 코디 폴더 목록 화면
+class ClothesSetListScreen extends ConsumerWidget {
   const ClothesSetListScreen({super.key});
 
   @override
-  State<ClothesSetListScreen> createState() => _ClothesSetListScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final foldersAsync = ref.watch(clothesSetListProvider);
 
-class _ClothesSetListScreenState extends State<ClothesSetListScreen> {
-  late ClothesSetRepository _repository;
-  List<ClothesSetModel> _folders = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _repository = ClothesSetRepository(createAuthDio(), baseUrl: baseUrl);
-    _loadFolders();
-  }
-
-  Future<void> _loadFolders() async {
-    setState(() => _isLoading = true);
-    try {
-      final resp = await _repository.getClothesSets();
-      if (mounted && resp.success) {
-        setState(() => _folders = resp.data ?? []);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('폴더 목록 로드 실패: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -65,35 +32,54 @@ class _ClothesSetListScreenState extends State<ClothesSetListScreen> {
         ),
         centerTitle: true,
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadFolders,
-              color: AppColors.PRIMARYCOLOR,
-              child: _folders.isEmpty
-                  ? _buildEmpty()
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      itemCount: _folders.length,
-                      itemBuilder: (context, index) {
-                        final folder = _folders[index];
-                        return _FolderCard(
-                          folder: folder,
-                          onTap: () => _openDetail(folder),
-                        );
-                      },
-                    ),
-            ),
+      body: foldersAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
+        ),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                e.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.BODY_COLOR),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () =>
+                    ref.read(clothesSetListProvider.notifier).refresh(),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+        data: (folders) => RefreshIndicator(
+          onRefresh: () => ref.read(clothesSetListProvider.notifier).refresh(),
+          color: AppColors.PRIMARYCOLOR,
+          child: folders.isEmpty
+              ? _buildEmpty()
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                  itemCount: folders.length,
+                  itemBuilder: (context, index) {
+                    final folder = folders[index];
+                    return _FolderCard(
+                      folder: folder,
+                      onTap: () => _openDetail(context, ref, folder),
+                    );
+                  },
+                ),
+        ),
+      ),
     );
   }
 
   Widget _buildEmpty() {
     return ListView(
-      children: [
-        SizedBox(height: MediaQuery.of(context).size.height * 0.2),
-        const Center(
+      children: const [
+        SizedBox(height: 160),
+        Center(
           child: Column(
             children: [
               Icon(
@@ -114,10 +100,7 @@ class _ClothesSetListScreenState extends State<ClothesSetListScreen> {
               Text(
                 '피팅 결과에서 "폴더에 저장"으로\n폴더를 만들 수 있어요',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.MEDIUM_GREY,
-                ),
+                style: TextStyle(fontSize: 13, color: AppColors.MEDIUM_GREY),
               ),
             ],
           ),
@@ -126,32 +109,35 @@ class _ClothesSetListScreenState extends State<ClothesSetListScreen> {
     );
   }
 
-  void _openDetail(ClothesSetModel folder) {
+  void _openDetail(
+    BuildContext context,
+    WidgetRef ref,
+    ClothesSetModel folder,
+  ) {
     Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (context) => ClothesSetDetailScreen(
+        builder: (_) => ClothesSetDetailScreen(
           folder: folder,
-          onUpdated: _loadFolders,
+          onUpdated: () => ref.read(clothesSetListProvider.notifier).refresh(),
         ),
       ),
-    ).then((_) => _loadFolders());
+    ).then((_) => ref.read(clothesSetListProvider.notifier).refresh());
   }
 }
 
 class _FolderCard extends StatelessWidget {
-  const _FolderCard({
-    required this.folder,
-    required this.onTap,
-  });
+  const _FolderCard({required this.folder, required this.onTap});
 
   final ClothesSetModel folder;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final count = (folder.fittingTasks?.length ?? 0) + (folder.clothes?.length ?? 0);
-    final imageUrl = folder.representativeImageUrl ??
+    final count =
+        (folder.fittingTasks?.length ?? 0) + (folder.clothes?.length ?? 0);
+    final imageUrl =
+        folder.representativeImageUrl ??
         folder.fittingTasks?.firstOrNull?.resultImgUrl;
 
     return Padding(
@@ -213,10 +199,7 @@ class _FolderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.MEDIUM_GREY,
-                ),
+                const Icon(Icons.chevron_right, color: AppColors.MEDIUM_GREY),
               ],
             ),
           ),
@@ -225,12 +208,10 @@ class _FolderCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() {
-    return Container(
-      width: 72,
-      height: 72,
-      color: AppColors.INPUT_BG_COLOR,
-      child: const Icon(Icons.folder_outlined, color: AppColors.BORDER_COLOR),
-    );
-  }
+  Widget _placeholder() => Container(
+    width: 72,
+    height: 72,
+    color: AppColors.INPUT_BG_COLOR,
+    child: const Icon(Icons.folder_outlined, color: AppColors.BORDER_COLOR),
+  );
 }

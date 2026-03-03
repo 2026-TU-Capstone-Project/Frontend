@@ -14,7 +14,9 @@ abstract class ClothesRepository {
 
   @GET('/api/v1/clothes')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<ClothesModel>>> getClothesList();
+  Future<ApiResponse<List<ClothesModel>>> getClothesList({
+    @Query('category') String? category,
+  });
 
 
   @GET('/api/v1/clothes/{id}')

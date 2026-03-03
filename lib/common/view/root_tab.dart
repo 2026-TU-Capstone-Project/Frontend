@@ -45,6 +45,7 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // 홈(0)에서만 앱바 표시, 피팅룸/옷장/피드/유저(1~4)에서는 앱바 없음
     final showAppBar = (index == 0);
     return DefaultLayout(
       title: showAppBar
@@ -70,21 +71,14 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
         currentIndex: index,
         onTap: (i) => controller.animateTo(i),
       ),
+
       child: TabBarView(
         physics: const NeverScrollableScrollPhysics(),
         controller: controller,
         children: [
           HomeScreen(
             onGoToFittingRoom: () => controller.animateTo(2),
-            onGoToStyleRecommendation: () {
-              FittingRoomScreen.requestOpenAiStylist = true;
-              controller.animateTo(2);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Future.delayed(const Duration(milliseconds: 350), () {
-                  FittingRoomScreen.onFittingTabSelected?.call();
-                });
-              });
-            },
+            onGoToStyleRecommendation: () => controller.animateTo(2),
             onWeather: () {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -116,7 +110,6 @@ class _CustomBottomBar extends StatelessWidget {
   });
 
   static const double _centerButtonSize = 56.0;
-  static const double _centerButtonElevation = 8.0;
 
   @override
   Widget build(BuildContext context) {
@@ -143,14 +136,24 @@ class _CustomBottomBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildTab(0, Icons.home_outlined, Icons.home, '홈'),
-                  _buildTab(1, Icons.door_sliding_outlined, Icons.door_sliding, '옷장'),
+                  _buildTab(
+                    1,
+                    Icons.door_sliding_outlined,
+                    Icons.door_sliding,
+                    '옷장',
+                  ),
                   const SizedBox(width: _centerButtonSize + 8),
                   _buildTab(3, Icons.grid_view_outlined, Icons.grid_view, '피드'),
-                  _buildTab(4, Icons.person_outline_rounded, Icons.person_rounded, 'MY'),
+                  _buildTab(
+                    4,
+                    Icons.person_outline_rounded,
+                    Icons.person_rounded,
+                    'MY',
+                  ),
                 ],
               ),
               Positioned(
-                top: -_centerButtonElevation - 4,
+                top: -12,
                 child: GestureDetector(
                   onTap: () => onTap(2),
                   child: Column(
@@ -161,7 +164,7 @@ class _CustomBottomBar extends StatelessWidget {
                         height: _centerButtonSize,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
@@ -178,7 +181,9 @@ class _CustomBottomBar extends StatelessWidget {
                           ],
                         ),
                         child: Icon(
-                          currentIndex == 2 ? Icons.checkroom : Icons.checkroom_outlined,
+                          currentIndex == 2
+                              ? Icons.checkroom
+                              : Icons.checkroom_outlined,
                           color: Colors.white,
                           size: 28,
                         ),
@@ -219,9 +224,7 @@ class _CustomBottomBar extends StatelessWidget {
               Icon(
                 selected ? activeIcon : icon,
                 size: 26,
-                color: selected
-                    ? AppColors.PRIMARYCOLOR
-                    : AppColors.MEDIUM_GREY,
+                color: selected ? AppColors.PRIMARYCOLOR : AppColors.MEDIUM_GREY,
               ),
               const SizedBox(height: 4),
               Text(
@@ -229,9 +232,8 @@ class _CustomBottomBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected
-                      ? AppColors.PRIMARYCOLOR
-                      : AppColors.MEDIUM_GREY,
+                  color:
+                      selected ? AppColors.PRIMARYCOLOR : AppColors.MEDIUM_GREY,
                 ),
               ),
             ],

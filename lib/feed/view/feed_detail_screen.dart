@@ -1,13 +1,14 @@
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/common/const/data.dart';
-import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 피드 상세: GET /api/v1/feeds/{feedId} 연동, 수정/삭제(내 글일 때)
-class FeedDetailScreen extends StatefulWidget {
+/// 피드 상세: feedDetailProvider로 데이터 구독.
+/// isMine은 파라미터 or myFeedListProvider에서 파생 (별도 API 호출 없음).
+class FeedDetailScreen extends ConsumerWidget {
   final int feedId;
   final bool isMine;
 
@@ -18,108 +19,15 @@ class FeedDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<FeedDetailScreen> createState() => _FeedDetailScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailAsync = ref.watch(feedDetailProvider(feedId));
 
-class _FeedDetailScreenState extends State<FeedDetailScreen> {
-  final FeedRepository _repo =
-      FeedRepository(createAuthDio(), baseUrl: baseUrl);
+    // isMine 판별: 파라미터가 true이거나, 내 피드 목록에 해당 feedId가 있을 때
+    final isActuallyMine = isMine ||
+        (ref.watch(myFeedListProvider).valueOrNull
+                ?.any((f) => f.feedId == feedId) ??
+            false);
 
-  FeedDetailData? _detail;
-  bool _loading = true;
-  String? _error;
-  bool _isMine = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isMine = widget.isMine;
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final detailResp = await _repo.getFeedDetail(widget.feedId);
-      if (!mounted) return;
-      if (!detailResp.success || detailResp.data == null) {
-        setState(() {
-          _error = detailResp.message;
-          _loading = false;
-        });
-        return;
-      }
-      if (!widget.isMine) {
-        final myResp = await _repo.getMyFeeds();
-        if (mounted && myResp.data != null) {
-          final myIds = myResp.data!.map((e) => e.feedId).toSet();
-          _isMine = myIds.contains(widget.feedId);
-        }
-      }
-      setState(() {
-        _detail = detailResp.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _deleteFeed() async {
-    final confirmed = await AppDialog.confirm(
-      context: context,
-      title: '피드 삭제',
-      content: '이 피드를 삭제할까요?',
-      confirmLabel: '삭제',
-    );
-    if (confirmed != true || !mounted) return;
-    try {
-      final resp = await _repo.deleteFeed(widget.feedId);
-      if (!mounted) return;
-      if (resp.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('삭제되었어요.')),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resp.message)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      }
-    }
-  }
-
-  Future<void> _editFeed() async {
-    if (_detail == null) return;
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => FeedEditScreen(
-          feedId: widget.feedId,
-          initialTitle: _detail!.feedTitle ?? '',
-          initialContent: _detail!.feedContent ?? '',
-        ),
-      ),
-    );
-    if (result == true) _load();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -137,54 +45,110 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
             color: AppColors.BLACK,
           ),
         ),
-        actions: _isMine
+        actions: isActuallyMine
             ? [
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  onPressed: _editFeed,
+                  onPressed: () =>
+                      _editFeed(context, ref, detailAsync.valueOrNull),
                   tooltip: '수정',
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: _deleteFeed,
+                  onPressed: () => _deleteFeed(context, ref),
                   tooltip: '삭제',
                 ),
               ]
             : null,
       ),
-      body: _buildBody(),
+      body: detailAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                e.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.BODY_COLOR),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () =>
+                    ref.read(feedDetailProvider(feedId).notifier).refresh(),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+        data: (d) => _DetailBody(d: d),
+      ),
     );
   }
 
-  Widget _buildBody() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+  Future<void> _deleteFeed(BuildContext context, WidgetRef ref) async {
+    final confirmed = await AppDialog.confirm(
+      context: context,
+      title: '피드 삭제',
+      content: '이 피드를 삭제할까요?',
+      confirmLabel: '삭제',
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      final repo = ref.read(feedRepositoryProvider);
+      final resp = await repo.deleteFeed(feedId);
+      if (!context.mounted) return;
+      if (resp.success) {
+        ref.invalidate(feedListProvider);
+        ref.invalidate(myFeedListProvider);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('삭제되었어요.')));
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(resp.message)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
-    if (_error != null || _detail == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _error ?? '피드를 불러올 수 없어요.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.BODY_COLOR),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: _load,
-              child: const Text('다시 시도'),
-            ),
-          ],
+  }
+
+  Future<void> _editFeed(
+      BuildContext context, WidgetRef ref, FeedDetailData? detail) async {
+    if (detail == null) return;
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FeedEditScreen(
+          feedId: feedId,
+          initialTitle: detail.feedTitle ?? '',
+          initialContent: detail.feedContent ?? '',
         ),
-      );
+      ),
+    );
+    if (result == true) {
+      ref.read(feedDetailProvider(feedId).notifier).refresh();
     }
-    final d = _detail!;
+  }
+}
+
+// ─────────────────────────────────────────────
+// 상세 본문 (순수 UI, StatelessWidget)
+// ─────────────────────────────────────────────
+
+class _DetailBody extends StatelessWidget {
+  final FeedDetailData d;
+  const _DetailBody({required this.d});
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 스타일(전신) 이미지
           AspectRatio(
             aspectRatio: 3 / 4,
             child: Image.network(
@@ -202,13 +166,13 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 작성자
                 Row(
                   children: [
                     CircleAvatar(
                       radius: 20,
                       backgroundColor: AppColors.BORDER_COLOR,
-                      child: const Icon(Icons.person, color: AppColors.MEDIUM_GREY),
+                      child: const Icon(Icons.person,
+                          color: AppColors.MEDIUM_GREY),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -225,9 +189,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                         const Text(
                           '온더룩',
                           style: TextStyle(
-                            color: AppColors.MEDIUM_GREY,
-                            fontSize: 12,
-                          ),
+                              color: AppColors.MEDIUM_GREY, fontSize: 12),
                         ),
                       ],
                     ),
@@ -244,7 +206,9 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  (d.feedContent == null || d.feedContent!.isEmpty) ? '-' : d.feedContent!,
+                  (d.feedContent == null || d.feedContent!.isEmpty)
+                      ? '-'
+                      : d.feedContent!,
                   style: const TextStyle(
                     fontSize: 15,
                     height: 1.6,
@@ -278,9 +242,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                   const Text(
                     '등록된 착용 제품이 없어요.',
                     style: TextStyle(
-                      color: AppColors.MEDIUM_GREY,
-                      fontSize: 14,
-                    ),
+                        color: AppColors.MEDIUM_GREY, fontSize: 14),
                   ),
               ],
             ),
@@ -291,15 +253,15 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
   }
 }
 
-/// 착용 제품 카드 (썸네일 · 브랜드/제품명 · 북마크)
+// ─────────────────────────────────────────────
+// 착용 제품 카드
+// ─────────────────────────────────────────────
+
 class _WornProductCard extends StatelessWidget {
   final String? imageUrl;
   final String productName;
 
-  const _WornProductCard({
-    this.imageUrl,
-    required this.productName,
-  });
+  const _WornProductCard({this.imageUrl, required this.productName});
 
   @override
   Widget build(BuildContext context) {
@@ -312,75 +274,63 @@ class _WornProductCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 썸네일 (둥근 모서리)
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: SizedBox(
               width: 80,
               height: 80,
               child: imageUrl != null && imageUrl!.isNotEmpty
-                  ? Image.network(
-                      imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholderIcon(),
-                    )
-                  : _placeholderIcon(),
+                  ? Image.network(imageUrl!, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder())
+                  : _placeholder(),
             ),
           ),
           const SizedBox(width: 14),
-          // 브랜드 · 제품명
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  '상품',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.BLACK,
-                  ),
-                ),
+                const Text('상품',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.BLACK)),
                 const SizedBox(height: 4),
-                Text(
-                  productName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.BLACK,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(productName,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.BLACK,
+                        height: 1.3),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          // 북마크 아이콘
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.bookmark_border_rounded),
             style: IconButton.styleFrom(
-              foregroundColor: AppColors.MEDIUM_GREY,
-              minimumSize: const Size(40, 40),
-            ),
+                foregroundColor: AppColors.MEDIUM_GREY,
+                minimumSize: const Size(40, 40)),
           ),
         ],
       ),
     );
   }
 
-  Widget _placeholderIcon() {
-    return Container(
+  Widget _placeholder() => Container(
       color: AppColors.BORDER_COLOR,
-      child: const Icon(Icons.checkroom_rounded, size: 36, color: AppColors.MEDIUM_GREY),
-    );
-  }
+      child: const Icon(Icons.checkroom_rounded,
+          size: 36, color: AppColors.MEDIUM_GREY));
 }
 
-/// 피드 수정 화면 (제목·내용만 PATCH)
-class FeedEditScreen extends StatefulWidget {
+// ─────────────────────────────────────────────
+// 피드 수정 화면 (제목·내용 PATCH)
+// ─────────────────────────────────────────────
+
+class FeedEditScreen extends ConsumerStatefulWidget {
   final int feedId;
   final String initialTitle;
   final String initialContent;
@@ -393,12 +343,10 @@ class FeedEditScreen extends StatefulWidget {
   });
 
   @override
-  State<FeedEditScreen> createState() => _FeedEditScreenState();
+  ConsumerState<FeedEditScreen> createState() => _FeedEditScreenState();
 }
 
-class _FeedEditScreenState extends State<FeedEditScreen> {
-  final FeedRepository _repo =
-      FeedRepository(createAuthDio(), baseUrl: baseUrl);
+class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
   bool _saving = false;
@@ -427,29 +375,26 @@ class _FeedEditScreenState extends State<FeedEditScreen> {
     }
     setState(() => _saving = true);
     try {
-      final resp = await _repo.updateFeed(
-        widget.feedId,
-        UpdateFeedBody(
-          feedTitle: title,
-          feedContent: _contentController.text.trim(),
-        ).toJson(),
-      );
+      final resp = await ref.read(feedRepositoryProvider).updateFeed(
+            widget.feedId,
+            UpdateFeedBody(
+              feedTitle: title,
+              feedContent: _contentController.text.trim(),
+            ).toJson(),
+          );
       if (!mounted) return;
       if (resp.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('수정되었어요.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('수정되었어요.')));
         Navigator.pop(context, true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(resp.message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(resp.message)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -467,14 +412,11 @@ class _FeedEditScreenState extends State<FeedEditScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          '피드 수정',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.BLACK,
-          ),
-        ),
+        title: const Text('피드 수정',
+            style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.BLACK)),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
@@ -482,9 +424,9 @@ class _FeedEditScreenState extends State<FeedEditScreen> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('저장', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('저장',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -493,14 +435,11 @@ class _FeedEditScreenState extends State<FeedEditScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '제목',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.MEDIUM_GREY,
-              ),
-            ),
+            const Text('제목',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.MEDIUM_GREY)),
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
@@ -512,14 +451,11 @@ class _FeedEditScreenState extends State<FeedEditScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              '내용',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.MEDIUM_GREY,
-              ),
-            ),
+            const Text('내용',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.MEDIUM_GREY)),
             const SizedBox(height: 8),
             TextField(
               controller: _contentController,

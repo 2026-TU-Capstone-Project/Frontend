@@ -1,66 +1,20 @@
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/common/const/data.dart';
-import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
-import 'package:capstone_fe/feed/repository/feed_repository.dart';
+import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/feed/view/feed_write_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 /// 피드 탭 메인: 전체 피드 목록 + 내 피드/글쓰기 진입
-class FashionFeedScreen extends StatefulWidget {
+class FashionFeedScreen extends ConsumerWidget {
   const FashionFeedScreen({super.key});
 
   @override
-  State<FashionFeedScreen> createState() => _FashionFeedScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feedAsync = ref.watch(feedListProvider);
 
-class _FashionFeedScreenState extends State<FashionFeedScreen> {
-  final FeedRepository _feedRepository =
-      FeedRepository(createAuthDio(), baseUrl: baseUrl);
-
-  List<FeedListItem> _feeds = [];
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFeeds();
-  }
-
-  Future<void> _loadFeeds() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final resp = await _feedRepository.getFeeds();
-      if (!mounted) return;
-      if (resp.success && resp.data != null) {
-        setState(() {
-          _feeds = resp.data!;
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = resp.message;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -96,7 +50,8 @@ class _FashionFeedScreenState extends State<FashionFeedScreen> {
                                 builder: (_) => const FeedWriteScreen(),
                               ),
                             );
-                            _loadFeeds();
+                            // 글쓰기 완료 후 목록 새로고침
+                            ref.read(feedListProvider.notifier).refresh();
                           },
                           tooltip: '피드 작성',
                           padding: EdgeInsets.zero,
@@ -109,7 +64,8 @@ class _FashionFeedScreenState extends State<FashionFeedScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${_feeds.length}개의 게시물',
+                      // 데이터가 로드된 경우에만 개수 표시, 그 전엔 빈 문자열
+                      '${feedAsync.valueOrNull?.length ?? 0}개의 게시물',
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.MEDIUM_GREY,
@@ -120,73 +76,73 @@ class _FashionFeedScreenState extends State<FashionFeedScreen> {
                 ),
               ),
               Expanded(
-                child: _buildBody(),
+                child: feedAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          e.toString(),
+                          textAlign: TextAlign.center,
+                          style:
+                              const TextStyle(color: AppColors.BODY_COLOR),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () =>
+                              ref.read(feedListProvider.notifier).refresh(),
+                          child: const Text('다시 시도'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  data: (feeds) {
+                    if (feeds.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          '아직 피드가 없어요.\n첫 피드를 올려보세요.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.MEDIUM_GREY),
+                        ),
+                      );
+                    }
+                    return RefreshIndicator(
+                      onRefresh: () =>
+                          ref.read(feedListProvider.notifier).refresh(),
+                      child: MasonryGridView.count(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        itemCount: feeds.length,
+                        itemBuilder: (context, index) {
+                          final feed = feeds[index];
+                          final aspectRatio = index.isEven ? 0.7 : 0.85;
+                          return _FeedTile(
+                            feed: feed,
+                            aspectRatio: aspectRatio,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FeedDetailScreen(
+                                    feedId: feed.feedId,
+                                    isMine: false,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.BODY_COLOR),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: _loadFeeds,
-              child: const Text('다시 시도'),
-            ),
-          ],
-        ),
-      );
-    }
-    if (_feeds.isEmpty) {
-      return const Center(
-        child: Text(
-          '아직 피드가 없어요.\n첫 피드를 올려보세요.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.MEDIUM_GREY),
-        ),
-      );
-    }
-    return RefreshIndicator(
-      onRefresh: _loadFeeds,
-      child: MasonryGridView.count(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        itemCount: _feeds.length,
-        itemBuilder: (context, index) {
-          final feed = _feeds[index];
-          final aspectRatio = index.isEven ? 0.7 : 0.85;
-          return _FeedTile(
-            feed: feed,
-            aspectRatio: aspectRatio,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FeedDetailScreen(
-                    feedId: feed.feedId,
-                    isMine: false,
-                  ),
-                ),
-              );
-            },
-          );
-        },
       ),
     );
   }
