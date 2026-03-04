@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/component/fitting_loading_effect.dart';
@@ -113,6 +114,12 @@ class _FittingMainStageState extends State<FittingMainStage> {
                     fit: StackFit.expand,
                     children: [
                       _buildImage(widget.mainImagePath),
+
+                      if (widget.isLoading)
+                        BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(color: Colors.transparent),
+                        ),
 
                       if (widget.isLoading) const FittingLoadingEffect(),
 
