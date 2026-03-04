@@ -134,8 +134,7 @@ class _FolderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count =
-        (folder.fittingTasks?.length ?? 0) + (folder.clothes?.length ?? 0);
+    final count = folder.fittingTasks?.length ?? 0;
     final imageUrl =
         folder.representativeImageUrl ??
         folder.fittingTasks?.firstOrNull?.resultImgUrl;
