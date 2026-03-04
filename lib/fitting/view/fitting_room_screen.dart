@@ -61,6 +61,7 @@ class _FittingProgressHolder extends ChangeNotifier {
   void clearResult() {
     resultImageUrl = null;
     currentTaskId = null;
+    latency = null;
     notifyListeners();
   }
 }
@@ -100,6 +101,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
   String? _selectedTopUrl;
   String? _selectedBottomUrl;
+
+  int? _selectedTopClothesId;
+  int? _selectedBottomClothesId;
 
   final TextEditingController _promptController = TextEditingController();
   late AnimationController _animationController;
@@ -371,9 +375,11 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       if (isTop) {
         _selectedTopUrl = imageUrl;
         _selectedTopFile = null;
+        _selectedTopClothesId = cloth.id;
       } else {
         _selectedBottomUrl = imageUrl;
         _selectedBottomFile = null;
+        _selectedBottomClothesId = cloth.id;
       }
     });
 
@@ -846,9 +852,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
           _selectedBottomUrl = null;
         });
         if (resp.success) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('옷장에 저장되었습니다.')));
+          _progress.clearResult();
+          await AppDialog.success(
+            context: context,
+            title: '저장 완료',
+            content: '옷장에 저장되었습니다.',
+          );
         } else {
           ScaffoldMessenger.of(
             context,
@@ -876,17 +885,19 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     );
     if (name == null || name.isEmpty || !mounted) return;
     try {
+      final clothesIds = <int>[
+        if (_selectedTopClothesId != null) _selectedTopClothesId!,
+        if (_selectedBottomClothesId != null) _selectedBottomClothesId!,
+      ];
       final resp = await _clothesSetRepository.saveClothesSet(
-        SaveClothesSetRequest(setName: name, fittingTaskId: taskId),
+        SaveClothesSetRequest(
+          setName: name,
+          fittingTaskId: taskId,
+          clothesIds: clothesIds,
+        ),
       );
       if (mounted) {
         if (resp.success) {
-          setState(() {
-            _selectedTopFile = null;
-            _selectedTopUrl = null;
-            _selectedBottomFile = null;
-            _selectedBottomUrl = null;
-          });
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('새 폴더에 저장되었습니다.')));

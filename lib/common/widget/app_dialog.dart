@@ -54,6 +54,79 @@ class AppDialog {
     );
   }
 
+  /// 저장/완료 안내 다이얼로그 — 초록 체크 아이콘 스타일
+  static Future<void> success({
+    required BuildContext context,
+    required String title,
+    required String content,
+    String confirmLabel = '확인',
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: AppColors.white,
+        elevation: 8,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 36, 28, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: AppColors.SUCCESS_COLOR,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: AppColors.white,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.SUCCESS_COLOR,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                content,
+                style: const TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: AppColors.BODY_COLOR,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    confirmLabel,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.PRIMARYCOLOR,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 텍스트 입력 다이얼로그 (폴더 이름 등)
   static Future<String?> prompt({
     required BuildContext context,
