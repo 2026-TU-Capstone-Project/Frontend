@@ -2,6 +2,7 @@ import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/layout/default_layout.dart';
 import 'package:capstone_fe/feed/view/fashion_feed_screen.dart';
 import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
+import 'package:capstone_fe/fitting/view/weather_recommendation_screen.dart';
 import 'package:capstone_fe/home/view/home_screen.dart';
 import 'package:capstone_fe/personal_closet/view/wardrobe_screen.dart';
 import 'package:capstone_fe/user/view/user_profile_screen.dart';
@@ -79,16 +80,7 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
           HomeScreen(
             onGoToFittingRoom: () => controller.animateTo(2),
             onGoToStyleRecommendation: () => controller.animateTo(2),
-            onWeather: () {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('날씨 기반 추천 기능을 준비 중입니다.'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
+            onWeather: () => navigateToWeatherRecommendation(context),
           ),
           WardrobeScreen(),
           FittingRoomScreen(),

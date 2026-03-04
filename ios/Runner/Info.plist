@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>날씨 기반 코디 추천을 위해 현재 위치 접근 권한이 필요합니다.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>옷 사진을 불러오기 위해 갤러리 접근 권한이 필요합니다.</string>
     <key>NSCameraUsageDescription</key>

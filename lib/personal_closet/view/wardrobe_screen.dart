@@ -10,6 +10,7 @@ import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
 import 'package:capstone_fe/personal_closet/view/clothes_set_list_screen.dart';
+import 'package:capstone_fe/personal_closet/view/clothing_upload_progress_dialog.dart';
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
@@ -84,30 +85,20 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Future<void> _deleteCloth(int id) async {
-    try {
-      Navigator.pop(context); // 모달 닫기
+    Navigator.pop(context); // 상세 모달 닫기
 
-      final resp = await _clothesRepository.deleteCloth(id: id);
-      if (resp.success) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("옷이 삭제되었습니다.")));
-        }
-        _loadWardrobe(); // 목록 갱신
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("삭제 실패: ${resp.message}")));
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("에러 발생: $e")));
-      }
+    final success = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ClothingDeleteProgressDialog(
+        clothId: id,
+        repository: _clothesRepository,
+      ),
+    );
+
+    if (!mounted) return;
+    if (success == true) {
+      _loadWardrobe();
     }
   }
 
@@ -255,10 +246,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     if (selectedCat == null) return;
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("옷을 등록하고 분석 중입니다... 잠시만 기다려주세요.")),
-    );
-
     try {
       final file = File(image.path);
       final resp = await _clothesRepository.uploadSingleCloth(
@@ -266,20 +253,35 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         file: file,
       );
 
-      if (resp.success) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("옷 등록 완료! 목록을 갱신합니다.")));
-        Future.delayed(const Duration(seconds: 1), () => _loadWardrobe());
+      if (!resp.success) throw Exception(resp.message);
+      if (!mounted) return;
+
+      // 서버 응답: {"data": {"taskId": 1}}
+      final data = resp.data as Map<String, dynamic>?;
+      final taskId = data?['taskId'] as int?;
+      if (taskId == null) throw Exception('taskId를 받지 못했습니다.');
+
+      // SSE 진행 다이얼로그 표시 (사용자가 직접 닫을 수 없음)
+      final success = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => ClothingUploadProgressDialog(taskId: taskId),
+      );
+
+      if (!mounted) return;
+
+      if (success == true) {
+        _loadWardrobe();
       } else {
-        throw Exception(resp.message);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('옷 등록에 실패했습니다. 다시 시도해주세요.')),
+        );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("등록 실패: $e")));
+      ).showSnackBar(SnackBar(content: Text('등록 실패: $e')));
     }
   }
 

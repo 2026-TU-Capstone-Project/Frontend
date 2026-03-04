@@ -6,6 +6,7 @@ import 'package:capstone_fe/fitting/component/fitting_loading_effect.dart';
 class FittingMainStage extends StatefulWidget {
   final String? mainImagePath;
   final bool isLoading;
+  final bool isResult;
   final VoidCallback onUserImageTap;
   final VoidCallback onTopTap;
   final VoidCallback onBottomTap;
@@ -18,6 +19,7 @@ class FittingMainStage extends StatefulWidget {
     super.key,
     this.mainImagePath,
     this.isLoading = false,
+    this.isResult = false,
     required this.onUserImageTap,
     required this.onTopTap,
     required this.onBottomTap,
@@ -34,7 +36,54 @@ class FittingMainStage extends StatefulWidget {
 class _FittingMainStageState extends State<FittingMainStage> {
   @override
   Widget build(BuildContext context) {
-    // 전신·상의·하의 3개 선택 카드를 크게 표시
+    // 피팅 결과일 때: 전체 너비를 차지하는 단일 이미지 컨테이너
+    if (widget.isResult) {
+      return GestureDetector(
+        onTap: widget.onUserImageTap,
+        child: Container(
+          height: 520,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildImage(widget.mainImagePath),
+                // 우상단 "확대" 힌트 아이콘
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.open_in_full_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 일반 모드: 전신·상의·하의 3개 선택 카드를 크게 표시
     return SizedBox(
       height: 520,
       child: Row(

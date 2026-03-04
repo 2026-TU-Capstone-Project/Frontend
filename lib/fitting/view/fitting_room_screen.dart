@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -519,47 +520,62 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
       debugPrint(" [SSE 연결 시도] Task ID: $taskId");
 
-      // 2. SSE 통신을 위한 Completer 생성 (스트림이 끝날 때까지 여기서 함수 진행을 멈추고 기다리게 만듦)
+      // 2. SSE 통신을 위한 Completer 생성
       final completer = Completer<String?>();
 
-      // 3. 인증 토큰이 포함된 Dio 객체를 생성하여 스트림(Stream) 방식으로 GET 요청을 엽니다.
-      final dio = createAuthDio(); // (인터셉터가 포함된 공통 Dio 사용)
-      final response = await dio.get<ResponseBody>(
-        '$baseUrl/api/v1/virtual-fitting/$taskId/stream',
-        options: Options(
-          headers: {
-            'Accept': 'text/event-stream',
-          }, // 나는 SSE 스트림을 받을 준비가 되었다고 서버에 알림
-          responseType:
-              ResponseType.stream, // 한 번에 받지 않고 조각(Chunk) 단위로 계속 받겠다고 선언
-          receiveTimeout: const Duration(
-            minutes: 2,
-          ), // 2분 동안 서버에서 아무 말도 없으면 연결 끊기
-        ),
-      );
+      // 3. dart:io HttpClient로 SSE 연결 (Dio 인터셉터 우회)
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'ACCESS_TOKEN');
 
-      // 4. 파이프(Stream)로 들어오는 바이트 데이터를 우리가 읽을 수 있는 글자(String)로 변환하며 대기합니다.
-      final streamSubscription = response.data!.stream
-          .cast<List<int>>()
-          .transform(const Utf8Decoder())
-          .transform(const LineSplitter())
+      final httpClient = HttpClient();
+      final uri = Uri.parse('$baseUrl/api/v1/virtual-fitting/$taskId/stream');
+      final request = await httpClient.getUrl(uri);
+
+      if (token != null && token.isNotEmpty) {
+        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      }
+      request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
+      request.headers.set('cache-control', 'no-cache');
+
+      final response = await request.close();
+      debugPrint(" [SSE] 응답 상태: ${response.statusCode}");
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        httpClient.close(force: true);
+        throw Exception('SSE 연결 실패 (HTTP ${response.statusCode})');
+      }
+
+      // 4. 버퍼 기반 SSE 이벤트 파싱 (\n\n 구분)
+      final buffer = StringBuffer();
+
+      final streamSubscription = response
+          .transform(utf8.decoder)
           .listen(
-            (String line) {
-              // 서버에서 데이터 조각이 날아올 때마다 이 부분이 실행됩니다.
-              if (line.trim().isEmpty) return; // 빈 줄은 무시
+            (String text) {
+              if (completer.isCompleted) return;
+              debugPrint(" [SSE 수신] ${text.replaceAll('\n', '↵')}");
+              buffer.write(text);
 
-              debugPrint(" [SSE 수신] $line");
+              // SSE 이벤트는 빈 줄(\n\n)로 구분
+              while (buffer.toString().contains('\n\n')) {
+                final full = buffer.toString();
+                final splitIdx = full.indexOf('\n\n');
+                final eventBlock = full.substring(0, splitIdx);
+                buffer.clear();
+                buffer.write(full.substring(splitIdx + 2));
 
-              // SSE 표준 규격은 실제 데이터 앞에 "data:" 를 붙여서 보냅니다.
-              if (line.startsWith('data:')) {
-                final dataStr = line.substring(5).trim();
-                if (dataStr.isEmpty) return;
+                // 이벤트 블록에서 data: 라인 추출
+                String? rawData;
+                for (final line in eventBlock.split('\n')) {
+                  final trimmed = line.trim();
+                  if (trimmed.startsWith('data:')) {
+                    rawData = trimmed.substring(5).trim();
+                  }
+                }
+                if (rawData == null || rawData.isEmpty) continue;
 
                 try {
-                  // 백엔드가 넘겨준 JSON 스트링을 Map으로 파싱합니다.
-                  final jsonData = jsonDecode(dataStr) as Map<String, dynamic>;
-                  // 서버가 { "data": { "status": ... } } 형식으로 감싸서 보낼 수도 있고
-                  // { "status": ... } 형식으로 직접 보낼 수도 있으므로 양쪽 지원
+                  final jsonData = jsonDecode(rawData) as Map<String, dynamic>;
                   final payload = (jsonData['data'] is Map<String, dynamic>)
                       ? jsonData['data'] as Map<String, dynamic>
                       : jsonData;
@@ -568,11 +584,8 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                   if (status == 'COMPLETED') {
                     final resultUrl = payload['resultImgUrl']?.toString();
                     if (resultUrl != null && resultUrl.isNotEmpty) {
-                      if (!completer.isCompleted) {
-                        completer.complete(resultUrl);
-                      }
+                      if (!completer.isCompleted) completer.complete(resultUrl);
                     } else {
-                      // URL이 없으면 폴링 폴백이 트리거되도록 동일한 패턴의 메시지 사용
                       if (!completer.isCompleted) {
                         completer.completeError(
                           Exception('결과를 받기 전에 서버 연결이 종료되었습니다. (URL 없음)'),
@@ -586,29 +599,113 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                       );
                     }
                   }
-                  // WAITING 이나 PROCESSING 이면 아무것도 안 하고 다음 조각이 올 때까지 계속 기다립니다.
                 } catch (parseError) {
                   debugPrint("⚠ [SSE 파싱 에러] 무시하고 계속 대기: $parseError");
                 }
               }
             },
-            onError: (error) {
-              if (!completer.isCompleted) {
-                completer.completeError(Exception('스트림 연결 오류: $error'));
+            onError: (Object error) {
+              debugPrint(' [SSE] 연결 오류 → 폴링 전환: $error');
+              if (completer.isCompleted) return;
+
+              // 버퍼에 \n\n 없이 수신된 부분 데이터도 파싱 시도
+              final remaining = buffer.toString().trim();
+              if (remaining.isNotEmpty) {
+                String? rawData;
+                // \n\n 구분 없이 버퍼 전체를 단일 블록으로 파싱
+                for (final line in remaining.split('\n')) {
+                  final trimmed = line.trim();
+                  if (trimmed.startsWith('data:')) {
+                    rawData = trimmed.substring(5).trim();
+                  }
+                }
+                if (rawData != null && rawData.isNotEmpty) {
+                  try {
+                    final jsonData =
+                        jsonDecode(rawData) as Map<String, dynamic>;
+                    final payload =
+                        (jsonData['data'] is Map<String, dynamic>)
+                            ? jsonData['data'] as Map<String, dynamic>
+                            : jsonData;
+                    final status =
+                        payload['status']?.toString().toUpperCase();
+                    if (status == 'COMPLETED') {
+                      final resultUrl = payload['resultImgUrl']?.toString();
+                      if (resultUrl != null && resultUrl.isNotEmpty) {
+                        debugPrint(' [SSE onError→버퍼 복구] COMPLETED: $resultUrl');
+                        completer.complete(resultUrl);
+                        return;
+                      }
+                    } else if (status == 'FAILED') {
+                      debugPrint(' [SSE onError→버퍼 복구] FAILED 확인');
+                      completer.completeError(
+                        Exception('백엔드 피팅 처리 실패 (FAILED)'),
+                      );
+                      return;
+                    }
+                  } catch (parseErr) {
+                    debugPrint('⚠ [SSE onError 버퍼 파싱 실패] $parseErr');
+                  }
+                }
               }
+
+              completer.complete(null); // 버퍼에도 결과 없음 → 폴링 전환
             },
             onDone: () {
+              // 버퍼에 남은 데이터 처리
+              final remaining = buffer.toString().trim();
+              if (remaining.isNotEmpty && !completer.isCompleted) {
+                String? rawData;
+                for (final line in remaining.split('\n')) {
+                  final trimmed = line.trim();
+                  if (trimmed.startsWith('data:')) {
+                    rawData = trimmed.substring(5).trim();
+                  }
+                }
+                if (rawData != null && rawData.isNotEmpty) {
+                  try {
+                    final jsonData =
+                        jsonDecode(rawData) as Map<String, dynamic>;
+                    final payload = (jsonData['data'] is Map<String, dynamic>)
+                        ? jsonData['data'] as Map<String, dynamic>
+                        : jsonData;
+                    final status = payload['status']?.toString().toUpperCase();
+                    if (status == 'COMPLETED') {
+                      final resultUrl = payload['resultImgUrl']?.toString();
+                      if (resultUrl != null && resultUrl.isNotEmpty) {
+                        completer.complete(resultUrl);
+                        return;
+                      }
+                    }
+                  } catch (_) {}
+                }
+              }
               if (!completer.isCompleted) {
-                completer.completeError(Exception('결과를 받기 전에 서버 연결이 종료되었습니다.'));
+                debugPrint(' [SSE] 결과 없이 종료 → 폴링 전환');
+                completer.complete(null); // 에러가 아닌 null로 complete → 폴링 전환
               }
             },
+            cancelOnError: false,
           );
 
-      // 5. Completer가 complete 될 때까지(즉, COMPLETED나 FAILED가 떨어질 때까지) 여기서 멈춰서 기다립니다.
-      final finalUrl = await completer.future;
+      // 5. Completer가 complete 될 때까지 기다립니다.
+      final sseUrl = await completer.future;
 
-      // 6. 결과가 무사히 도착하면 파이프를 안전하게 닫고 화면을 업데이트합니다.
+      // 6. 스트림 정리
       await streamSubscription.cancel();
+      httpClient.close(force: true);
+
+      // 7. SSE에서 결과를 받았으면 바로 완료, 아니면 폴링 전환
+      String? finalUrl = sseUrl;
+      if (finalUrl == null || finalUrl.isEmpty) {
+        debugPrint(' [SSE→폴링] SSE에서 결과를 못 받아 폴링으로 전환합니다.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('서버와 연결 중... 잠시만 기다려주세요.')),
+          );
+        }
+        finalUrl = await _pollFittingResult(taskId);
+      }
 
       stopwatch.stop();
       final latencySec =
@@ -665,7 +762,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       );
       if (mounted) {
         debugPrint(" [피팅 에러 발생] $e");
-        final msg = e.toString().contains('피팅 실패')
+        final msg =
+            (e.toString().contains('피팅 실패') ||
+                e.toString().contains('FAILED'))
             ? '피팅에 실패했어요. 전신 사진과 옷 사진이 선명한지 확인한 뒤 다시 시도해주세요.'
             : '오류 발생: ${e.toString().replaceAll('Exception: ', '')}';
 
@@ -676,9 +775,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     }
   }
 
-  /// SSE 연결이 끊겼을 때 상태 API를 주기적으로 호출해 결과 URL 복구 (최대 약 1분)
+  /// SSE 연결이 끊겼을 때 상태 API를 주기적으로 호출해 결과 URL 복구 (최대 약 5분)
   Future<String?> _pollFittingResult(int taskId) async {
-    const maxAttempts = 30;
+    const maxAttempts = 150;
     const interval = Duration(seconds: 2);
 
     for (var i = 0; i < maxAttempts; i++) {
@@ -712,6 +811,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       await _fittingRepository.deleteFittingResult(taskId: taskId);
       _progress.clearResult();
       if (mounted) {
+        setState(() {
+          _selectedTopFile = null;
+          _selectedTopUrl = null;
+          _selectedBottomFile = null;
+          _selectedBottomUrl = null;
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('피팅 결과를 닫았습니다.')));
@@ -734,6 +839,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         taskId: taskId,
       );
       if (mounted) {
+        setState(() {
+          _selectedTopFile = null;
+          _selectedTopUrl = null;
+          _selectedBottomFile = null;
+          _selectedBottomUrl = null;
+        });
         if (resp.success) {
           ScaffoldMessenger.of(
             context,
@@ -770,6 +881,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       );
       if (mounted) {
         if (resp.success) {
+          setState(() {
+            _selectedTopFile = null;
+            _selectedTopUrl = null;
+            _selectedBottomFile = null;
+            _selectedBottomUrl = null;
+          });
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('새 폴더에 저장되었습니다.')));
@@ -913,6 +1030,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                         _selectedUserImage?.path ??
                         'asset/img/fitting1.jpg',
                     isLoading: _progress.isFittingNow,
+                    isResult:
+                        _progress.resultImageUrl != null &&
+                        !_progress.isFittingNow,
 
                     // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
                     onUserImageTap: _progress.resultImageUrl != null
