@@ -172,7 +172,7 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
   Widget build(BuildContext context) {
     final width =
         MediaQuery.of(context).size.width - DivervaDesign.kPadding * 2;
-    final height = width * 0.65;
+    final height = width * 0.9;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -367,7 +367,7 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
 
     _overlayEntry = OverlayEntry(
       builder: (_) => _TrendingDropdown(
-        top: offset.dy + size.height - 16,
+        top: offset.dy + size.height + 4,
         trending: _trending,
         onSelect: (query) {
           _removeOverlay();
@@ -1435,8 +1435,8 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverToBoxAdapter(
               child: MainFittingBanner(
                 backgroundImagePaths: const [
-                  'asset/img/App.jpg',
-                  'asset/img/App1.jpg',
+                  'asset/img/App3.jpg',
+                  'asset/img/App6.jpg',
                   'asset/img/App2.jpg',
                 ],
                 onBannerTap: widget.onGoToFittingRoom,
