@@ -7,6 +7,7 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/fitting/model/weather_recommendation_model.dart';
 import 'package:capstone_fe/fitting/repository/weather_recommendation_repository.dart';
+
 const _owmApiKey = '40591f2fa4b059a5ac307fc839eafc7f';
 
 // ───────────────────────────────────────────────────────────
@@ -59,9 +60,11 @@ Future<void> navigateToWeatherRecommendation(BuildContext context) async {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response.message.isNotEmpty
-              ? response.message
-              : '추천 정보를 불러오지 못했습니다.'),
+          content: Text(
+            response.message.isNotEmpty
+                ? response.message
+                : '추천 정보를 불러오지 못했습니다.',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -95,8 +98,9 @@ Future<Position?> _getPosition(BuildContext context) async {
       await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('위치 권한 필요'),
           content: const Text(
             '날씨 기반 코디 추천을 위해 위치 접근 권한이 필요합니다.\n설정에서 권한을 허용해 주세요.',
@@ -179,11 +183,7 @@ Future<WeatherInfo> _fetchWeather(double lat, double lon) async {
     return WeatherInfo(temp: temp, description: desc, cityName: city);
   } catch (_) {
     // 날씨 API 실패 시 서울 평균 기온으로 폴백
-    return const WeatherInfo(
-      temp: 15.0,
-      description: '맑음',
-      cityName: '서울',
-    );
+    return const WeatherInfo(temp: 15.0, description: '맑음', cityName: '서울');
   }
 }
 
@@ -208,8 +208,11 @@ class WeatherRecommendationScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 20, color: AppColors.BLACK),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppColors.BLACK,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -361,8 +364,9 @@ class _RecommendationCard extends StatelessWidget {
           // 이미지
           if (item.resultImgUrl != null && item.resultImgUrl!.isNotEmpty)
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: AspectRatio(
                 aspectRatio: 3 / 4,
                 child: Image.network(
@@ -371,8 +375,11 @@ class _RecommendationCard extends StatelessWidget {
                   errorBuilder: (_, __, ___) => Container(
                     color: AppColors.INPUT_BG_COLOR,
                     child: const Center(
-                      child: Icon(Icons.image_not_supported_outlined,
-                          size: 48, color: AppColors.MEDIUM_GREY),
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 48,
+                        color: AppColors.MEDIUM_GREY,
+                      ),
                     ),
                   ),
                   loadingBuilder: (_, child, progress) {
@@ -383,7 +390,7 @@ class _RecommendationCard extends StatelessWidget {
                         child: CircularProgressIndicator(
                           value: progress.expectedTotalBytes != null
                               ? progress.cumulativeBytesLoaded /
-                                  progress.expectedTotalBytes!
+                                    progress.expectedTotalBytes!
                               : null,
                           strokeWidth: 2,
                           color: AppColors.ACCENT_BLUE,
@@ -396,14 +403,18 @@ class _RecommendationCard extends StatelessWidget {
             )
           else
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Container(
                 height: 200,
                 color: AppColors.INPUT_BG_COLOR,
                 child: const Center(
-                  child: Icon(Icons.checkroom_outlined,
-                      size: 64, color: AppColors.MEDIUM_GREY),
+                  child: Icon(
+                    Icons.checkroom_outlined,
+                    size: 64,
+                    color: AppColors.MEDIUM_GREY,
+                  ),
                 ),
               ),
             ),
@@ -509,8 +520,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.wb_cloudy_outlined,
-              size: 64, color: AppColors.MEDIUM_GREY),
+          Icon(
+            Icons.wb_cloudy_outlined,
+            size: 64,
+            color: AppColors.MEDIUM_GREY,
+          ),
           const SizedBox(height: 16),
           const Text(
             '추천할 코디가 없습니다.',

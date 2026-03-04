@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
 import 'package:capstone_fe/chat/view/ai_search_screen.dart' show showAiSearchOverlay;
 import 'package:capstone_fe/common/const/colors.dart';
@@ -169,7 +172,7 @@ class _MainFittingBannerState extends State<MainFittingBanner> {
   Widget build(BuildContext context) {
     final width =
         MediaQuery.of(context).size.width - DivervaDesign.kPadding * 2;
-    final height = width * 0.95;
+    final height = width * 0.65;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -403,7 +406,7 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
         DivervaDesign.kPadding,
         12,
         DivervaDesign.kPadding,
-        16,
+        8,
       ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -717,12 +720,16 @@ class HowToDressTodaySection extends StatelessWidget {
   final VoidCallback? onWeather;
   final VoidCallback? onPhotoFitting;
   final VoidCallback? onStyleRecommendation;
+  final double? currentTemp;
+  final String? weatherDescription;
 
   const HowToDressTodaySection({
     super.key,
     this.onWeather,
     this.onPhotoFitting,
     this.onStyleRecommendation,
+    this.currentTemp,
+    this.weatherDescription,
   });
 
   static const double _blockRadius = 20.0;
@@ -734,7 +741,7 @@ class HowToDressTodaySection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DivervaDesign.kPadding,
-        20,
+        4,
         DivervaDesign.kPadding,
         16,
       ),
@@ -787,6 +794,12 @@ class HowToDressTodaySection extends StatelessWidget {
                       subtitle: '날씨 기반',
                       onTap: onWeather,
                       isEnabled: true,
+                      weatherTemp: currentTemp,
+                      weatherDesc: weatherDescription,
+                      gradientColors: const [
+                        Color(0xFFEBF3FF),
+                        Color(0xFFE8E1FF),
+                      ],
                     ),
                   ),
                   const SizedBox(width: _cardGap),
@@ -798,6 +811,10 @@ class HowToDressTodaySection extends StatelessWidget {
                       onTap: onPhotoFitting,
                       isEnabled: true,
                       isPrimary: true,
+                      gradientColors: const [
+                        Color(0xFFE8E1FF),
+                        Color(0xFFEBF3FF),
+                      ],
                     ),
                   ),
                   const SizedBox(width: _cardGap),
@@ -808,6 +825,10 @@ class HowToDressTodaySection extends StatelessWidget {
                       subtitle: 'AI 추천',
                       onTap: onStyleRecommendation,
                       isEnabled: true,
+                      gradientColors: const [
+                        Color(0xFFEDF9F0),
+                        Color(0xFFEBF3FF),
+                      ],
                     ),
                   ),
                 ],
@@ -820,13 +841,16 @@ class HowToDressTodaySection extends StatelessWidget {
   }
 }
 
-class _HowToDressCard extends StatelessWidget {
+class _HowToDressCard extends StatefulWidget {
   final String? imageAsset;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
   final bool isEnabled;
   final bool isPrimary;
+  final double? weatherTemp;
+  final String? weatherDesc;
+  final List<Color>? gradientColors;
 
   const _HowToDressCard({
     this.imageAsset,
@@ -835,65 +859,127 @@ class _HowToDressCard extends StatelessWidget {
     this.onTap,
     this.isEnabled = true,
     this.isPrimary = false,
+    this.weatherTemp,
+    this.weatherDesc,
+    this.gradientColors,
   });
 
   @override
+  State<_HowToDressCard> createState() => _HowToDressCardState();
+}
+
+class _HowToDressCardState extends State<_HowToDressCard> {
+  bool _pressed = false;
+
+  String _weatherEmoji(String? desc) {
+    if (desc == null) return '☀️';
+    final d = desc.toLowerCase();
+    if (d.contains('rain') || d.contains('비')) return '🌧';
+    if (d.contains('snow') || d.contains('눈')) return '❄️';
+    if (d.contains('cloud') || d.contains('흐림') || d.contains('구름')) {
+      return '☁️';
+    }
+    if (d.contains('thunder') || d.contains('번개') || d.contains('뇌우')) {
+      return '⛈';
+    }
+    return '☀️';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = isEnabled ? AppColors.PRIMARYCOLOR : AppColors.BODY_COLOR;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    final color =
+        widget.isEnabled ? AppColors.PRIMARYCOLOR : AppColors.BODY_COLOR;
+    return AnimatedScale(
+      scale: _pressed ? 0.95 : 1.0,
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (imageAsset != null)
-                Image.asset(
-                  imageAsset!,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(
-                    Icons.image_not_supported_outlined,
-                    size: 32,
-                    color: color,
+        child: InkWell(
+          onTap: () {
+            setState(() => _pressed = false);
+            widget.onTap?.call();
+          },
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapCancel: () => setState(() => _pressed = false),
+          borderRadius: BorderRadius.circular(14),
+          splashColor: AppColors.ACCENT_PURPLE.withValues(alpha: 0.1),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: widget.gradientColors != null
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: widget.gradientColors!,
+                    )
+                  : null,
+            ),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.imageAsset != null)
+                    Image.asset(
+                      widget.imageAsset!,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 40,
+                        color: color,
+                      ),
+                    )
+                  else
+                    Icon(Icons.circle_outlined, size: 40, color: color),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: widget.isEnabled
+                          ? const Color(0xFF1D1D1F)
+                          : AppColors.BODY_COLOR,
+                      letterSpacing: -0.25,
+                      height: 1.25,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                )
-              else
-                Icon(Icons.circle_outlined, size: 32, color: color),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isEnabled
-                      ? const Color(0xFF1D1D1F)
-                      : AppColors.BODY_COLOR,
-                  letterSpacing: -0.25,
-                  height: 1.25,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+                  const SizedBox(height: 3),
+                  if (widget.weatherTemp != null)
+                    Text(
+                      '${widget.weatherTemp!.round()}°C ${_weatherEmoji(widget.weatherDesc)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ACCENT_BLUE,
+                        height: 1.25,
+                      ),
+                      textAlign: TextAlign.center,
+                    )
+                  else
+                    Text(
+                      widget.subtitle,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.BODY_COLOR,
+                        height: 1.25,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                ],
               ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.BODY_COLOR,
-                  height: 1.25,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1232,6 +1318,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<SavedFittingData> _savedOutfits = [];
   bool _loadingOutfits = true;
+  double? _currentTemp;
+  String? _weatherDescription;
 
   void _openSearchOverlay() {
     showAiSearchOverlay(
@@ -1252,6 +1340,50 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadSavedOutfits();
+    _loadWeather();
+  }
+
+  Future<void> _loadWeather() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+
+      const apiKey = '40591f2fa4b059a5ac307fc839eafc7f';
+      final dio = Dio();
+      final res = await dio.get(
+        'https://api.openweathermap.org/data/2.5/weather',
+        queryParameters: {
+          'lat': position.latitude,
+          'lon': position.longitude,
+          'appid': apiKey,
+          'units': 'metric',
+          'lang': 'kr',
+        },
+      );
+      final body = res.data is String ? jsonDecode(res.data) : res.data;
+      final temp = (body['main']['temp'] as num).toDouble();
+      final desc = body['weather'][0]['description'] as String? ?? '';
+      if (!mounted) return;
+      setState(() {
+        _currentTemp = temp;
+        _weatherDescription = desc;
+      });
+    } catch (_) {
+      // 위치 또는 날씨 조회 실패 시 조용히 무시
+    }
   }
 
   Future<void> _loadSavedOutfits() async {
@@ -1286,16 +1418,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 onWeather: widget.onWeather,
                 onPhotoFitting: widget.onGoToFittingRoom,
                 onStyleRecommendation: _openSearchOverlay,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: MainFittingBanner(
-                backgroundImagePaths: const [
-                  'asset/img/App.jpg',
-                  'asset/img/App1.jpg',
-                  'asset/img/App2.jpg',
-                ],
-                onBannerTap: widget.onGoToFittingRoom,
+                currentTemp: _currentTemp,
+                weatherDescription: _weatherDescription,
               ),
             ),
             const SliverToBoxAdapter(child: SectionHeader(title: '내 최근 코디')),
@@ -1307,7 +1431,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   : SavedOutfitRack(items: _savedOutfits, onItemTap: (_) {}),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            SliverToBoxAdapter(
+              child: MainFittingBanner(
+                backgroundImagePaths: const [
+                  'asset/img/App.jpg',
+                  'asset/img/App1.jpg',
+                  'asset/img/App2.jpg',
+                ],
+                onBannerTap: widget.onGoToFittingRoom,
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
             const SliverToBoxAdapter(child: SectionHeader(title: '인기 스타일')),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
