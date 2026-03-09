@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
+import 'package:capstone_fe/fitting/util/clothes_category_util.dart';
 import '../theme/fitting_room_theme.dart';
 
 class WardrobePickerSheet extends StatefulWidget {
@@ -28,20 +29,11 @@ class _WardrobePickerSheetState extends State<WardrobePickerSheet> {
   }
 
   void _filterClothes() {
-    // 👇 카테고리 필터링 로직
-    // 서버 데이터의 category 값이 "Top", "Bottom" 등으로 온다고 가정
     _filteredClothes = widget.clothes.where((cloth) {
-      final clothCat = (cloth.category ?? "").toUpperCase();
       final targetCat = widget.category.toUpperCase();
-
-      // 포함 여부로 확인 (예: "DENIM PANTS" 에는 "PANTS"가 포함됨)
-      // 실제 서버 데이터에 맞춰 조건을 조정하세요.
-      if (targetCat == 'TOP') {
-        return clothCat.contains('TOP') || clothCat.contains('SHIRT') || clothCat.contains('OUTER') || clothCat == '상의';
-      } else if (targetCat == 'BOTTOM') {
-        return clothCat.contains('BOTTOM') || clothCat.contains('PANTS') || clothCat.contains('SKIRT') || clothCat.contains('JEANS') || clothCat == '하의';
-      }
-      return true; // 카테고리 지정 안 되면 다 보여줌
+      if (targetCat == 'TOP') return isTopCategory(cloth.category);
+      if (targetCat == 'BOTTOM') return isBottomCategory(cloth.category);
+      return true;
     }).toList();
   }
 

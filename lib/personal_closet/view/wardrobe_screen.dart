@@ -7,10 +7,14 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
+import 'package:capstone_fe/fitting/util/clothes_category_util.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
 import 'package:capstone_fe/personal_closet/view/clothes_set_list_screen.dart';
 import 'package:capstone_fe/personal_closet/view/clothing_upload_progress_dialog.dart';
+
+// 홈 화면과 통일된 배경색 (Apple-style light grey)
+const _kBg = Color(0xFFF5F5F7);
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
@@ -114,30 +118,20 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       _filteredClothes = List.from(_allClothes);
     } else {
       _filteredClothes = _allClothes.where((cloth) {
-        final serverCat = cloth.category?.toUpperCase() ?? "";
+        final cat = cloth.category?.toUpperCase() ?? "";
 
-        if (_selectedCategory == "상의") {
-          return serverCat.contains("TOP") ||
-              serverCat.contains("SHIRT") ||
-              serverCat.contains("BLOUSE");
-        }
-        if (_selectedCategory == "하의") {
-          return serverCat.contains("BOTTOM") ||
-              serverCat.contains("PANTS") ||
-              serverCat.contains("SKIRT");
-        }
+        if (_selectedCategory == "상의") return isTopCategory(cloth.category);
+        if (_selectedCategory == "하의") return isBottomCategory(cloth.category);
         if (_selectedCategory == "아우터") {
-          return serverCat.contains("OUTER") ||
-              serverCat.contains("COAT") ||
-              serverCat.contains("JACKET");
+          return cat.contains("OUTER") ||
+              cat.contains("COAT") ||
+              cat.contains("JACKET");
         }
         if (_selectedCategory == "원피스") {
-          return serverCat.contains("DRESS") || serverCat.contains("ONEPIECE");
+          return cat.contains("DRESS") || cat.contains("ONEPIECE");
         }
-        if (_selectedCategory == "신발") {
-          return serverCat.contains("SHOES");
-        }
-        return true; // 기타
+        if (_selectedCategory == "신발") return cat.contains("SHOES");
+        return true;
       }).toList();
     }
   }
@@ -150,7 +144,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: SafeArea(
           top: false,
@@ -159,32 +153,43 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             children: [
               const SizedBox(height: 12),
               Container(
-                width: 40,
+                width: 36,
                 height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.BORDER_COLOR,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                "옷 사진 선택",
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.BLACK,
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    const Text(
+                      'PHOTO',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.MEDIUM_GREY,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: AppColors.BORDER_COLOR,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               _imageSourceTile(
                 context: ctx,
                 icon: Icons.camera_alt_outlined,
-                label: "사진 촬영하기",
+                label: "사진 촬영",
                 onTap: () => Navigator.pop(ctx, "camera"),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Divider(height: 1, color: AppColors.BORDER_COLOR),
               ),
               _imageSourceTile(
                 context: ctx,
@@ -202,43 +207,72 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     if (source == null || !mounted) return;
 
     final picker = ImagePicker();
-    final ImageSource imageSource =
-        source == "camera" ? ImageSource.camera : ImageSource.gallery;
+    final ImageSource imageSource = source == "camera"
+        ? ImageSource.camera
+        : ImageSource.gallery;
     final XFile? image = await picker.pickImage(source: imageSource);
 
     if (image == null) return;
     if (!mounted) return;
 
-    // 카테고리 선택 다이얼로그 (디자인 개선)
+    // 카테고리 선택 바텀시트
     String? selectedCat = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          color: _kBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              "카테고리 선택",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.BLACK,
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.BORDER_COLOR,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            _buildCategoryOption("상의 (Top)", "Top"),
-            _buildCategoryOption("하의 (Bottom)", "Bottom"),
-            _buildCategoryOption("아우터 (Outer)", "Outer"),
-            _buildCategoryOption("신발 (Shoes)", "Shoes"),
-            _buildCategoryOption("원피스 (Dress)", "Dress"),
-          ],
+              const SizedBox(height: 20),
+              const Text(
+                'CATEGORY',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.MEDIUM_GREY,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '카테고리를 선택하세요',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.BLACK,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildCategoryOption("상의", "Top"),
+              _buildCategoryOption("하의", "Bottom"),
+              // TODO: 백엔드 API 명세 확인 필요 — OpenAPI 기준 Top/Bottom/Shoes만 공식 지원.
+              // "Outer"는 현재 서버에서 Top으로 처리될 수 있으므로 백엔드와 협의 후 매핑 확정 필요.
+              _buildCategoryOption("아우터", "Outer"),
+              _buildCategoryOption("신발", "Shoes"),
+              // TODO: "Dress"도 OpenAPI 명세에 없는 값. 백엔드 지원 여부 확인 필요.
+              _buildCategoryOption("원피스", "Dress"),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -294,16 +328,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
+                color: _kBg,
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
+              child: Icon(icon, size: 22, color: AppColors.PRIMARYCOLOR),
             ),
             const SizedBox(width: 16),
             Text(
@@ -314,6 +349,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 color: AppColors.BLACK,
               ),
             ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.MEDIUM_GREY,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -321,18 +362,39 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Widget _buildCategoryOption(String label, String value) {
-    return InkWell(
+    return GestureDetector(
       onTap: () => Navigator.pop(context, value),
-      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.BORDER_COLOR)),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 16, color: AppColors.BODY_COLOR),
-          textAlign: TextAlign.center,
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.BLACK,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.MEDIUM_GREY,
+              size: 18,
+            ),
+          ],
         ),
       ),
     );
@@ -341,7 +403,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white, // 전체 배경 흰색
+      backgroundColor: _kBg,
       floatingActionButton: GestureDetector(
         onTap: _onAddCloth,
         child: Container(
@@ -387,27 +449,34 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Widget _buildIntroHeader() {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 14),
-      sliver: SliverToBoxAdapter(
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
-                  '옷장',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.BLACK,
-                    letterSpacing: -0.5,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    const Text(
+                      '옷장',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.BLACK,
+                        letterSpacing: -0.8,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
                 ),
-                TextButton.icon(
-                  onPressed: () {
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -415,24 +484,48 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.folder_outlined, size: 16),
-                  label: const Text('코디 폴더', style: TextStyle(fontSize: 13)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.PRIMARYCOLOR,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.PRIMARYCOLOR,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_outlined,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          '코디 폴더',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
-              "총 ${_filteredClothes.length}개의 아이템 · $_selectedCategory",
+              "${_allClothes.length}개의 아이템 · $_selectedCategory",
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.MEDIUM_GREY,
                 fontWeight: FontWeight.w500,
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -449,23 +542,24 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(24, 8, 24, 12),
+            padding: EdgeInsets.fromLTRB(24, 0, 24, 12),
             child: Text(
-              "저장한 코디",
+              'SAVED OUTFITS',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: AppColors.BLACK,
+                color: AppColors.MEDIUM_GREY,
+                letterSpacing: 1.5,
               ),
             ),
           ),
           SizedBox(
-            height: 140,
+            height: 160,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               scrollDirection: Axis.horizontal,
               itemCount: _savedFittings.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
                 final item = _savedFittings[index];
                 final imageUrl = item.resultImgUrl;
@@ -474,21 +568,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 }
                 return GestureDetector(
                   onTap: () => _showSavedFittingFullScreen(imageUrl),
-                  child: Container(
-                    width: 120,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.BORDER_COLOR),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SizedBox(
+                      width: 115,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -496,7 +579,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             imageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.INPUT_BG_COLOR,
+                              color: AppColors.BORDER_COLOR,
                               child: const Icon(
                                 Icons.broken_image_outlined,
                                 color: AppColors.MEDIUM_GREY,
@@ -504,9 +587,27 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             ),
                           ),
                           Positioned(
-                            left: 8,
-                            bottom: 8,
-                            right: 8,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            height: 60,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.55),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 10,
+                            bottom: 10,
+                            right: 10,
                             child: Text(
                               item.setName ?? "저장한 코디",
                               maxLines: 1,
@@ -514,14 +615,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    offset: Offset(0, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
                               ),
                             ),
                           ),
@@ -533,7 +628,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -542,9 +637,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Widget _buildCategoryFilter() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.only(bottom: 16),
         child: SizedBox(
-          height: 32,
+          height: 52,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             scrollDirection: Axis.horizontal,
@@ -557,27 +652,39 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 onTap: () => _onCategorySelected(category),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
+                  width: 52,
+                  height: 52,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.PRIMARYCOLOR
-                        : AppColors.INPUT_BG_COLOR,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.PRIMARYCOLOR
-                          : AppColors.BORDER_COLOR,
-                    ),
+                        : AppColors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.PRIMARYCOLOR.withValues(
+                                alpha: 0.25,
+                              ),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                   ),
                   child: Text(
                     category,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: isSelected ? Colors.white : AppColors.BODY_COLOR,
                       fontWeight: isSelected
-                          ? FontWeight.w600
+                          ? FontWeight.w700
                           : FontWeight.w500,
                       fontSize: 12,
                     ),
@@ -597,13 +704,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisSpacing: 16,
+          mainAxisSpacing: 14,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.7, // 비율 조정
+          childAspectRatio: 0.72,
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
           final cloth = _filteredClothes[index];
@@ -611,53 +718,63 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             onTap: () => _showClothDetail(context, cloth),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 color: AppColors.white,
-                border: Border.all(color: AppColors.BORDER_COLOR), // 테두리 추가
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.07),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
+                    flex: 5,
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
+                        top: Radius.circular(18),
                       ),
                       child: Image.network(
                         cloth.imgUrl ?? "",
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          color: AppColors.INPUT_BG_COLOR,
+                          color: _kBg,
                           child: const Icon(
-                            Icons.broken_image_rounded,
+                            Icons.checkroom_outlined,
                             color: AppColors.MEDIUM_GREY,
+                            size: 32,
                           ),
                         ),
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          cloth.category ?? "카테고리 없음",
+                          cloth.category ?? "",
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             color: AppColors.MEDIUM_GREY,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           cloth.name ?? "이름 없음",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.BLACK,
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ],
@@ -677,28 +794,61 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.checkroom_outlined,
-            size: 56,
-            color: AppColors.BORDER_COLOR,
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.07),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.checkroom_outlined,
+              size: 36,
+              color: AppColors.MEDIUM_GREY,
+            ),
           ),
           const SizedBox(height: 20),
           Text(
-            "아직 $_selectedCategory 아이템이 없어요",
+            "$_selectedCategory 아이템이 없어요",
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: AppColors.BODY_COLOR,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppColors.BLACK,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: _onAddCloth,
-            child: const Text(
-              "아이템 추가하기",
-              style: TextStyle(
+          const SizedBox(height: 8),
+          const Text(
+            "+ 버튼으로 새 아이템을 추가해보세요",
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.MEDIUM_GREY,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 28),
+          GestureDetector(
+            onTap: _onAddCloth,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
                 color: AppColors.PRIMARYCOLOR,
-                fontWeight: FontWeight.w600,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Text(
+                "아이템 추가",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
@@ -721,7 +871,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             return Container(
               decoration: const BoxDecoration(
                 color: AppColors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: CustomScrollView(
                 controller: scrollController,
@@ -807,18 +957,16 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.INPUT_BG_COLOR,
+                                  color: _kBg,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: AppColors.BORDER_COLOR,
-                                  ),
                                 ),
                                 child: Text(
-                                  cloth.category!,
+                                  cloth.category!.toUpperCase(),
                                   style: const TextStyle(
-                                    color: AppColors.BODY_COLOR,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.MEDIUM_GREY,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.0,
                                   ),
                                 ),
                               ),

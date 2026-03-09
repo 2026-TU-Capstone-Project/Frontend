@@ -103,15 +103,36 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       ),
       title: Row(
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.auto_awesome_rounded,
-                size: 18, color: AppColors.ACCENT_PURPLE),
+          Stack(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    size: 19, color: Colors.white),
+              ),
+              Positioned(
+                bottom: 1,
+                right: 1,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF34C759),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 10),
           const Column(
@@ -182,12 +203,16 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.1),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+                ),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.auto_awesome_rounded,
-                  size: 40, color: AppColors.ACCENT_PURPLE),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  size: 40, color: Colors.white),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -290,13 +315,24 @@ class _UserBubble extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.ACCENT_PURPLE,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF9B7FFA), Color(0xFF6366F1)],
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(18),
                   topRight: Radius.circular(18),
                   bottomLeft: Radius.circular(18),
                   bottomRight: Radius.circular(4),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C6AE8).withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Text(
                 text,
@@ -347,14 +383,18 @@ class _BotBubble extends StatelessWidget {
         children: [
           // AI 아이콘
           Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.12),
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+              ),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_awesome_rounded,
-                size: 16, color: AppColors.ACCENT_PURPLE),
+            child: const Icon(Icons.auto_awesome_rounded,
+                size: 17, color: Colors.white),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -408,11 +448,12 @@ class _BotTextBubble extends StatelessWidget {
           bottomLeft: Radius.circular(18),
           bottomRight: Radius.circular(18),
         ),
+        border: Border.all(color: const Color(0xFFEBE6FF), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF6366F1).withValues(alpha: 0.07),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -443,14 +484,18 @@ class _LoadingBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.12),
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+              ),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_awesome_rounded,
-                size: 16, color: AppColors.ACCENT_PURPLE),
+            child: const Icon(Icons.auto_awesome_rounded,
+                size: 17, color: Colors.white),
           ),
           const SizedBox(width: 8),
           Container(

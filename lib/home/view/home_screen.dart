@@ -1,15 +1,18 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
-import 'package:capstone_fe/chat/view/ai_search_screen.dart' show showAiSearchOverlay;
+import 'package:capstone_fe/fitting/util/weather_util.dart';
+import 'package:capstone_fe/chat/view/ai_search_screen.dart'
+    show showAiSearchOverlay;
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
+import 'package:capstone_fe/feed/component/feed_detail_sheet.dart';
+import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // =============================================================================
 // [임시 데이터 모델] - 실제 개발 시 common/const/data.dart 로 분리
@@ -352,7 +355,9 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showTrendingOverlay());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _showTrendingOverlay(),
+      );
     } else {
       _removeOverlay();
     }
@@ -432,7 +437,11 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
         ),
         child: Row(
           children: [
-            Icon(Icons.search_rounded, size: 24, color: AppColors.ACCENT_PURPLE),
+            Icon(
+              Icons.search_rounded,
+              size: 24,
+              color: AppColors.ACCENT_PURPLE,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
@@ -461,7 +470,9 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
               child: Icon(
                 Icons.send_rounded,
                 size: 22,
-                color: hasText ? AppColors.ACCENT_PURPLE : AppColors.BORDER_COLOR,
+                color: hasText
+                    ? AppColors.ACCENT_PURPLE
+                    : AppColors.BORDER_COLOR,
               ),
             ),
           ],
@@ -503,14 +514,15 @@ class _TrendingDropdownState extends State<_TrendingDropdown>
   @override
   void initState() {
     super.initState();
-    _snapController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    )..addListener(() {
-        if (mounted && _snapAnim != null) {
-          setState(() => _dragOffset = _snapAnim!.value);
-        }
-      });
+    _snapController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 250),
+        )..addListener(() {
+          if (mounted && _snapAnim != null) {
+            setState(() => _dragOffset = _snapAnim!.value);
+          }
+        });
   }
 
   @override
@@ -681,8 +693,9 @@ class _TrendingDropdownState extends State<_TrendingDropdown>
                                         decoration: BoxDecoration(
                                           color: AppColors.ACCENT_PURPLE
                                               .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(5),
+                                          borderRadius: BorderRadius.circular(
+                                            5,
+                                          ),
                                         ),
                                         child: Text(
                                           'HOT',
@@ -720,21 +733,15 @@ class HowToDressTodaySection extends StatelessWidget {
   final VoidCallback? onWeather;
   final VoidCallback? onPhotoFitting;
   final VoidCallback? onStyleRecommendation;
-  final double? currentTemp;
-  final String? weatherDescription;
+  final WeatherInfo? weather;
 
   const HowToDressTodaySection({
     super.key,
     this.onWeather,
     this.onPhotoFitting,
     this.onStyleRecommendation,
-    this.currentTemp,
-    this.weatherDescription,
+    this.weather,
   });
-
-  static const double _blockRadius = 20.0;
-  static const double _cardGap = 10.0;
-  static const double _borderWidth = 2.0;
 
   @override
   Widget build(BuildContext context) {
@@ -748,87 +755,107 @@ class HowToDressTodaySection extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(_blockRadius),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFB8C8F0), Color(0xFFD4C0E0)],
-          ),
+          borderRadius: BorderRadius.circular(20),
+          color: const Color(0xFFF4F6FF),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF6B5CE7).withValues(alpha: 0.08),
+              blurRadius: 20,
+              spreadRadius: 0,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Container(
-          margin: const EdgeInsets.all(_borderWidth),
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(_blockRadius - _borderWidth),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                '오늘은 어떻게 입을까요?',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1D1D1F),
-                  letterSpacing: -0.5,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 16),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '오늘은 어떻게 입을까요?',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1D1D1F),
+                      letterSpacing: -0.5,
+                      height: 1.3,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6B5CE7).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'AI',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF6B5CE7),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // 날씨 — 가로 전체
+              _HowToDressCard(
+                imageAsset: 'asset/img/weather.png',
+                title: '날씨',
+                subtitle: '날씨 기반 코디 추천',
+                onTap: onWeather,
+                iconGradientColors: const [
+                  Color(0xFFDFEFFF),
+                  Color(0xFFC7D9F7),
+                ],
+                iconGlowColor: Color(0xFF4A90D9),
+                weather: weather,
+                horizontal: true,
+              ),
+              const SizedBox(height: 10),
+              // 피팅 + 추천 — 반반
+              Row(
                 children: [
                   Expanded(
                     child: _HowToDressCard(
-                      imageAsset: 'asset/img/Frame.png',
-                      title: '날씨',
-                      subtitle: '날씨 기반',
-                      onTap: onWeather,
-                      isEnabled: true,
-                      weatherTemp: currentTemp,
-                      weatherDesc: weatherDescription,
-                      gradientColors: const [
-                        Color(0xFFEBF3FF),
-                        Color(0xFFE8E1FF),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: _cardGap),
-                  Expanded(
-                    child: _HowToDressCard(
-                      imageAsset: 'asset/img/Frame-1.png',
-                      title: '사진',
+                      imageAsset: 'asset/img/camera.png',
+                      title: '피팅',
                       subtitle: '가상 피팅',
                       onTap: onPhotoFitting,
-                      isEnabled: true,
-                      isPrimary: true,
-                      gradientColors: const [
-                        Color(0xFFE8E1FF),
-                        Color(0xFFEBF3FF),
+                      iconGradientColors: const [
+                        Color(0xFFEDE8FF),
+                        Color(0xFFD4C3F5),
                       ],
+                      iconGlowColor: Color(0xFF6B5CE7),
+                      isPrimary: true,
                     ),
                   ),
-                  const SizedBox(width: _cardGap),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: _HowToDressCard(
-                      imageAsset: 'asset/img/Frame-2.png',
+                      imageAsset: 'asset/img/good.png',
                       title: '추천',
                       subtitle: 'AI 추천',
                       onTap: onStyleRecommendation,
-                      isEnabled: true,
-                      gradientColors: const [
-                        Color(0xFFEDF9F0),
-                        Color(0xFFEBF3FF),
+                      iconGradientColors: const [
+                        Color(0xFFFFF2DC),
+                        Color(0xFFFFE4C0),
                       ],
+                      iconGlowColor: Color(0xFFF5A623),
                     ),
                   ),
                 ],
@@ -846,22 +873,22 @@ class _HowToDressCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
-  final bool isEnabled;
   final bool isPrimary;
-  final double? weatherTemp;
-  final String? weatherDesc;
-  final List<Color>? gradientColors;
+  final bool horizontal;
+  final WeatherInfo? weather;
+  final List<Color> iconGradientColors;
+  final Color iconGlowColor;
 
   const _HowToDressCard({
     this.imageAsset,
     required this.title,
     required this.subtitle,
     this.onTap,
-    this.isEnabled = true,
     this.isPrimary = false,
-    this.weatherTemp,
-    this.weatherDesc,
-    this.gradientColors,
+    this.horizontal = false,
+    this.weather,
+    required this.iconGradientColors,
+    required this.iconGlowColor,
   });
 
   @override
@@ -871,117 +898,312 @@ class _HowToDressCard extends StatefulWidget {
 class _HowToDressCardState extends State<_HowToDressCard> {
   bool _pressed = false;
 
-  String _weatherEmoji(String? desc) {
-    if (desc == null) return '☀️';
-    final d = desc.toLowerCase();
-    if (d.contains('rain') || d.contains('비')) return '🌧';
-    if (d.contains('snow') || d.contains('눈')) return '❄️';
-    if (d.contains('cloud') || d.contains('흐림') || d.contains('구름')) {
-      return '☁️';
+  /// conditionCode 기반 색상 팔레트
+  ({List<Color> gradient, Color glow, Color accent}) _weatherColors(int code) {
+    if (code >= 200 && code < 300) {
+      return (
+        gradient: const [Color(0xFFEDE7F6), Color(0xFFCE93D8)],
+        glow: const Color(0xFF7B1FA2),
+        accent: const Color(0xFF7B1FA2),
+      );
     }
-    if (d.contains('thunder') || d.contains('번개') || d.contains('뇌우')) {
-      return '⛈';
+    if (code >= 600 && code < 700) {
+      return (
+        gradient: const [Color(0xFFE8F6FC), Color(0xFFB3E5FC)],
+        glow: const Color(0xFF29B6F6),
+        accent: const Color(0xFF0284C7),
+      );
     }
-    return '☀️';
+    if ((code >= 300 && code < 400) || (code >= 500 && code < 600)) {
+      return (
+        gradient: const [Color(0xFFDCEEFD), Color(0xFFADD8F8)],
+        glow: const Color(0xFF1D74D5),
+        accent: const Color(0xFF1D74D5),
+      );
+    }
+    if (code >= 700 && code < 800) {
+      return (
+        gradient: const [Color(0xFFF0F0F4), Color(0xFFD8D8E4)],
+        glow: const Color(0xFF9E9E9E),
+        accent: const Color(0xFF757575),
+      );
+    }
+    if (code >= 803) {
+      return (
+        gradient: const [Color(0xFFECEFF1), Color(0xFFB0BEC5)],
+        glow: const Color(0xFF90A4AE),
+        accent: const Color(0xFF546E7A),
+      );
+    }
+    return (
+      gradient: const [Color(0xFFFFF9E0), Color(0xFFFFE082)],
+      glow: const Color(0xFFFFB300),
+      accent: const Color(0xFFF59E0B),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        widget.isEnabled ? AppColors.PRIMARYCOLOR : AppColors.BODY_COLOR;
-    return AnimatedScale(
-      scale: _pressed ? 0.95 : 1.0,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOut,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: () {
-            setState(() => _pressed = false);
-            widget.onTap?.call();
-          },
-          onTapDown: (_) => setState(() => _pressed = true),
-          onTapCancel: () => setState(() => _pressed = false),
-          borderRadius: BorderRadius.circular(14),
-          splashColor: AppColors.ACCENT_PURPLE.withValues(alpha: 0.1),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: widget.gradientColors != null
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: widget.gradientColors!,
-                    )
-                  : null,
-            ),
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.imageAsset != null)
-                    Image.asset(
-                      widget.imageAsset!,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 40,
-                        color: color,
-                      ),
-                    )
-                  else
-                    Icon(Icons.circle_outlined, size: 40, color: color),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: widget.isEnabled
-                          ? const Color(0xFF1D1D1F)
-                          : AppColors.BODY_COLOR,
-                      letterSpacing: -0.25,
-                      height: 1.25,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 3),
-                  if (widget.weatherTemp != null)
-                    Text(
-                      '${widget.weatherTemp!.round()}°C ${_weatherEmoji(widget.weatherDesc)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ACCENT_BLUE,
-                        height: 1.25,
-                      ),
-                      textAlign: TextAlign.center,
-                    )
-                  else
-                    Text(
-                      widget.subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.BODY_COLOR,
-                        height: 1.25,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                ],
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap?.call();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 130),
+        curve: Curves.easeOut,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                spreadRadius: 0,
+                offset: const Offset(0, 3),
               ),
+            ],
+          ),
+          child: widget.horizontal ? _buildHorizontal() : _buildVertical(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontal() {
+    final w = widget.weather;
+    final hasWeather = w != null;
+    final label = hasWeather ? weatherLabel(w.conditionCode) : null;
+    final emoji = label?.emoji ?? '☀️';
+    final colors = hasWeather
+        ? _weatherColors(w.conditionCode)
+        : (
+            gradient: widget.iconGradientColors,
+            glow: widget.iconGlowColor,
+            accent: widget.iconGlowColor,
+          );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 아이콘 서클 — 날씨 로드 시 반응형 색상 + 실시간 이모지
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: colors.gradient,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.glow.withValues(alpha: 0.18),
+                  blurRadius: 14,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(
+              child: hasWeather
+                  ? Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 30, height: 1),
+                    )
+                  : (widget.imageAsset != null
+                      ? Image.asset(
+                          widget.imageAsset!,
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.wb_sunny_outlined,
+                            size: 26,
+                            color: Color(0xFF8A8A9A),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.wb_sunny_outlined,
+                          size: 26,
+                          color: Color(0xFF8A8A9A),
+                        )),
+            ),
+          ),
+          const SizedBox(width: 14),
+          // 텍스트 영역
+          Expanded(
+            child: hasWeather
+                ? _buildWeatherInfo(emoji, colors.accent)
+                : _buildWeatherPlaceholder(),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 22,
+            color: Color(0xFFCCCCD6),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherInfo(String emoji, Color accent) {
+    final w = widget.weather!;
+    final city = w.cityName.isNotEmpty ? w.cityName : '현재 위치';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          city,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF9898A6),
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${w.temp.round()}°',
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1D1D1F),
+            height: 1.0,
+            letterSpacing: -1.5,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '날씨 기반 코디 추천',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: accent,
+              height: 1.2,
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildWeatherPlaceholder() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          widget.title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.3,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          widget.subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF9898A6),
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVertical() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: widget.iconGradientColors,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.iconGlowColor.withValues(alpha: 0.13),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: widget.imageAsset != null
+                  ? Image.asset(
+                      widget.imageAsset!,
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 26,
+                        color: Color(0xFF8A8A9A),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.circle_outlined,
+                      size: 26,
+                      color: Color(0xFF8A8A9A),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            widget.title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1D1D1F),
+              letterSpacing: -0.3,
+              height: 1.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            widget.subtitle,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF9898A6),
+              height: 1.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -1024,7 +1246,10 @@ class SavedOutfitCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
                   ),
                 ),
               ),
@@ -1082,6 +1307,114 @@ class SavedOutfitRack extends StatelessWidget {
             onTap: onItemTap != null ? () => onItemTap!(item) : null,
           );
         },
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 내 최근 코디 — 빈 상태 배너
+// =============================================================================
+class _EmptyOutfitBanner extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _EmptyOutfitBanner({this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DivervaDesign.kPadding),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F2FF),
+          borderRadius: BorderRadius.circular(DivervaDesign.kRadius),
+          border: Border.all(color: const Color(0xFFDDD5FF), width: 1),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDE8FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.checkroom_outlined,
+                size: 28,
+                color: AppColors.ACCENT_PURPLE,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '아직 저장된 코디가 없어요',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1D1D1F),
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '가상 피팅으로 나만의 코디를 만들어보세요',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF6E6E73),
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 11,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.30),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '피팅 시작하기',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1148,7 +1481,10 @@ class RecommendedItemCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
                   ),
                 ),
               ),
@@ -1207,7 +1543,7 @@ class RecommendedRack extends StatelessWidget {
 // 3. 2열 그리드 카드
 // =============================================================================
 class ProductGridCard extends StatelessWidget {
-  final SingleFeedModel item;
+  final FeedListItem item;
   final VoidCallback? onTap;
 
   const ProductGridCard({super.key, required this.item, this.onTap});
@@ -1226,66 +1562,12 @@ class ProductGridCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                item.imageUrl,
+              Image.network(
+                item.styleImageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: DivervaDesign.textSecondary.withValues(alpha: 0.2),
                   child: const Icon(Icons.checkroom, size: 40),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.5, 1.0],
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.75),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.favorite_rounded,
-                          size: 14,
-                          color: Color(0xFFFF5F6D),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${item.likeCount}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -1299,7 +1581,7 @@ class ProductGridCard extends StatelessWidget {
 // =============================================================================
 // 메인 홈 화면 (CustomScrollView)
 // =============================================================================
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback? onGoToFittingRoom;
   final VoidCallback? onGoToStyleRecommendation;
   final VoidCallback? onWeather;
@@ -1312,14 +1594,13 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<SavedFittingData> _savedOutfits = [];
   bool _loadingOutfits = true;
-  double? _currentTemp;
-  String? _weatherDescription;
+  WeatherInfo? _weather;
 
   void _openSearchOverlay() {
     showAiSearchOverlay(
@@ -1330,9 +1611,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSearchSubmit(String query) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AiChatScreen(initialMessage: query),
-      ),
+      MaterialPageRoute(builder: (_) => AiChatScreen(initialMessage: query)),
     );
   }
 
@@ -1344,46 +1623,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadWeather() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 8),
-        ),
-      );
-
-      const apiKey = '40591f2fa4b059a5ac307fc839eafc7f';
-      final dio = Dio();
-      final res = await dio.get(
-        'https://api.openweathermap.org/data/2.5/weather',
-        queryParameters: {
-          'lat': position.latitude,
-          'lon': position.longitude,
-          'appid': apiKey,
-          'units': 'metric',
-          'lang': 'kr',
-        },
-      );
-      final body = res.data is String ? jsonDecode(res.data) : res.data;
-      final temp = (body['main']['temp'] as num).toDouble();
-      final desc = body['weather'][0]['description'] as String? ?? '';
-      if (!mounted) return;
-      setState(() {
-        _currentTemp = temp;
-        _weatherDescription = desc;
-      });
-    } catch (_) {
-      // 위치 또는 날씨 조회 실패 시 조용히 무시
-    }
+    final weather = await fetchWeatherFromCurrentPosition();
+    if (!mounted || weather == null) return;
+    setState(() => _weather = weather);
   }
 
   Future<void> _loadSavedOutfits() async {
@@ -1408,18 +1650,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(
-              child: HomeSearchBar(
-                onSubmit: _onSearchSubmit,
-              ),
-            ),
+            SliverToBoxAdapter(child: HomeSearchBar(onSubmit: _onSearchSubmit)),
             SliverToBoxAdapter(
               child: HowToDressTodaySection(
                 onWeather: widget.onWeather,
                 onPhotoFitting: widget.onGoToFittingRoom,
                 onStyleRecommendation: _openSearchOverlay,
-                currentTemp: _currentTemp,
-                weatherDescription: _weatherDescription,
+                weather: _weather,
               ),
             ),
             const SliverToBoxAdapter(child: SectionHeader(title: '내 최근 코디')),
@@ -1429,6 +1666,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 200,
                       child: Center(child: CircularProgressIndicator()),
                     )
+                  : _savedOutfits.isEmpty
+                  ? _EmptyOutfitBanner(onTap: widget.onGoToFittingRoom)
                   : SavedOutfitRack(items: _savedOutfits, onItemTap: (_) {}),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -1444,23 +1683,39 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
             const SliverToBoxAdapter(child: SectionHeader(title: '인기 스타일')),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 0.55,
+            switch (ref.watch(feedListProvider)) {
+              AsyncData(:final value) => SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.55,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => ProductGridCard(
+                      item: value[index],
+                      onTap: () =>
+                          showFeedDetailSheet(context, value[index].feedId),
+                    ),
+                    childCount: value.length,
+                  ),
                 ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  return ProductGridCard(
-                    item: gridDummyFeeds[index],
-                    onTap: () {},
-                  );
-                }, childCount: gridDummyFeeds.length),
               ),
-            ),
+              AsyncError() => const SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 120,
+                  child: Center(child: Text('피드를 불러올 수 없습니다.')),
+                ),
+              ),
+              _ => const SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            },
           ],
         ),
       ),

@@ -24,6 +24,7 @@ import '../component/fitting_main_stage.dart';
 import '../component/ai_stylist_input.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
+import '../util/clothes_category_util.dart';
 
 /// 피팅 진행 상태를 화면(탭) 전환과 무관하게 유지. 탭을 떠났다 와도 로딩/결과가 유지됨.
 class _FittingProgressHolder extends ChangeNotifier {
@@ -133,7 +134,10 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       reverseDuration: const Duration(milliseconds: 400),
     );
     _initServices();
-    FittingRoomScreen.onFittingTabSelected = _loadHeaderUserInfo;
+    FittingRoomScreen.onFittingTabSelected = () {
+      _loadHeaderUserInfo();
+      _loadWardrobe();
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
@@ -214,7 +218,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         setState(() => _serverClothes = resp.data ?? []);
       }
     } catch (e) {
-      // 에러 처리
+      debugPrint("⚠️ 피팅룸 _loadWardrobe 에러: $e");
     }
   }
 
@@ -364,12 +368,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     if (cloth.imgUrl == null) return;
 
     final imageUrl = cloth.imgUrl!;
-    final category = cloth.category?.toUpperCase() ?? "";
-    final isTop =
-        category.contains("TOP") ||
-        category.contains("상의") ||
-        category.contains("SHIRT") ||
-        category.contains("OUTER");
+    final isTop = isTopCategory(cloth.category);
 
     setState(() {
       if (isTop) {
@@ -499,6 +498,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         await Dio().download(_selectedBottomUrl!, path);
         if (mounted) setState(() => _selectedBottomFile = File(path));
       } catch (_) {}
+
     }
     if (_selectedTopFile == null) {
       if (!mounted) return;

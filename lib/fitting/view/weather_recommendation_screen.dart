@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
@@ -7,8 +5,7 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/fitting/model/weather_recommendation_model.dart';
 import 'package:capstone_fe/fitting/repository/weather_recommendation_repository.dart';
-
-const _owmApiKey = '40591f2fa4b059a5ac307fc839eafc7f';
+import 'package:capstone_fe/fitting/util/weather_util.dart';
 
 // ───────────────────────────────────────────────────────────
 // 진입점: 위치·날씨 조회 후 결과 화면으로 push
@@ -30,7 +27,7 @@ Future<void> navigateToWeatherRecommendation(BuildContext context) async {
     }
 
     // 2. OpenWeatherMap 날씨 조회
-    final weather = await _fetchWeather(position.latitude, position.longitude);
+    final weather = await fetchWeather(position.latitude, position.longitude);
 
     // 3. 백엔드 추천 API 호출
     final query =
@@ -148,44 +145,6 @@ Future<Position?> _getPosition(BuildContext context) async {
   }
 }
 
-// ───────────────────────────────────────────────────────────
-// 날씨 DTO + OpenWeatherMap 호출
-// ───────────────────────────────────────────────────────────
-class WeatherInfo {
-  final double temp;
-  final String description;
-  final String cityName;
-
-  const WeatherInfo({
-    required this.temp,
-    required this.description,
-    required this.cityName,
-  });
-}
-
-Future<WeatherInfo> _fetchWeather(double lat, double lon) async {
-  try {
-    final dio = Dio();
-    final res = await dio.get(
-      'https://api.openweathermap.org/data/2.5/weather',
-      queryParameters: {
-        'lat': lat,
-        'lon': lon,
-        'appid': _owmApiKey,
-        'units': 'metric',
-        'lang': 'kr',
-      },
-    );
-    final body = res.data is String ? jsonDecode(res.data) : res.data;
-    final temp = (body['main']['temp'] as num).toDouble();
-    final desc = body['weather'][0]['description'] as String? ?? '';
-    final city = body['name'] as String? ?? '';
-    return WeatherInfo(temp: temp, description: desc, cityName: city);
-  } catch (_) {
-    // 날씨 API 실패 시 서울 평균 기온으로 폴백
-    return const WeatherInfo(temp: 15.0, description: '맑음', cityName: '서울');
-  }
-}
 
 // ───────────────────────────────────────────────────────────
 // 결과 화면
@@ -258,18 +217,7 @@ class _WeatherCard extends StatelessWidget {
 
   const _WeatherCard({required this.weather});
 
-  String get _weatherIcon {
-    final d = weather.description.toLowerCase();
-    if (d.contains('rain') || d.contains('비')) return '🌧';
-    if (d.contains('snow') || d.contains('눈')) return '❄️';
-    if (d.contains('cloud') || d.contains('흐림') || d.contains('구름')) {
-      return '☁️';
-    }
-    if (d.contains('thunder') || d.contains('번개') || d.contains('뇌우')) {
-      return '⛈';
-    }
-    return '☀️';
-  }
+  String get _weatherIcon => weatherLabel(weather.conditionCode).emoji;
 
   @override
   Widget build(BuildContext context) {
