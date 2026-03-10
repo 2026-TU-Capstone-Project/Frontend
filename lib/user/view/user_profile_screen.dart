@@ -9,7 +9,7 @@ import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:capstone_fe/user/component/user_me_edit_sheet.dart';
-import 'package:capstone_fe/user/view/login_screen.dart';
+import 'package:capstone_fe/user/view/social_login_screen.dart';
 import 'package:dio/dio.dart';
 
 /// RootTab 유저 탭: 마이페이지(서버 GET/PATCH /users/me)
@@ -80,7 +80,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     await storage.deleteAll();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const SocialLoginScreen()),
       (route) => false,
     );
   }

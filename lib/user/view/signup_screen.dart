@@ -16,7 +16,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   String _email = '';
   String _password = '';
-  String _gender = 'MALE';
+  String? _gender;
 
   bool _isLoading = false;
 
@@ -24,6 +24,12 @@ class _SignupScreenState extends State<SignupScreen> {
     if (_email.isEmpty || _password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("이메일과 비밀번호를 입력해주세요.")),
+      );
+      return;
+    }
+    if (_gender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("성별을 선택해주세요.")),
       );
       return;
     }
@@ -39,7 +45,7 @@ class _SignupScreenState extends State<SignupScreen> {
       await repository.signUp(
         email: _email,
         password: _password,
-        gender: _gender,
+        gender: _gender!,
       );
 
       if (!mounted) return;
@@ -139,15 +145,96 @@ class _SignupScreenState extends State<SignupScreen> {
 
               const Text("성별", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8.0),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'MALE', label: Text('남성'), icon: Icon(Icons.male)),
-                  ButtonSegment(value: 'FEMALE', label: Text('여성'), icon: Icon(Icons.female)),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _gender = 'MALE'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: _gender == 'MALE'
+                              ? const LinearGradient(
+                                  colors: [Color(0xFF4A90E2), Color(0xFF5B7FFF)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: _gender == 'MALE' ? null : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _gender == 'MALE'
+                                ? Colors.transparent
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.male,
+                              color: _gender == 'MALE' ? Colors.white : Colors.grey,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '남성',
+                              style: TextStyle(
+                                color: _gender == 'MALE' ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _gender = 'FEMALE'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: _gender == 'FEMALE'
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFFFB7C5), Color(0xFFFF8FAB)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: _gender == 'FEMALE' ? null : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _gender == 'FEMALE'
+                                ? Colors.transparent
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.female,
+                              color: _gender == 'FEMALE' ? Colors.white : Colors.grey,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '여성',
+                              style: TextStyle(
+                                color: _gender == 'FEMALE' ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
-                selected: {_gender},
-                onSelectionChanged: (Set<String> v) {
-                  if (v.isNotEmpty) setState(() => _gender = v.first);
-                },
               ),
               const SizedBox(height: 40.0),
 

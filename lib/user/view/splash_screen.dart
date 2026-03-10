@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../common/const/colors.dart';
-import 'login_screen.dart';
+import 'social_login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -124,7 +124,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void _moveToLogin() {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const SocialLoginScreen()),
           (route) => false,
     );
   }
