@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
@@ -137,7 +138,71 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _onAddCloth() async {
-    // 1단계: 사진 소스 선택 (카메라 / 갤러리)
+    // 1단계: 카테고리 선택
+    String? selectedCat = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.BORDER_COLOR,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'CATEGORY',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.MEDIUM_GREY,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '카테고리를 선택하세요',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.BLACK,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildCategoryOption("상의", "Top"),
+              _buildCategoryOption("하의", "Bottom"),
+              // TODO: 백엔드 API 명세 확인 필요 — OpenAPI 기준 Top/Bottom/Shoes만 공식 지원.
+              // "Outer"는 현재 서버에서 Top으로 처리될 수 있으므로 백엔드와 협의 후 매핑 확정 필요.
+              _buildCategoryOption("아우터", "Outer"),
+              _buildCategoryOption("신발", "Shoes"),
+              // TODO: "Dress"도 OpenAPI 명세에 없는 값. 백엔드 지원 여부 확인 필요.
+              _buildCategoryOption("원피스", "Dress"),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (selectedCat == null || !mounted) return;
+
+    // 2단계: 사진 소스 선택 (카메라 / 갤러리)
     final String? source = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -206,82 +271,28 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
     if (source == null || !mounted) return;
 
-    final picker = ImagePicker();
-    final ImageSource imageSource = source == "camera"
-        ? ImageSource.camera
-        : ImageSource.gallery;
-    final XFile? image = await picker.pickImage(source: imageSource);
+    // 3단계: 사진 획득 (카메라 or 갤러리)
+    File? file;
+    if (source == "camera") {
+      if (selectedCat == "Top" || selectedCat == "Bottom") {
+        final guideType = selectedCat == "Top"
+            ? PhotoGuideType.topClothing
+            : PhotoGuideType.bottomClothing;
+        file = await PhotoGuideScreen.open(context, type: guideType);
+      } else {
+        final picker = ImagePicker();
+        final XFile? picked = await picker.pickImage(source: ImageSource.camera);
+        if (picked != null) file = File(picked.path);
+      }
+    } else {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked != null) file = File(picked.path);
+    }
 
-    if (image == null) return;
-    if (!mounted) return;
-
-    // 카테고리 선택 바텀시트
-    String? selectedCat = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: _kBg,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.BORDER_COLOR,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'CATEGORY',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.MEDIUM_GREY,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                '카테고리를 선택하세요',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.BLACK,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildCategoryOption("상의", "Top"),
-              _buildCategoryOption("하의", "Bottom"),
-              // TODO: 백엔드 API 명세 확인 필요 — OpenAPI 기준 Top/Bottom/Shoes만 공식 지원.
-              // "Outer"는 현재 서버에서 Top으로 처리될 수 있으므로 백엔드와 협의 후 매핑 확정 필요.
-              _buildCategoryOption("아우터", "Outer"),
-              _buildCategoryOption("신발", "Shoes"),
-              // TODO: "Dress"도 OpenAPI 명세에 없는 값. 백엔드 지원 여부 확인 필요.
-              _buildCategoryOption("원피스", "Dress"),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (selectedCat == null) return;
-    if (!mounted) return;
+    if (file == null || !mounted) return;
 
     try {
-      final file = File(image.path);
       final resp = await _clothesRepository.uploadSingleCloth(
         category: selectedCat,
         file: file,
@@ -915,7 +926,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: Colors.black.withValues(alpha: 0.06),
                                 blurRadius: 16,
                                 offset: const Offset(0, 6),
                               ),

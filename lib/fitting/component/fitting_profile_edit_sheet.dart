@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
 
@@ -150,8 +151,13 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
       ),
     );
     if (source == null || !mounted) return;
-    final x = await picker.pickImage(source: source);
-    if (x != null && mounted) setState(() => _frontImage = File(x.path));
+    if (source == ImageSource.camera) {
+      final file = await PhotoGuideScreen.open(context, type: PhotoGuideType.fullBody);
+      if (file != null && mounted) setState(() => _frontImage = file);
+    } else {
+      final x = await picker.pickImage(source: ImageSource.gallery);
+      if (x != null && mounted) setState(() => _frontImage = File(x.path));
+    }
   }
 
   Widget _photoSourceTile({
@@ -169,7 +175,7 @@ class _FittingProfileEditSheetState extends State<FittingProfileEditSheet> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
+                color: AppColors.ACCENT_COLOR.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),

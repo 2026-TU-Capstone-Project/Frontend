@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
@@ -277,10 +278,13 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
       ),
     );
     if (source == null || !mounted) return;
-    final picker = ImagePicker();
-    final x = await picker.pickImage(source: source);
-    if (x != null && mounted) {
-      setState(() => _pickedImage = File(x.path));
+    if (source == ImageSource.camera) {
+      final file = await PhotoGuideScreen.open(context, type: PhotoGuideType.profile);
+      if (file != null && mounted) setState(() => _pickedImage = file);
+    } else {
+      final picker = ImagePicker();
+      final x = await picker.pickImage(source: ImageSource.gallery);
+      if (x != null && mounted) setState(() => _pickedImage = File(x.path));
     }
   }
 
@@ -299,7 +303,7 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
+                color: AppColors.ACCENT_COLOR.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
@@ -502,7 +506,7 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                         selected: _gender == 'MALE',
                         onSelected: (v) =>
                             setState(() => _gender = v ? 'MALE' : null),
-                        selectedColor: AppColors.ACCENT_COLOR.withOpacity(0.3),
+                        selectedColor: AppColors.ACCENT_COLOR.withValues(alpha: 0.3),
                         backgroundColor: AppColors.INPUT_BG_COLOR,
                         side: BorderSide(
                           color: _gender == 'MALE'
@@ -525,7 +529,7 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                         selected: _gender == 'FEMALE',
                         onSelected: (v) =>
                             setState(() => _gender = v ? 'FEMALE' : null),
-                        selectedColor: AppColors.ACCENT_COLOR.withOpacity(0.3),
+                        selectedColor: AppColors.ACCENT_COLOR.withValues(alpha: 0.3),
                         backgroundColor: AppColors.INPUT_BG_COLOR,
                         side: BorderSide(
                           color: _gender == 'FEMALE'

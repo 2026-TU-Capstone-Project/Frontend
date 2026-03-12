@@ -154,7 +154,7 @@ class _FolderCard extends StatelessWidget {
               border: Border.all(color: AppColors.BORDER_COLOR),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -189,7 +189,7 @@ class _FolderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${count}개의 코디',
+                        '$count개의 코디',
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.MEDIUM_GREY,

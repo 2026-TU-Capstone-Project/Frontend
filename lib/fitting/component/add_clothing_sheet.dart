@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart'; // AppColors 경로 확인
 
 // 호출 함수 (기존 파라미터 유지)
@@ -35,13 +36,34 @@ class AddClothingSheet extends StatelessWidget {
   });
 
   Future<void> _pickImage(ImageSource source, BuildContext context) async {
+    if (source == ImageSource.camera) {
+      File? file;
+      if (type == '상의' || type == '하의') {
+        final guideType = type == '상의'
+            ? PhotoGuideType.topClothing
+            : PhotoGuideType.bottomClothing;
+        file = await PhotoGuideScreen.open(context, type: guideType);
+      } else {
+        final picker = ImagePicker();
+        final XFile? img = await picker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 80,
+        );
+        if (img != null) file = File(img.path);
+      }
+      if (file != null && context.mounted) {
+        Navigator.pop(context);
+        onImageSelected(file);
+      }
+      return;
+    }
+
     final picker = ImagePicker();
     try {
       final XFile? image = await picker.pickImage(
-        source: source,
+        source: ImageSource.gallery,
         imageQuality: 80,
       );
-
       if (image != null && context.mounted) {
         Navigator.pop(context);
         onImageSelected(File(image.path));

@@ -42,7 +42,7 @@ Dio createAuthDio() {
     },
     onError: (error, handler) async {
       if (error.response?.statusCode != 401) {
-        return handler.next(error);ㅈ
+        return handler.next(error);
       }
 
       final path = error.requestOptions.path;

@@ -202,14 +202,14 @@ class _SocialLoginScreenState extends State<SocialLoginScreen> {
               const Spacer(),
               SocialLoginButton(
                 assetPath: 'asset/img/kakao_original.svg',
-                text: '카카오로 계속하기',
+                text: '카카오로 시작하기',
                 backgroundColor: const Color(0xFFFEE500),
                 textColor: Colors.black,
                 onPressed: _isLoading ? null : _onKakaoPressed,
               ),
               SocialLoginButton(
                 assetPath: 'asset/img/google_original.svg',
-                text: 'Google로 계속하기',
+                text: 'Google로 시작하기',
                 backgroundColor: Colors.white,
                 textColor: Colors.black,
                 isBorder: true,

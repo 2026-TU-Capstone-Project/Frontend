@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
 
@@ -149,8 +150,13 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
       ),
     );
     if (source == null || !mounted) return;
-    final x = await picker.pickImage(source: source);
-    if (x != null && mounted) setState(() => _frontImage = File(x.path));
+    if (source == ImageSource.camera) {
+      final file = await PhotoGuideScreen.open(context, type: PhotoGuideType.fullBody);
+      if (file != null && mounted) setState(() => _frontImage = file);
+    } else {
+      final x = await picker.pickImage(source: ImageSource.gallery);
+      if (x != null && mounted) setState(() => _frontImage = File(x.path));
+    }
   }
 
   Widget _photoSourceTile({
@@ -168,7 +174,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
+                color: AppColors.ACCENT_COLOR.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
@@ -284,8 +290,8 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          AppColors.white.withOpacity(0.1),
-                          AppColors.white.withOpacity(0.9),
+                          AppColors.white.withValues(alpha: 0.1),
+                          AppColors.white.withValues(alpha: 0.9),
                           AppColors.white,
                         ],
                         stops: const [0.0, 0.4, 0.7, 1.0],
@@ -579,10 +585,10 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.ACCENT_COLOR.withOpacity(0.08),
+              color: AppColors.ACCENT_COLOR.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.ACCENT_COLOR.withOpacity(0.2),
+                color: AppColors.ACCENT_COLOR.withValues(alpha: 0.2),
               ),
             ),
             child: Row(

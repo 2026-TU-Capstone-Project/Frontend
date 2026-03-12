@@ -221,7 +221,7 @@ class _AiStylistInputState extends State<AiStylistInput>
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: Colors.black.withValues(alpha: 0.2),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -550,7 +550,7 @@ class _AiStylistInputState extends State<AiStylistInput>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -585,7 +585,7 @@ class _AiStylistInputState extends State<AiStylistInput>
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        AppColors.BLACK.withOpacity(0.7),
+                        AppColors.BLACK.withValues(alpha: 0.7),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -655,7 +655,7 @@ class _AiStylistInputState extends State<AiStylistInput>
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.PRIMARYCOLOR.withOpacity(0.1),
+                    color: AppColors.PRIMARYCOLOR.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
@@ -702,7 +702,7 @@ class _AiStylistInputState extends State<AiStylistInput>
           Border.all(color: AppColors.BORDER_COLOR, width: 1.0), // 테두리 추가
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03), // 그림자 아주 연하게
+              color: Colors.black.withValues(alpha: 0.03), // 그림자 아주 연하게
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -722,7 +722,7 @@ class _AiStylistInputState extends State<AiStylistInput>
         border: Border.all(color: AppColors.BORDER_COLOR), // 테두리
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

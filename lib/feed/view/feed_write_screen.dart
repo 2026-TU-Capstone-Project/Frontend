@@ -332,7 +332,7 @@ class _InputCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.INPUT_BG_COLOR.withOpacity(0.5),
+        color: AppColors.INPUT_BG_COLOR.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.BORDER_COLOR),
       ),
@@ -363,7 +363,7 @@ class _InputCard extends StatelessWidget {
               hintText: '오늘의 코디를 한 줄로 표현해보세요',
               hintStyle: TextStyle(
                   fontSize: 15,
-                  color: AppColors.MEDIUM_GREY.withOpacity(0.9),
+                  color: AppColors.MEDIUM_GREY.withValues(alpha: 0.9),
                   fontWeight: FontWeight.w500),
               counterText: '',
               filled: true,
@@ -396,7 +396,7 @@ class _InputCard extends StatelessWidget {
               hintText: '코디 포인트, 착용 팁, 스타일링 후기 등을 자유롭게 적어주세요',
               hintStyle: TextStyle(
                   fontSize: 14,
-                  color: AppColors.MEDIUM_GREY.withOpacity(0.9),
+                  color: AppColors.MEDIUM_GREY.withValues(alpha: 0.9),
                   height: 1.5),
               counterStyle: const TextStyle(
                   fontSize: 12, color: AppColors.MEDIUM_GREY),

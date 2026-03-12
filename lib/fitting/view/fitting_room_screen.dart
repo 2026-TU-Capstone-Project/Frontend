@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
@@ -319,13 +320,15 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       return;
     }
 
-    final source = result == 'camera'
-        ? ImageSource.camera
-        : ImageSource.gallery;
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: source);
-    if (image != null && mounted) {
-      setState(() => _selectedUserImage = File(image.path));
+    if (result == 'camera') {
+      final file = await PhotoGuideScreen.open(context, type: PhotoGuideType.fullBody);
+      if (file != null && mounted) setState(() => _selectedUserImage = file);
+    } else {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null && mounted) {
+        setState(() => _selectedUserImage = File(image.path));
+      }
     }
   }
 
@@ -344,7 +347,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.ACCENT_COLOR.withOpacity(0.12),
+                color: AppColors.ACCENT_COLOR.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
@@ -1212,7 +1215,7 @@ class _ResultActionBar extends StatelessWidget {
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -1329,7 +1332,7 @@ class _BottomCtaBar extends StatelessWidget {
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -1385,7 +1388,7 @@ class _BottomCtaBar extends StatelessWidget {
                     boxShadow: (isReady && !isLoading)
                         ? [
                             BoxShadow(
-                              color: AppColors.PRIMARYCOLOR.withOpacity(0.3),
+                              color: AppColors.PRIMARYCOLOR.withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),

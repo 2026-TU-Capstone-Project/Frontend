@@ -60,11 +60,11 @@ class _SignupScreenState extends State<SignupScreen> {
       if (e is DioException) {
         if (e.response?.statusCode == 301 || e.response?.statusCode == 308) {
           final redirectUrl = e.response?.headers.value('location');
-          print('=============================================');
-          print('🚨 리다이렉트 이슈 발생!');
-          print('우리가 보낸 주소: ${e.requestOptions.uri}');
-          print('서버가 가라고 한 진짜 주소: $redirectUrl');
-          print('=============================================');
+          debugPrint('=============================================');
+          debugPrint('🚨 리다이렉트 이슈 발생!');
+          debugPrint('우리가 보낸 주소: ${e.requestOptions.uri}');
+          debugPrint('서버가 가라고 한 진짜 주소: $redirectUrl');
+          debugPrint('=============================================');
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -72,7 +72,7 @@ class _SignupScreenState extends State<SignupScreen> {
             );
           }
         } else {
-          print('Dio 에러 발생: ${e.response?.data ?? e.message}');
+          debugPrint('Dio 에러 발생: ${e.response?.data ?? e.message}');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("회원가입 실패: ${e.response?.data ?? e.message}")),
@@ -80,7 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
           }
         }
       } else {
-        print('알 수 없는 에러: $e');
+        debugPrint('알 수 없는 에러: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("회원가입 실패: ${e.toString()}")),

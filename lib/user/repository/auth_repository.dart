@@ -8,9 +8,8 @@ class AuthRepository {
   final AuthClient _client;
   final String? baseUrl;
 
-  AuthRepository(Dio dio, {String? baseUrl})
-    : _client = AuthClient(dio, baseUrl: baseUrl),
-      baseUrl = baseUrl;
+  AuthRepository(Dio dio, {this.baseUrl})
+    : _client = AuthClient(dio, baseUrl: baseUrl);
 
   Future<bool> signUp({
     required String email,
