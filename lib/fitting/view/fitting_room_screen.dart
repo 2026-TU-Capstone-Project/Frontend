@@ -26,6 +26,7 @@ import '../component/ai_stylist_input.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
 import '../util/clothes_category_util.dart';
+import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
 
 /// 피팅 진행 상태를 화면(탭) 전환과 무관하게 유지. 탭을 떠났다 와도 로딩/결과가 유지됨.
 class _FittingProgressHolder extends ChangeNotifier {
@@ -107,7 +108,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
   int? _selectedTopClothesId;
   int? _selectedBottomClothesId;
 
-  final TextEditingController _promptController = TextEditingController();
   late AnimationController _animationController;
 
   List<ClothesModel> _serverClothes = [];
@@ -115,12 +115,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
   /// 헤더용: 서버 마이페이지 + 로컬 피팅 프로필 (피팅 탭 선택 시 갱신)
   UserMe? _userMeForHeader;
   FittingProfile? _fittingProfileForHeader;
-
-  final List<Map<String, dynamic>> _quickChips = [
-    {'icon': Icons.business, 'label': '오피스룩 추천해줘'},
-    {'icon': Icons.flight_takeoff, 'label': '여행 갈 때 뭐 입지?'},
-    {'icon': Icons.favorite, 'label': '데이트 룩 추천해줘'},
-  ];
 
   /// 상단 토글: true = 피팅룸, false = AI 스타일리스트
   bool _isFittingRoomTab = true;
@@ -194,7 +188,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
   void dispose() {
     _progress.removeListener(_onFittingProgressChanged);
     FittingRoomScreen.onFittingTabSelected = null;
-    _promptController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -401,70 +394,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       });
     } catch (e) {
       debugPrint("이미지 다운로드 에러: $e");
-    }
-  }
-
-  /// AI 스타일리스트 추천 코디를 피팅룸에 적용 (상의/하의 ID → 옷 조회 후 다운로드해 선택)
-  Future<void> _applyRecommendationOutfit(int? topId, int? bottomId) async {
-    if (topId == null && bottomId == null) return;
-    try {
-      ClothesModel? topCloth;
-      ClothesModel? bottomCloth;
-      if (topId != null) {
-        final resp = await _clothesRepository.getClothDetail(id: topId);
-        if (resp.success && resp.data != null) {
-          topCloth = resp.data;
-        }
-      }
-      if (bottomId != null) {
-        final resp = await _clothesRepository.getClothDetail(id: bottomId);
-        if (resp.success && resp.data != null) {
-          bottomCloth = resp.data;
-        }
-      }
-
-      final tempDir = await getTemporaryDirectory();
-      final dio = Dio();
-
-      if (topCloth?.imgUrl != null && topCloth!.imgUrl!.trim().isNotEmpty) {
-        final path =
-            '${tempDir.path}/rec_top_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await dio.download(topCloth.imgUrl!, path);
-        if (!mounted) return;
-        setState(() {
-          _selectedTopUrl = topCloth!.imgUrl;
-          _selectedTopFile = File(path);
-        });
-      }
-      if (bottomCloth?.imgUrl != null &&
-          bottomCloth!.imgUrl!.trim().isNotEmpty) {
-        final path =
-            '${tempDir.path}/rec_bottom_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await dio.download(bottomCloth.imgUrl!, path);
-        if (!mounted) return;
-        setState(() {
-          _selectedBottomUrl = bottomCloth!.imgUrl;
-          _selectedBottomFile = File(path);
-        });
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('이 코디가 선택되었어요. 전신 사진을 고른 뒤 "가상 피팅 시작하기"를 눌러주세요.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint("추천 코디 적용 오류: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('코디를 불러오는 데 실패했어요. 옷장에 해당 옷이 있는지 확인해주세요.'),
-          ),
-        );
-      }
     }
   }
 
@@ -1094,11 +1023,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                     ),
                   ),
                 ] else ...[
-                  AiStylistInput(
-                    controller: _promptController,
-                    chips: _quickChips,
-                    onTryOnOutfit: _applyRecommendationOutfit,
-                  ),
+                  AiStylistInput(nickname: _userMeForHeader?.nickname),
+                  const SizedBox(height: 16),
+                  _WardrobeAiSection(clothes: _serverClothes),
                 ],
                 const SizedBox(height: 120),
               ],
@@ -1511,4 +1438,155 @@ class _FullScreenImageView extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── 내 옷장 미리보기 — AI 스타일리스트 탭 하단 ─────────────────────────────────
+
+class _WardrobeAiSection extends StatelessWidget {
+  final List<ClothesModel> clothes;
+
+  const _WardrobeAiSection({required this.clothes});
+
+  String _buildQuery(ClothesModel item) {
+    final name = item.name?.trim() ?? '';
+    final cat = item.category?.trim() ?? '';
+    if (name.isNotEmpty) return '내 옷 "$name" 어울리는 코디 추천해줘';
+    if (cat.isNotEmpty) return '내 $cat 어울리는 코디 추천해줘';
+    return '내 옷 어울리는 코디 추천해줘';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 섹션 헤더
+        Row(
+          children: [
+            const Text(
+              '내 옷장',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.BLACK,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${clothes.length}개',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.MEDIUM_GREY,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '탭하면 AI가 코디 추천해드려요',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.MEDIUM_GREY,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (clothes.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.checkroom_outlined,
+                    size: 32, color: AppColors.MEDIUM_GREY),
+                SizedBox(height: 8),
+                Text(
+                  '옷을 추가하고 AI 추천을 받아보세요',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.MEDIUM_GREY,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 130,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: clothes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final item = clothes[index];
+                return GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (_, animation, __) =>
+                          AiChatScreen(initialMessage: _buildQuery(item)),
+                      transitionDuration:
+                          const Duration(milliseconds: 350),
+                      transitionsBuilder: (_, animation, __, child) {
+                        final slide = Tween<Offset>(
+                          begin: const Offset(0, 0.12),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ));
+                        return FadeTransition(
+                          opacity: animation,
+                          child:
+                              SlideTransition(position: slide, child: child),
+                        );
+                      },
+                    ),
+                  ),
+                  child: Container(
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (item.imgUrl != null && item.imgUrl!.isNotEmpty)
+                          Image.network(
+                            item.imgUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _placeholder(),
+                          )
+                        else
+                          _placeholder(),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _placeholder() => Container(
+        color: const Color(0xFFEEEEEE),
+        child: const Icon(Icons.checkroom_outlined,
+            size: 32, color: AppColors.MEDIUM_GREY),
+      );
 }

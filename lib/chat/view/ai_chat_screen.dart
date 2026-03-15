@@ -101,61 +101,25 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             color: _textPrimary, size: 20),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Row(
+      title: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    size: 19, color: Colors.white),
-              ),
-              Positioned(
-                bottom: 1,
-                right: 1,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF34C759),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'AI 스타일리스트',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+              letterSpacing: -0.3,
+            ),
           ),
-          const SizedBox(width: 10),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AI 스타일리스트',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              Text(
-                'LookPick Assistant',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: _textSecondary,
-                ),
-              ),
-            ],
+          Text(
+            'LookPick Assistant',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: _textSecondary,
+            ),
           ),
         ],
       ),
@@ -207,7 +171,7 @@ class _EmptyState extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+                  colors: [AppColors.ACCENT_PURPLE, AppColors.ACCENT_BLUE],
                 ),
                 shape: BoxShape.circle,
               ),
@@ -318,7 +282,7 @@ class _UserBubble extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF9B7FFA), Color(0xFF6366F1)],
+                  colors: [AppColors.ACCENT_PURPLE, AppColors.ACCENT_BLUE],
                 ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(18),
@@ -328,7 +292,7 @@ class _UserBubble extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7C6AE8).withValues(alpha: 0.35),
+                    color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.35),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -448,10 +412,10 @@ class _BotTextBubble extends StatelessWidget {
           bottomLeft: Radius.circular(18),
           bottomRight: Radius.circular(18),
         ),
-        border: Border.all(color: const Color(0xFFEBE6FF), width: 1),
+        border: Border.all(color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.18), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6366F1).withValues(alpha: 0.07),
+            color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.07),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),

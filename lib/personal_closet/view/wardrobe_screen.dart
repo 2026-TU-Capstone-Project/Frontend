@@ -11,16 +11,13 @@ import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/util/clothes_category_util.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
-import 'package:capstone_fe/personal_closet/view/clothes_set_list_screen.dart';
 import 'package:capstone_fe/personal_closet/view/clothing_upload_progress_dialog.dart';
 
-// 홈 화면과 통일된 배경색 (Apple-style light grey)
 const _kBg = Color(0xFFF5F5F7);
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
 
-  /// 옷장 탭 선택 시 호출 (닉네임 등 로컬 저장값 갱신용)
   static void Function()? onWardrobeTabSelected;
 
   @override
@@ -36,9 +33,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   List<SavedFittingData> _savedFittings = [];
 
   String _selectedCategory = "전체";
-  final List<String> _categories = ["전체", "상의", "하의", "아우터", "원피스", "신발", "기타"];
+  final List<String> _categories = ["전체", "상의", "하의", "아우터", "신발", "원피스", "기타"];
 
   bool _isLoading = true;
+  bool _showClothesTab = true;
 
   @override
   void initState() {
@@ -75,9 +73,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     } catch (e) {
       debugPrint("옷장/저장 코디 로드 실패: $e");
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -90,8 +86,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Future<void> _deleteCloth(int id) async {
-    Navigator.pop(context); // 상세 모달 닫기
-
+    Navigator.pop(context);
     final success = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -100,11 +95,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         repository: _clothesRepository,
       ),
     );
-
     if (!mounted) return;
-    if (success == true) {
-      _loadWardrobe();
-    }
+    if (success == true) _loadWardrobe();
   }
 
   void _onCategorySelected(String category) {
@@ -120,7 +112,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     } else {
       _filteredClothes = _allClothes.where((cloth) {
         final cat = cloth.category?.toUpperCase() ?? "";
-
         if (_selectedCategory == "상의") return isTopCategory(cloth.category);
         if (_selectedCategory == "하의") return isBottomCategory(cloth.category);
         if (_selectedCategory == "아우터") {
@@ -138,7 +129,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _onAddCloth() async {
-    // 1단계: 카테고리 선택
     String? selectedCat = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -187,11 +177,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               const SizedBox(height: 20),
               _buildCategoryOption("상의", "Top"),
               _buildCategoryOption("하의", "Bottom"),
-              // TODO: 백엔드 API 명세 확인 필요 — OpenAPI 기준 Top/Bottom/Shoes만 공식 지원.
-              // "Outer"는 현재 서버에서 Top으로 처리될 수 있으므로 백엔드와 협의 후 매핑 확정 필요.
               _buildCategoryOption("아우터", "Outer"),
               _buildCategoryOption("신발", "Shoes"),
-              // TODO: "Dress"도 OpenAPI 명세에 없는 값. 백엔드 지원 여부 확인 필요.
               _buildCategoryOption("원피스", "Dress"),
               const SizedBox(height: 16),
             ],
@@ -202,7 +189,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
     if (selectedCat == null || !mounted) return;
 
-    // 2단계: 사진 소스 선택 (카메라 / 갤러리)
     final String? source = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -240,12 +226,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        color: AppColors.BORDER_COLOR,
-                      ),
-                    ),
+                    Expanded(child: Container(height: 1, color: AppColors.BORDER_COLOR)),
                   ],
                 ),
               ),
@@ -271,7 +252,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
     if (source == null || !mounted) return;
 
-    // 3단계: 사진 획득 (카메라 or 갤러리)
     File? file;
     if (source == "camera") {
       if (selectedCat == "Top" || selectedCat == "Bottom") {
@@ -297,16 +277,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         category: selectedCat,
         file: file,
       );
-
       if (!resp.success) throw Exception(resp.message);
       if (!mounted) return;
 
-      // 서버 응답: {"data": {"taskId": 1}}
       final data = resp.data as Map<String, dynamic>?;
       final taskId = data?['taskId'] as int?;
       if (taskId == null) throw Exception('taskId를 받지 못했습니다.');
 
-      // SSE 진행 다이얼로그 표시 (사용자가 직접 닫을 수 없음)
       final success = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -314,7 +291,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       );
 
       if (!mounted) return;
-
       if (success == true) {
         _loadWardrobe();
       } else {
@@ -324,9 +300,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('등록 실패: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('등록 실패: $e')));
     }
   }
 
@@ -361,11 +335,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
             ),
             const Spacer(),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.MEDIUM_GREY,
-              size: 20,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.MEDIUM_GREY, size: 20),
           ],
         ),
       ),
@@ -400,410 +370,236 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
             ),
             const Spacer(),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.MEDIUM_GREY,
-              size: 18,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.MEDIUM_GREY, size: 18),
           ],
         ),
       ),
     );
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
-      floatingActionButton: GestureDetector(
-        onTap: _onAddCloth,
-        child: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [AppColors.ACCENT_BLUE, AppColors.ACCENT_PURPLE],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
-      ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
-            )
+          ? const Center(child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR))
           : SafeArea(
-              child: RefreshIndicator(
-                onRefresh: _loadWardrobe,
-                color: AppColors.PRIMARYCOLOR,
-                child: CustomScrollView(
-                  slivers: [
-                    _buildIntroHeader(),
-                    _buildSavedOutfitsSection(),
-                    _buildCategoryFilter(),
-                    _buildGridOrEmpty(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 14),
+                  _buildTopBar(),
+                  const SizedBox(height: 18),
+                  Center(child: _buildSegmentedTabs()),
+                  const SizedBox(height: 16),
+                  if (_showClothesTab) ...[
+                    _buildCategoryFilterChips(),
+                    const SizedBox(height: 12),
                   ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildIntroHeader() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 2),
-                    const Text(
-                      '옷장',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.BLACK,
-                        letterSpacing: -0.8,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ClothesSetListScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _loadWardrobe,
                       color: AppColors.PRIMARYCOLOR,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.folder_outlined,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          '코디 폴더',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+                      child: _showClothesTab
+                          ? _buildClothesGrid()
+                          : _buildCollectionsGrid(),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "${_allClothes.length}개의 아이템 · $_selectedCategory",
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.MEDIUM_GREY,
-                fontWeight: FontWeight.w500,
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 
-  /// 저장한 코디 목록 섹션 (가로 스크롤 카드)
-  Widget _buildSavedOutfitsSection() {
-    if (_savedFittings.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-    return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 0, 24, 12),
-            child: Text(
-              'SAVED OUTFITS',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.MEDIUM_GREY,
-                letterSpacing: 1.5,
+          // Search button
+          _PillButton(
+            icon: Icons.search_rounded,
+            label: '검색',
+            onTap: () {}, // 향후 검색 기능
+          ),
+          // Title
+          const Expanded(
+            child: Center(
+              child: Text(
+                '옷장',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.BLACK,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
           ),
-          SizedBox(
-            height: 160,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              scrollDirection: Axis.horizontal,
-              itemCount: _savedFittings.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final item = _savedFittings[index];
-                final imageUrl = item.resultImgUrl;
-                if (imageUrl == null || imageUrl.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return GestureDetector(
-                  onTap: () => _showSavedFittingFullScreen(imageUrl),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: SizedBox(
-                      width: 115,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.BORDER_COLOR,
-                              child: const Icon(
-                                Icons.broken_image_outlined,
-                                color: AppColors.MEDIUM_GREY,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            height: 60,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.55),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 10,
-                            bottom: 10,
-                            right: 10,
-                            child: Text(
-                              item.setName ?? "저장한 코디",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+          // Upload button
+          _PillButton(
+            icon: Icons.add,
+            label: '추가',
+            onTap: _onAddCloth,
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryFilter() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: SizedBox(
-          height: 52,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = category == _selectedCategory;
-              return GestureDetector(
-                onTap: () => _onCategorySelected(category),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 52,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.PRIMARYCOLOR
-                        : AppColors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.PRIMARYCOLOR.withValues(
-                                alpha: 0.25,
-                              ),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                  ),
-                  child: Text(
-                    category,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.BODY_COLOR,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              );
-            },
+  Widget _buildSegmentedTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE4E4E4),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _TabChip(
+            label: '옷',
+            isSelected: _showClothesTab,
+            onTap: () => setState(() => _showClothesTab = true),
           ),
-        ),
+          _TabChip(
+            label: '컬렉션',
+            isSelected: !_showClothesTab,
+            onTap: () => setState(() => _showClothesTab = false),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildGridOrEmpty() {
-    if (_filteredClothes.isEmpty) {
-      return SliverFillRemaining(child: _buildEmptyState());
-    }
-
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.72,
-        ),
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final cloth = _filteredClothes[index];
+  Widget _buildCategoryFilterChips() {
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final isSelected = cat == _selectedCategory;
           return GestureDetector(
-            onTap: () => _showClothDetail(context, cloth),
-            child: Container(
+            onTap: () => _onCategorySelected(cat),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                color: AppColors.white,
+                color: isSelected ? AppColors.BLACK : Colors.white,
+                borderRadius: BorderRadius.circular(50),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.07),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withValues(alpha: isSelected ? 0.0 : 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(18),
-                      ),
-                      child: Image.network(
-                        cloth.imgUrl ?? "",
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: _kBg,
-                          child: const Icon(
-                            Icons.checkroom_outlined,
-                            color: AppColors.MEDIUM_GREY,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          cloth.category ?? "",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.MEDIUM_GREY,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          cloth.name ?? "이름 없음",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.BLACK,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              child: Text(
+                cat,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? Colors.white : AppColors.BLACK,
+                ),
               ),
             ),
           );
-        }, childCount: _filteredClothes.length),
+        },
       ),
+    );
+  }
+
+  Widget _buildClothesGrid() {
+    if (_filteredClothes.isEmpty) {
+      return ListView(
+        children: [
+          SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+          _buildEmptyState(),
+        ],
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.78,
+      ),
+      itemCount: _filteredClothes.length,
+      itemBuilder: (context, index) {
+        final cloth = _filteredClothes[index];
+        return GestureDetector(
+          onTap: () => _showClothDetail(context, cloth),
+          child: _ClothGridCard(cloth: cloth),
+        );
+      },
+    );
+  }
+
+  Widget _buildCollectionsGrid() {
+    if (_savedFittings.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 120),
+          Center(
+            child: Column(
+              children: [
+                Icon(Icons.photo_library_outlined, size: 60, color: AppColors.BORDER_COLOR),
+                SizedBox(height: 16),
+                Text(
+                  '아직 저장된 코디가 없어요',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.BLACK,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '피팅룸에서 코디를 만들어 저장해보세요',
+                  style: TextStyle(fontSize: 13, color: AppColors.MEDIUM_GREY),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.60,
+      ),
+      itemCount: _savedFittings.length,
+      itemBuilder: (context, index) {
+        final item = _savedFittings[index];
+        return GestureDetector(
+          onTap: () {
+            final url = item.resultImgUrl;
+            if (url != null && url.isNotEmpty) _showSavedFittingFullScreen(url);
+          },
+          child: _CollectionGridCard(item: item),
+        );
+      },
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 80,
@@ -819,11 +615,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.checkroom_outlined,
-              size: 36,
-              color: AppColors.MEDIUM_GREY,
-            ),
+            child: const Icon(Icons.checkroom_outlined, size: 36, color: AppColors.MEDIUM_GREY),
           ),
           const SizedBox(height: 20),
           Text(
@@ -837,31 +629,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            "+ 버튼으로 새 아이템을 추가해보세요",
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.MEDIUM_GREY,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 28),
-          GestureDetector(
-            onTap: _onAddCloth,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.PRIMARYCOLOR,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: const Text(
-                "아이템 추가",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+            "상단 '추가' 버튼으로 새 아이템을 추가해보세요",
+            style: TextStyle(fontSize: 13, color: AppColors.MEDIUM_GREY),
           ),
         ],
       ),
@@ -887,7 +656,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               child: CustomScrollView(
                 controller: scrollController,
                 slivers: [
-                  // 상단 핸들 + 삭제
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 12, 8, 8),
@@ -915,7 +683,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       ),
                     ),
                   ),
-                  // 상품 이미지
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -951,14 +718,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       ),
                     ),
                   ),
-                  // 상품 정보 블록 (쇼핑몰 스타일)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 카테고리 뱃지
                           if (_isNotEmpty(cloth.category))
                             Padding(
                               padding: const EdgeInsets.only(bottom: 10),
@@ -982,7 +747,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                 ),
                               ),
                             ),
-                          // 상품명
                           Text(
                             cloth.name ?? "이름 없는 옷",
                             style: const TextStyle(
@@ -1003,7 +767,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                               ),
                             ),
                           ],
-                          // 가격
                           if (cloth.price != null && cloth.price! > 0) ...[
                             const SizedBox(height: 14),
                             Text(
@@ -1016,37 +779,25 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             ),
                           ],
                           const SizedBox(height: 20),
-                          // 구매하기 버튼 (buyUrl 있을 때만)
                           if (_isNotEmpty(cloth.buyUrl))
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton.icon(
                                 onPressed: () => _launchUrl(cloth.buyUrl!),
-                                icon: const Icon(
-                                  Icons.shopping_bag_outlined,
-                                  size: 20,
-                                ),
+                                icon: const Icon(Icons.shopping_bag_outlined, size: 20),
                                 label: const Text("구매 링크로 이동"),
                                 style: FilledButton.styleFrom(
                                   backgroundColor: AppColors.PRIMARYCOLOR,
                                   foregroundColor: AppColors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                               ),
                             ),
-                          if (_isNotEmpty(cloth.buyUrl))
-                            const SizedBox(height: 24),
-                          // 구분선
-                          const Divider(
-                            height: 32,
-                            color: AppColors.BORDER_COLOR,
-                          ),
-                          // 상세 정보 섹션들 (값 있는 것만 표시)
+                          if (_isNotEmpty(cloth.buyUrl)) const SizedBox(height: 24),
+                          const Divider(height: 32, color: AppColors.BORDER_COLOR),
                           ..._buildDetailSection("기본 정보", [
                             _row("색상", cloth.color),
                             _row("계절", cloth.season),
@@ -1171,10 +922,245 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 }
 
-/// 저장한 코디 피팅 결과 이미지 전체 화면 뷰어
+// ============================================================
+// Pill Button (검색 / 추가)
+// ============================================================
+class _PillButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _PillButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.07),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.BLACK),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.BLACK,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// Segmented Tab Chip
+// ============================================================
+class _TabChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TabChip({required this.label, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 9),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? AppColors.BLACK : const Color(0xFF9E9E9E),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// Clothes Grid Card
+// ============================================================
+class _ClothGridCard extends StatefulWidget {
+  final ClothesModel cloth;
+  const _ClothGridCard({required this.cloth});
+
+  @override
+  State<_ClothGridCard> createState() => _ClothGridCardState();
+}
+
+class _ClothGridCardState extends State<_ClothGridCard> {
+  bool _liked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              widget.cloth.imgUrl ?? '',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: const Color(0xFFF0F0F0),
+                child: const Icon(
+                  Icons.checkroom_outlined,
+                  color: Color(0xFFCCCCCC),
+                  size: 40,
+                ),
+              ),
+            ),
+            // Heart icon (토글)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => setState(() => _liked = !_liked),
+                child: Icon(
+                  _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  size: 22,
+                  color: _liked ? const Color(0xFFFF3B30) : Colors.white,
+                  shadows: const [
+                    Shadow(color: Colors.black26, blurRadius: 4),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// Collection Grid Card (저장한 코디)
+// ============================================================
+class _CollectionGridCard extends StatefulWidget {
+  final SavedFittingData item;
+  const _CollectionGridCard({required this.item});
+
+  @override
+  State<_CollectionGridCard> createState() => _CollectionGridCardState();
+}
+
+class _CollectionGridCardState extends State<_CollectionGridCard> {
+  bool _liked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = widget.item.resultImgUrl;
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            url != null && url.isNotEmpty
+                ? Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholder(),
+                  )
+                : _placeholder(),
+            // Heart icon (토글)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => setState(() => _liked = !_liked),
+                child: Icon(
+                  _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  size: 22,
+                  color: _liked ? const Color(0xFFFF3B30) : Colors.white,
+                  shadows: const [
+                    Shadow(color: Colors.black26, blurRadius: 4),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+    color: const Color(0xFFF0F0F0),
+    child: const Center(
+      child: Icon(Icons.person_outline, color: Color(0xFFCCCCCC), size: 40),
+    ),
+  );
+}
+
+// ============================================================
+// Full Screen Image Viewer
+// ============================================================
 class _FullScreenImageView extends StatelessWidget {
   const _FullScreenImageView({required this.imageUrl});
-
   final String imageUrl;
 
   @override
@@ -1200,7 +1186,7 @@ class _FullScreenImageView extends StatelessWidget {
                       child: CircularProgressIndicator(
                         value: loadingProgress.expectedTotalBytes != null
                             ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
+                                loadingProgress.expectedTotalBytes!
                             : null,
                         color: Colors.white,
                       ),

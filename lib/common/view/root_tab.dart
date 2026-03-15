@@ -49,6 +49,8 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
     // 홈(0)에서만 앱바 표시, 피팅룸/옷장/피드/유저(1~4)에서는 앱바 없음
     final showAppBar = (index == 0);
     return DefaultLayout(
+      backgroundColor: const Color(0xFFF5F5F7),
+      appBarBackgroundColor: const Color(0xFFF5F5F7),
       title: showAppBar
           ? Text(
               '다이버바',
@@ -101,8 +103,6 @@ class _CustomBottomBar extends StatelessWidget {
     required this.onTap,
   });
 
-  static const double _centerButtonSize = 56.0;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -120,82 +120,14 @@ class _CustomBottomBar extends StatelessWidget {
         top: false,
         child: SizedBox(
           height: 60,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildTab(0, Icons.home_outlined, Icons.home, '홈'),
-                  _buildTab(
-                    1,
-                    Icons.door_sliding_outlined,
-                    Icons.door_sliding,
-                    '옷장',
-                  ),
-                  const SizedBox(width: _centerButtonSize + 8),
-                  _buildTab(3, Icons.grid_view_outlined, Icons.grid_view, '피드'),
-                  _buildTab(
-                    4,
-                    Icons.person_outline_rounded,
-                    Icons.person_rounded,
-                    'MY',
-                  ),
-                ],
-              ),
-              Positioned(
-                top: -12,
-                child: GestureDetector(
-                  onTap: () => onTap(2),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: _centerButtonSize,
-                        height: _centerButtonSize,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.ACCENT_BLUE,
-                              AppColors.ACCENT_PURPLE,
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.ACCENT_BLUE.withValues(alpha: 0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          currentIndex == 2
-                              ? Icons.checkroom
-                              : Icons.checkroom_outlined,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '피팅룸',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: currentIndex == 2
-                              ? AppColors.ACCENT_BLUE
-                              : AppColors.MEDIUM_GREY,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildTab(0, Icons.home_outlined, Icons.home, '홈'),
+              _buildTab(1, Icons.door_sliding_outlined, Icons.door_sliding, '옷장'),
+              _buildTab(2, Icons.checkroom_outlined, Icons.checkroom, '피팅룸'),
+              _buildTab(3, Icons.grid_view_outlined, Icons.grid_view, '피드'),
+              _buildTab(4, Icons.person_outline_rounded, Icons.person_rounded, 'MY'),
             ],
           ),
         ),

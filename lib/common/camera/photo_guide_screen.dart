@@ -46,31 +46,6 @@ class _PhotoGuideScreenState extends State<PhotoGuideScreen> {
     }
   }
 
-  String get _typeLabel {
-    switch (widget.type) {
-      case PhotoGuideType.topClothing:
-        return '상의';
-      case PhotoGuideType.bottomClothing:
-        return '하의';
-      case PhotoGuideType.fullBody:
-        return '전신';
-      case PhotoGuideType.profile:
-        return '프로필';
-    }
-  }
-
-  IconData get _typeIcon {
-    switch (widget.type) {
-      case PhotoGuideType.topClothing:
-        return Icons.checkroom_outlined;
-      case PhotoGuideType.bottomClothing:
-        return Icons.straighten_outlined;
-      case PhotoGuideType.fullBody:
-        return Icons.accessibility_new_outlined;
-      case PhotoGuideType.profile:
-        return Icons.person_outline_rounded;
-    }
-  }
 
   String get _svgAsset {
     switch (widget.type) {
@@ -250,50 +225,12 @@ class _PhotoGuideScreenState extends State<PhotoGuideScreen> {
             Positioned.fill(
               child: CustomPaint(painter: _CameraFramePainter()),
             ),
-            // 타입 배지
-            Positioned(
-              top: 14,
-              left: 14,
-              child: _buildTypeBadge(),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTypeBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_typeIcon, size: 13, color: AppColors.ACCENT_BLUE),
-          const SizedBox(width: 5),
-          Text(
-            _typeLabel,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.PRIMARYCOLOR,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTip(String tip) {
     return Padding(

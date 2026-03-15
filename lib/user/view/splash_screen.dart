@@ -1,15 +1,14 @@
 import 'dart:convert';
 
 import 'package:capstone_fe/common/const/data.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/common/view/root_tab.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_svg/svg.dart';
 
-import '../../common/const/colors.dart';
 import 'social_login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -132,21 +131,31 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SizedBox(
-        width: MediaQuery.of(context).size.width,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: const Color(0xFFF0F0F0),
+      body: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(
-              'asset/img/logo.svg',
-              width: MediaQuery.of(context).size.width / 2.0,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset(
+                'asset/img/diverva_logo.jpg',
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
+              ),
             ),
-            const SizedBox(height: 50),
-            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(width: 14),
+            Text(
+              '다이버바',
+              style: GoogleFonts.blackHanSans(
+                fontSize: 36,
+                color: const Color(0xFF2F2F2F),
+              ),
+            ),
           ],
         ),
       ),
-      backgroundColor: AppColors.PRIMARYCOLOR,
     );
   }
 }

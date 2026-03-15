@@ -60,8 +60,16 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     }
   }
 
-  void _skip() {
-    widget.onStart();
+  Future<void> _skip() async {
+    // 건너뛰기를 눌러도 온보딩 완료 플래그를 저장하여 재표시 방지
+    try {
+      await FittingProfile.save(
+        FittingProfile(onboardingCompleted: true),
+      );
+    } catch (e) {
+      debugPrint('온보딩 건너뛰기 저장 실패: $e');
+    }
+    if (mounted) widget.onStart();
   }
 
   Future<void> _saveAndStart() async {
@@ -85,6 +93,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
         bottomSize: _bottomSizeController.text.trim().isEmpty
             ? null
             : _bottomSizeController.text.trim(),
+        onboardingCompleted: true,
       );
       await FittingProfile.save(profile);
     } catch (e) {

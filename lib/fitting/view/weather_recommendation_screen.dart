@@ -145,7 +145,6 @@ Future<Position?> _getPosition(BuildContext context) async {
   }
 }
 
-
 // ───────────────────────────────────────────────────────────
 // 결과 화면
 // ───────────────────────────────────────────────────────────
@@ -219,59 +218,178 @@ class _WeatherCard extends StatelessWidget {
 
   String get _weatherIcon => weatherLabel(weather.conditionCode).emoji;
 
+  String get _tempFeeling {
+    final t = weather.temp;
+    if (t >= 28) return '🔥 매우 더움';
+    if (t >= 23) return '😎 더움';
+    if (t >= 18) return '🙂 쾌적';
+    if (t >= 12) return '🧥 선선함';
+    if (t >= 5) return '🥶 추움';
+    return '❄️ 매우 추움';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [AppColors.ACCENT_BLUE, AppColors.ACCENT_PURPLE],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ACCENT_BLUE.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Text(_weatherIcon, style: const TextStyle(fontSize: 48)),
-          const SizedBox(width: 16),
-          Expanded(
+          // 배경 장식 원
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.07),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 30,
+            bottom: -30,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          // 본문
+          Padding(
+            padding: const EdgeInsets.all(22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  weather.cityName.isNotEmpty ? weather.cityName : '현재 위치',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 이모지 + 글로우
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _weatherIcon,
+                        style: const TextStyle(fontSize: 38),
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_rounded,
+                                color: Colors.white70,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                weather.cityName.isNotEmpty
+                                    ? weather.cityName
+                                    : '현재 위치',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${weather.temp.round()}°C',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 42,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1.5,
+                              height: 1.1,
+                            ),
+                          ),
+                          Text(
+                            weather.description,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${weather.temp.round()}°C',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -1,
-                  ),
+                const SizedBox(height: 16),
+                // 하단 구분선
+                Container(
+                  height: 1,
+                  color: Colors.white.withValues(alpha: 0.2),
                 ),
-                Text(
-                  weather.description,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const SizedBox(height: 12),
+                // 체감 온도 뱃지
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _tempFeeling,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    const Text(
+                      'AI 코디 추천 결과',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white70,
+                      size: 12,
+                    ),
+                  ],
                 ),
               ],
             ),

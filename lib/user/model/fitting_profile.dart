@@ -8,22 +8,31 @@ class FittingProfile {
   final String? frontImagePath;
   final String? topSize;
   final String? bottomSize;
+  final bool onboardingCompleted;
 
-  FittingProfile({this.frontImagePath, this.topSize, this.bottomSize});
+  FittingProfile({
+    this.frontImagePath,
+    this.topSize,
+    this.bottomSize,
+    this.onboardingCompleted = false,
+  });
 
   Map<String, dynamic> toJson() => {
     'frontImagePath': frontImagePath,
     'topSize': topSize,
     'bottomSize': bottomSize,
+    'onboardingCompleted': onboardingCompleted,
   };
 
   factory FittingProfile.fromJson(Map<String, dynamic> json) => FittingProfile(
     frontImagePath: json['frontImagePath'] as String?,
     topSize: json['topSize'] as String?,
     bottomSize: json['bottomSize'] as String?,
+    onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
   );
 
   bool get hasAnyData =>
+      onboardingCompleted ||
       frontImagePath != null ||
       (topSize != null && topSize!.isNotEmpty) ||
       (bottomSize != null && bottomSize!.isNotEmpty);

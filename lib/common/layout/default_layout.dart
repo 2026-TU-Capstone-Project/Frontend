@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class DefaultLayout extends StatelessWidget {
   final Widget child;
   final Color? backgroundColor;
+  final Color? appBarBackgroundColor;
   final Widget? title;
   final Widget? bottomNavigationBar;
   final List<Widget>? actions;
@@ -11,6 +12,7 @@ class DefaultLayout extends StatelessWidget {
     this.title,
     this.bottomNavigationBar,
     this.backgroundColor,
+    this.appBarBackgroundColor,
     this.actions,
     super.key,
   });
@@ -30,7 +32,7 @@ class DefaultLayout extends StatelessWidget {
       return null;
     } else {
       return AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: appBarBackgroundColor ?? Colors.white,
         title: title,
         centerTitle: false,
         automaticallyImplyLeading: false,
