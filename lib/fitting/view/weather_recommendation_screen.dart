@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:capstone_fe/common/component/style_analysis_widget.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
@@ -502,15 +503,9 @@ class _RecommendationCard extends StatelessWidget {
                 if (item.styleAnalysis != null &&
                     item.styleAnalysis!.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text(
-                    item.styleAnalysis!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.BODY_COLOR,
-                      height: 1.5,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
+                  const Divider(height: 1, color: AppColors.BORDER_COLOR),
+                  const SizedBox(height: 12),
+                  StyleAnalysisView(styleAnalysis: item.styleAnalysis),
                 ],
               ],
             ),

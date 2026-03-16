@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:capstone_fe/common/component/style_analysis_widget.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/clothes/model/recommend_model.dart';
 import 'package:capstone_fe/fitting/clothes/model/weather_recommend_model.dart';
@@ -296,19 +297,8 @@ class _OutfitCard extends StatelessWidget {
                     )
                   : _placeholder(),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Text(
-                analysis?.isNotEmpty == true ? analysis! : '스타일 분석 없음',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.BODY_COLOR,
-                  height: 1.4,
-                ),
-              ),
-            ),
+            if (analysis != null && analysis.isNotEmpty)
+              StyleAnalysisChipsView(styleAnalysis: analysis),
           ],
         ),
       ),

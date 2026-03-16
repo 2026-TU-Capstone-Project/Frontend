@@ -96,15 +96,6 @@ class _SheetBody extends StatelessWidget {
                         letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      d.feedTitle ?? '스타일 피드',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.ACCENT_BLUE,
-                      ),
-                    ),
                   ],
                 ),
               ),
