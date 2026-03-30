@@ -97,11 +97,11 @@ class _FitCard extends StatelessWidget {
   IconData get _icon {
     switch (type) {
       case FitType.slim:
-        return Icons.compress_rounded;
+        return Icons.vertical_align_center_rounded;
       case FitType.regular:
-        return Icons.straighten_rounded;
+        return Icons.checkroom_rounded;
       case FitType.oversize:
-        return Icons.open_in_full_rounded;
+        return Icons.zoom_out_map_rounded;
     }
   }
 

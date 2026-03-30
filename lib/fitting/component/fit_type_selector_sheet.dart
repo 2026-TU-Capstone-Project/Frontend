@@ -27,9 +27,9 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
   FitType _selected = FitType.regular; // 기본값: 레귤러핏
 
   static const _fitIcons = <FitType, IconData>{
-    FitType.slim: Icons.compress,
-    FitType.regular: Icons.straighten,
-    FitType.oversize: Icons.open_in_full_rounded,
+    FitType.slim: Icons.vertical_align_center_rounded,
+    FitType.regular: Icons.checkroom_rounded,
+    FitType.oversize: Icons.zoom_out_map_rounded,
   };
 
   @override
