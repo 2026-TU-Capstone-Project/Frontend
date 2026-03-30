@@ -24,4 +24,16 @@ enum FitType {
         return '넉넉한 핏';
     }
   }
+
+  /// 서버 API에 보낼 값
+  String get apiValue {
+    switch (this) {
+      case FitType.slim:
+        return 'SLIM';
+      case FitType.regular:
+        return 'REGULAR';
+      case FitType.oversize:
+        return 'OVERSIZE';
+    }
+  }
 }

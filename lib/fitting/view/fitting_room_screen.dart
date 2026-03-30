@@ -27,7 +27,7 @@ import '../component/fitting_main_stage.dart';
 import '../component/ai_stylist_input.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
-import '../component/fit_type_selector.dart';
+import '../component/fit_type_selector_sheet.dart';
 import '../model/fit_type.dart';
 import '../util/clothes_category_util.dart';
 import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
@@ -122,9 +122,6 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
 
   /// 상단 토글: true = 피팅룸, false = AI 스타일리스트
   bool _isFittingRoomTab = true;
-
-  /// 핏감 선택 (기본값: 레귤러핏)
-  FitType _selectedFitType = FitType.regular;
 
   @override
   void initState() {
@@ -407,7 +404,14 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     }
   }
 
-  Future<void> _startVirtualFitting() async {
+  /// CTA 버튼 탭 시: 핏감 선택 바텀시트 → 선택 완료 → 팝업 닫힘 → SSE 피팅 시작
+  Future<void> _showFitTypeThenStart() async {
+    final fitType = await FitTypeSelectorSheet.show(context);
+    if (fitType == null || !mounted) return; // 사용자가 닫음
+    _startVirtualFitting(fitType);
+  }
+
+  Future<void> _startVirtualFitting(FitType fitType) async {
     if (_selectedUserImage == null) {
       ScaffoldMessenger.of(
         context,
@@ -935,11 +939,9 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
               latencyText: _progress.latency != null
                   ? '${_progress.latency} 소요'
                   : null,
-              selectedFitType: _selectedFitType,
-              onFitTypeChanged: (ft) => setState(() => _selectedFitType = ft),
               onPressed: (_progress.isFittingNow || !isReady)
                   ? null
-                  : _startVirtualFitting,
+                  : _showFitTypeThenStart,
             )
           : null,
       body: SafeArea(
@@ -1232,16 +1234,12 @@ class _ResultActionBar extends StatelessWidget {
   }
 }
 
-/// 하단 CTA 바
-/// - 준비 전: 안내 문구만 표시 (버튼 없음)
-/// - 준비 완료: 핏감 셀렉터가 위로 슬라이드-인 → "가상 피팅 시작하기" 버튼 등장
-class _BottomCtaBar extends StatefulWidget {
+/// 하단 CTA 바 (핏감 선택은 바텀시트 팝업으로 분리됨)
+class _BottomCtaBar extends StatelessWidget {
   const _BottomCtaBar({
     required this.isReady,
     required this.isLoading,
     required this.helperText,
-    required this.selectedFitType,
-    required this.onFitTypeChanged,
     required this.onPressed,
     this.latencyText,
   });
@@ -1249,47 +1247,8 @@ class _BottomCtaBar extends StatefulWidget {
   final bool isReady;
   final bool isLoading;
   final String helperText;
-  final FitType selectedFitType;
-  final ValueChanged<FitType> onFitTypeChanged;
   final VoidCallback? onPressed;
   final String? latencyText;
-
-  @override
-  State<_BottomCtaBar> createState() => _BottomCtaBarState();
-}
-
-class _BottomCtaBarState extends State<_BottomCtaBar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _fadeAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 380),
-    );
-    _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
-
-    if (widget.isReady) _ctrl.value = 1.0;
-  }
-
-  @override
-  void didUpdateWidget(_BottomCtaBar old) {
-    super.didUpdateWidget(old);
-    if (widget.isReady && !old.isReady) {
-      _ctrl.forward();
-    } else if (!widget.isReady && old.isReady) {
-      _ctrl.reverse();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1313,8 +1272,8 @@ class _BottomCtaBarState extends State<_BottomCtaBar>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── 안내 문구 (항상 표시, ready 시엔 latency로 교체) ──────────
-              if (widget.latencyText != null)
+              // ── 안내 문구 ──────────
+              if (latencyText != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
@@ -1327,7 +1286,7 @@ class _BottomCtaBarState extends State<_BottomCtaBar>
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        widget.latencyText!,
+                        latencyText!,
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.SUCCESS_COLOR,
@@ -1337,7 +1296,7 @@ class _BottomCtaBarState extends State<_BottomCtaBar>
                     ],
                   ),
                 )
-              else if (!widget.isReady)
+              else if (!isReady)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
@@ -1350,7 +1309,7 @@ class _BottomCtaBarState extends State<_BottomCtaBar>
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        widget.helperText,
+                        helperText,
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.MEDIUM_GREY,
@@ -1361,78 +1320,64 @@ class _BottomCtaBarState extends State<_BottomCtaBar>
                   ),
                 ),
 
-              // ── 핏감 셀렉터 + 버튼: 위로 펼쳐지며 등장 ──────────────────
-              SizeTransition(
-                sizeFactor: _fadeAnim,
-                axisAlignment: -1.0,
-                child: FadeTransition(
-                  opacity: _fadeAnim,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FitTypeSelector(
-                        selected: widget.selectedFitType,
-                        onChanged: widget.onFitTypeChanged,
-                        isEnabled: !widget.isLoading,
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: widget.onPressed,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: double.infinity,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: widget.isLoading
-                                ? AppColors.PRIMARYCOLOR
-                                : AppColors.PRIMARYCOLOR,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.PRIMARYCOLOR.withValues(
-                                  alpha: 0.3,
+              // ── CTA 버튼 ──────────
+              GestureDetector(
+                onTap: onPressed,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: (isReady && !isLoading)
+                        ? AppColors.PRIMARYCOLOR
+                        : AppColors.BORDER_COLOR,
+                    boxShadow: (isReady && !isLoading)
+                        ? [
+                            BoxShadow(
+                              color: AppColors.PRIMARYCOLOR.withValues(
+                                alpha: 0.3,
+                              ),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Center(
+                    child: isLoading
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
                                 ),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                "스타일 분석 중...",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
                               ),
                             ],
-                          ),
-                          child: Center(
-                            child: widget.isLoading
-                                ? const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        "스타일 분석 중...",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : const Text(
-                                    "가상 피팅 시작하기",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
+                          )
+                        : Text(
+                                isReady ? "핏감 선택하기" : helperText,
+                                style: TextStyle(
+                                  color: isReady
+                                      ? Colors.white
+                                      : AppColors.MEDIUM_GREY,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
                   ),
                 ),
               ),
