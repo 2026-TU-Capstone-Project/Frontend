@@ -1077,7 +1077,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final resp = await repo.getMyCloset();
       if (!mounted) return;
       setState(() {
-        _savedOutfits = resp.data ?? [];
+        _savedOutfits = (resp.data ?? []).reversed.toList();
         _loadingOutfits = false;
       });
     } catch (_) {

@@ -279,11 +279,30 @@ class _WriteBody extends StatelessWidget {
               ),
             ),
             if (preview!.topName != null || preview!.bottomName != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                '상의: ${preview!.topName ?? "-"} / 하의: ${preview!.bottomName ?? "-"}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.MEDIUM_GREY),
+              const SizedBox(height: 16),
+              const Text(
+                '착용 아이템',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.BLACK),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (preview!.topName != null)
+                    _ClothingChip(
+                      imageUrl: preview!.topImageUrl,
+                      name: preview!.topName!,
+                    ),
+                  if (preview!.topName != null && preview!.bottomName != null)
+                    const SizedBox(width: 12),
+                  if (preview!.bottomName != null)
+                    _ClothingChip(
+                      imageUrl: preview!.bottomImageUrl,
+                      name: preview!.bottomName!,
+                    ),
+                ],
               ),
             ],
             const SizedBox(height: 28),
@@ -317,6 +336,58 @@ class _WriteBody extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ClothingChip extends StatelessWidget {
+  final String? imageUrl;
+  final String name;
+
+  const _ClothingChip({
+    required this.imageUrl,
+    required this.name,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 88,
+            height: 88,
+            child: imageUrl != null && imageUrl!.isNotEmpty
+                ? Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholder(),
+                  )
+                : _placeholder(),
+          ),
+        ),
+        const SizedBox(height: 5),
+        SizedBox(
+          width: 88,
+          child: Text(
+            name,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.BLACK),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _placeholder() => Container(
+        color: AppColors.BORDER_COLOR,
+        child: const Icon(Icons.checkroom_rounded,
+            size: 32, color: AppColors.MEDIUM_GREY),
+      );
 }
 
 class _InputCard extends StatelessWidget {

@@ -67,7 +67,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         setState(() {
           if (clothesResp.success) _allClothes = clothesResp.data ?? [];
           _filterClothes();
-          if (savedResp.success) _savedFittings = savedResp.data ?? [];
+          if (savedResp.success) _savedFittings = (savedResp.data ?? []).reversed.toList();
         });
       }
     } catch (e) {

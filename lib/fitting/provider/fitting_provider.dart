@@ -22,7 +22,7 @@ class MyClosetNotifier extends AsyncNotifier<List<SavedFittingData>> {
   Future<List<SavedFittingData>> _fetch() async {
     final repo = ref.read(fittingRepositoryProvider);
     final resp = await repo.getMyCloset();
-    return resp.data ?? [];
+    return (resp.data ?? []).reversed.toList();
   }
 
   Future<void> refresh() async {

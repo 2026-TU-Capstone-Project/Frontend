@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:capstone_fe/fitting/provider/fitting_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
@@ -25,6 +27,8 @@ import '../component/fitting_main_stage.dart';
 import '../component/ai_stylist_input.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
+import '../component/fit_type_selector.dart';
+import '../model/fit_type.dart';
 import '../util/clothes_category_util.dart';
 import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
 
@@ -69,7 +73,7 @@ class _FittingProgressHolder extends ChangeNotifier {
   }
 }
 
-class FittingRoomScreen extends StatefulWidget {
+class FittingRoomScreen extends ConsumerStatefulWidget {
   const FittingRoomScreen({super.key});
 
   /// 피팅룸 탭 선택 시 RootTab에서 호출. 마이페이지 수정 반영용
@@ -83,10 +87,10 @@ class FittingRoomScreen extends StatefulWidget {
       _FittingProgressHolder();
 
   @override
-  State<FittingRoomScreen> createState() => _FittingRoomScreenState();
+  ConsumerState<FittingRoomScreen> createState() => _FittingRoomScreenState();
 }
 
-class _FittingRoomScreenState extends State<FittingRoomScreen>
+class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => FittingRoomScreen._fittingProgress.isFittingNow;
@@ -118,6 +122,9 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
 
   /// 상단 토글: true = 피팅룸, false = AI 스타일리스트
   bool _isFittingRoomTab = true;
+
+  /// 핏감 선택 (기본값: 레귤러핏)
+  FitType _selectedFitType = FitType.regular;
 
   @override
   void initState() {
@@ -314,7 +321,10 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     }
 
     if (result == 'camera') {
-      final file = await PhotoGuideScreen.open(context, type: PhotoGuideType.fullBody);
+      final file = await PhotoGuideScreen.open(
+        context,
+        type: PhotoGuideType.fullBody,
+      );
       if (file != null && mounted) setState(() => _selectedUserImage = file);
     } else {
       final picker = ImagePicker();
@@ -430,7 +440,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         await Dio().download(_selectedBottomUrl!, path);
         if (mounted) setState(() => _selectedBottomFile = File(path));
       } catch (_) {}
-
     }
     if (_selectedTopFile == null) {
       if (!mounted) return;
@@ -561,16 +570,16 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
                   try {
                     final jsonData =
                         jsonDecode(rawData) as Map<String, dynamic>;
-                    final payload =
-                        (jsonData['data'] is Map<String, dynamic>)
-                            ? jsonData['data'] as Map<String, dynamic>
-                            : jsonData;
-                    final status =
-                        payload['status']?.toString().toUpperCase();
+                    final payload = (jsonData['data'] is Map<String, dynamic>)
+                        ? jsonData['data'] as Map<String, dynamic>
+                        : jsonData;
+                    final status = payload['status']?.toString().toUpperCase();
                     if (status == 'COMPLETED') {
                       final resultUrl = payload['resultImgUrl']?.toString();
                       if (resultUrl != null && resultUrl.isNotEmpty) {
-                        debugPrint(' [SSE onError→버퍼 복구] COMPLETED: $resultUrl');
+                        debugPrint(
+                          ' [SSE onError→버퍼 복구] COMPLETED: $resultUrl',
+                        );
                         completer.complete(resultUrl);
                         return;
                       }
@@ -701,8 +710,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       if (mounted) {
         debugPrint(" [피팅 에러 발생] $e");
         final msg =
-            (e.toString().contains('피팅 실패') ||
-                e.toString().contains('FAILED'))
+            (e.toString().contains('피팅 실패') || e.toString().contains('FAILED'))
             ? '피팅에 실패했어요. 전신 사진과 옷 사진이 선명한지 확인한 뒤 다시 시도해주세요.'
             : '오류 발생: ${e.toString().replaceAll('Exception: ', '')}';
 
@@ -785,6 +793,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
         });
         if (resp.success) {
           _progress.clearResult();
+          ref.invalidate(myClosetProvider);
           await AppDialog.success(
             context: context,
             title: '저장 완료',
@@ -830,6 +839,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
       );
       if (mounted) {
         if (resp.success) {
+          ref.invalidate(myClosetProvider);
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('새 폴더에 저장되었습니다.')));
@@ -901,16 +911,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
     final bool hasTop = _selectedTopFile != null || _selectedTopUrl != null;
     final bool isReady = hasUser && hasTop;
 
-    String buttonText;
-    if (_progress.isFittingNow) {
-      buttonText = "스타일 분석 중...";
-    } else if (isReady) {
-      buttonText = "가상 피팅 시작하기";
-    } else if (!hasUser) {
-      buttonText = "전신 사진을 선택하세요";
-    } else {
-      buttonText = "상의를 선택하세요";
-    }
+    final String helperText = !hasUser ? "전신 사진을 선택하세요" : "상의를 선택하세요";
 
     final bool hasResult =
         _progress.resultImageUrl != null && _progress.currentTaskId != null;
@@ -930,13 +931,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen>
           ? _BottomCtaBar(
               isReady: isReady,
               isLoading: _progress.isFittingNow,
-              buttonText: buttonText,
-              helperText: (!_progress.isFittingNow && !isReady)
-                  ? buttonText
-                  : null,
+              helperText: helperText,
               latencyText: _progress.latency != null
                   ? '${_progress.latency} 소요'
                   : null,
+              selectedFitType: _selectedFitType,
+              onFitTypeChanged: (ft) => setState(() => _selectedFitType = ft),
               onPressed: (_progress.isFittingNow || !isReady)
                   ? null
                   : _startVirtualFitting,
@@ -1232,23 +1232,64 @@ class _ResultActionBar extends StatelessWidget {
   }
 }
 
-// 하단 버튼 (이전과 동일하지만 코드는 포함해둠)
-class _BottomCtaBar extends StatelessWidget {
+/// 하단 CTA 바
+/// - 준비 전: 안내 문구만 표시 (버튼 없음)
+/// - 준비 완료: 핏감 셀렉터가 위로 슬라이드-인 → "가상 피팅 시작하기" 버튼 등장
+class _BottomCtaBar extends StatefulWidget {
   const _BottomCtaBar({
     required this.isReady,
     required this.isLoading,
-    required this.buttonText,
+    required this.helperText,
+    required this.selectedFitType,
+    required this.onFitTypeChanged,
     required this.onPressed,
-    this.helperText,
     this.latencyText,
   });
 
   final bool isReady;
   final bool isLoading;
-  final String buttonText;
+  final String helperText;
+  final FitType selectedFitType;
+  final ValueChanged<FitType> onFitTypeChanged;
   final VoidCallback? onPressed;
-  final String? helperText;
   final String? latencyText;
+
+  @override
+  State<_BottomCtaBar> createState() => _BottomCtaBarState();
+}
+
+class _BottomCtaBarState extends State<_BottomCtaBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+
+    if (widget.isReady) _ctrl.value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(_BottomCtaBar old) {
+    super.didUpdateWidget(old);
+    if (widget.isReady && !old.isReady) {
+      _ctrl.forward();
+    } else if (!widget.isReady && old.isReady) {
+      _ctrl.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1268,106 +1309,130 @@ class _BottomCtaBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottom),
+          padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (helperText != null || latencyText != null)
+              // ── 안내 문구 (항상 표시, ready 시엔 latency로 교체) ──────────
+              if (widget.latencyText != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        latencyText != null
-                            ? Icons.timer_outlined
-                            : Icons.info_outline,
+                      const Icon(
+                        Icons.timer_outlined,
                         size: 14,
-                        color: latencyText != null
-                            ? AppColors.SUCCESS_COLOR
-                            : AppColors.MEDIUM_GREY,
+                        color: AppColors.SUCCESS_COLOR,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        latencyText ?? helperText!,
-                        style: TextStyle(
+                        widget.latencyText!,
+                        style: const TextStyle(
                           fontSize: 13,
-                          color: latencyText != null
-                              ? AppColors.SUCCESS_COLOR
-                              : AppColors.MEDIUM_GREY,
+                          color: AppColors.SUCCESS_COLOR,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!widget.isReady)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: AppColors.MEDIUM_GREY,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.helperText,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.MEDIUM_GREY,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-              GestureDetector(
-                onTap: onPressed,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: (isReady && !isLoading)
-                        ? AppColors.PRIMARYCOLOR
-                        : AppColors.BORDER_COLOR,
-                    boxShadow: (isReady && !isLoading)
-                        ? [
-                            BoxShadow(
-                              color: AppColors.PRIMARYCOLOR.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Center(
-                    child: isLoading
-                        ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
+
+              // ── 핏감 셀렉터 + 버튼: 위로 펼쳐지며 등장 ──────────────────
+              SizeTransition(
+                sizeFactor: _fadeAnim,
+                axisAlignment: -1.0,
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FitTypeSelector(
+                        selected: widget.selectedFitType,
+                        onChanged: widget.onFitTypeChanged,
+                        isEnabled: !widget.isLoading,
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: widget.onPressed,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: widget.isLoading
+                                ? AppColors.PRIMARYCOLOR
+                                : AppColors.PRIMARYCOLOR,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.PRIMARYCOLOR.withValues(
+                                  alpha: 0.3,
                                 ),
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                "스타일 분석 중...",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isReady ? Icons.auto_awesome : Icons.checkroom,
-                                color: isReady
-                                    ? Colors.white
-                                    : AppColors.MEDIUM_GREY,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                buttonText,
-                                style: TextStyle(
-                                  color: isReady
-                                      ? Colors.white
-                                      : AppColors.MEDIUM_GREY,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
+                          child: Center(
+                            child: widget.isLoading
+                                ? const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        "스타일 분석 중...",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const Text(
+                                    "가상 피팅 시작하기",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1380,6 +1445,7 @@ class _BottomCtaBar extends StatelessWidget {
 }
 
 /// 피팅 결과 이미지 전체 화면 뷰어 (다이얼로그용)
+
 class _FullScreenImageView extends StatelessWidget {
   const _FullScreenImageView({required this.imageUrl});
 
@@ -1484,10 +1550,7 @@ class _WardrobeAiSection extends StatelessWidget {
             const Spacer(),
             Text(
               '탭하면 AI가 코디 추천해드려요',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.MEDIUM_GREY,
-              ),
+              style: TextStyle(fontSize: 12, color: AppColors.MEDIUM_GREY),
             ),
           ],
         ),
@@ -1502,15 +1565,15 @@ class _WardrobeAiSection extends StatelessWidget {
             ),
             child: const Column(
               children: [
-                Icon(Icons.checkroom_outlined,
-                    size: 32, color: AppColors.MEDIUM_GREY),
+                Icon(
+                  Icons.checkroom_outlined,
+                  size: 32,
+                  color: AppColors.MEDIUM_GREY,
+                ),
                 SizedBox(height: 8),
                 Text(
                   '옷을 추가하고 AI 추천을 받아보세요',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.MEDIUM_GREY,
-                  ),
+                  style: TextStyle(fontSize: 13, color: AppColors.MEDIUM_GREY),
                 ),
               ],
             ),
@@ -1529,20 +1592,21 @@ class _WardrobeAiSection extends StatelessWidget {
                     PageRouteBuilder(
                       pageBuilder: (_, animation, __) =>
                           AiChatScreen(initialMessage: _buildQuery(item)),
-                      transitionDuration:
-                          const Duration(milliseconds: 350),
+                      transitionDuration: const Duration(milliseconds: 350),
                       transitionsBuilder: (_, animation, __, child) {
-                        final slide = Tween<Offset>(
-                          begin: const Offset(0, 0.12),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ));
+                        final slide =
+                            Tween<Offset>(
+                              begin: const Offset(0, 0.12),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
                         return FadeTransition(
                           opacity: animation,
-                          child:
-                              SlideTransition(position: slide, child: child),
+                          child: SlideTransition(position: slide, child: child),
                         );
                       },
                     ),
@@ -1568,8 +1632,7 @@ class _WardrobeAiSection extends StatelessWidget {
                           Image.network(
                             item.imgUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _placeholder(),
+                            errorBuilder: (_, __, ___) => _placeholder(),
                           )
                         else
                           _placeholder(),
@@ -1585,8 +1648,11 @@ class _WardrobeAiSection extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: const Color(0xFFEEEEEE),
-        child: const Icon(Icons.checkroom_outlined,
-            size: 32, color: AppColors.MEDIUM_GREY),
-      );
+    color: const Color(0xFFEEEEEE),
+    child: const Icon(
+      Icons.checkroom_outlined,
+      size: 32,
+      color: AppColors.MEDIUM_GREY,
+    ),
+  );
 }
