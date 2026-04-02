@@ -18,19 +18,15 @@ import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repository.dart';
 import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
-import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import '../component/fitting_onboarding_sheet.dart';
-import '../component/fitting_room_header.dart';
 import '../component/fitting_main_stage.dart';
-import '../component/ai_stylist_input.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
 import '../component/fit_type_selector_sheet.dart';
 import '../model/fit_type.dart';
 import '../util/clothes_category_util.dart';
-import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
 
 /// 피팅 진행 상태를 화면(탭) 전환과 무관하게 유지. 탭을 떠났다 와도 로딩/결과가 유지됨.
 class _FittingProgressHolder extends ChangeNotifier {
@@ -117,10 +113,8 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
   List<ClothesModel> _serverClothes = [];
 
   /// 헤더용: 서버 마이페이지 + 로컬 피팅 프로필 (피팅 탭 선택 시 갱신)
-  UserMe? _userMeForHeader;
 
   /// 상단 토글: true = 피팅룸, false = AI 스타일리스트
-  bool _isFittingRoomTab = true;
 
   @override
   void initState() {
@@ -155,14 +149,11 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     try {
       final authDio = createAuthDio();
       final authRepo = AuthRepository(Dio(), baseUrl: baseUrl);
-      final me = await authRepo.getMe(authDio);
+      await authRepo.getMe(authDio);
       if (mounted) {
-        final openAiStylist = FittingRoomScreen.requestOpenAiStylist;
-        if (openAiStylist) FittingRoomScreen.requestOpenAiStylist = false;
-        setState(() {
-          _userMeForHeader = me;
-if (openAiStylist) _isFittingRoomTab = false;
-        });
+        if (FittingRoomScreen.requestOpenAiStylist) {
+          FittingRoomScreen.requestOpenAiStylist = false;
+        }
       }
     } catch (_) {}
   }
@@ -918,7 +909,7 @@ if (openAiStylist) _isFittingRoomTab = false;
         _progress.resultImageUrl != null && _progress.currentTaskId != null;
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: const Color(0xFFF5F5F7),
       bottomNavigationBar: hasResult
           ? _ResultActionBar(
               latencyText: _progress.latency != null
@@ -928,7 +919,7 @@ if (openAiStylist) _isFittingRoomTab = false;
               onSave: _saveFittingToWardrobe,
               onSaveToFolder: _saveToFolder,
             )
-          : _isFittingRoomTab && !_progress.isFittingNow
+          : !_progress.isFittingNow
           ? _BottomCtaBar(
               isReady: isReady,
               helperText: helperText,
@@ -944,25 +935,9 @@ if (openAiStylist) _isFittingRoomTab = false;
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                FittingRoomHeader(
-                  leading: _FittingRoomSegmentedControl(
-                    selectedIndex: _isFittingRoomTab ? 0 : 1,
-                    onChanged: (index) {
-                      setState(() => _isFittingRoomTab = (index == 0));
-                    },
-                  ),
-                  heightLabel: _userMeForHeader?.height != null
-                      ? _userMeForHeader!.height!.toStringAsFixed(0)
-                      : null,
-                  weightLabel: _userMeForHeader?.weight != null
-                      ? _userMeForHeader!.weight!.toStringAsFixed(0)
-                      : null,
-                ),
-                const SizedBox(height: 20),
 
                 // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
-                if (_isFittingRoomTab) ...[
-                  FittingMainStage(
+                FittingMainStage(
                     mainImagePath:
                         _progress.resultImageUrl ??
                         _selectedUserImage?.path,
@@ -1006,21 +981,16 @@ if (openAiStylist) _isFittingRoomTab = false;
                       },
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Center(
-                    child: Text(
-                      "좌측 이미지를 탭하여 전신 사진을 변경하세요",
-                      style: TextStyle(
-                        color: AppColors.MEDIUM_GREY,
-                        fontSize: 13,
-                      ),
+                const SizedBox(height: 16),
+                const Center(
+                  child: Text(
+                    "좌측 이미지를 탭하여 전신 사진을 변경하세요",
+                    style: TextStyle(
+                      color: AppColors.MEDIUM_GREY,
+                      fontSize: 13,
                     ),
                   ),
-                ] else ...[
-                  AiStylistInput(nickname: _userMeForHeader?.nickname),
-                  const SizedBox(height: 16),
-                  _WardrobeAiSection(clothes: _serverClothes),
-                ],
+                ),
                 const SizedBox(height: 120),
               ],
             ),
@@ -1032,86 +1002,6 @@ if (openAiStylist) _isFittingRoomTab = false;
 }
 
 /// 상단 세그먼트: 피팅룸 | AI 스타일리스트 (토글 스타일, 중앙 정렬)
-class _FittingRoomSegmentedControl extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onChanged;
-
-  const _FittingRoomSegmentedControl({
-    required this.selectedIndex,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: AppColors.INPUT_BG_COLOR,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.BORDER_COLOR),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _Segment(
-              label: '피팅룸',
-              isSelected: selectedIndex == 0,
-              onTap: () => onChanged(0),
-            ),
-            _Segment(
-              label: 'AI 스타일리스트',
-              isSelected: selectedIndex == 1,
-              onTap: () => onChanged(1),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _Segment({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  static const Color _selectedBg = Color(0xFF2A2A2A);
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? _selectedBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(17),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.white : AppColors.MEDIUM_GREY,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// 피팅 결과 표시 시 하단 액션: 닫기 / 저장하기 / 폴더에 저장
 class _ResultActionBar extends StatelessWidget {
@@ -1393,151 +1283,3 @@ class _FullScreenImageView extends StatelessWidget {
 
 // ── 내 옷장 미리보기 — AI 스타일리스트 탭 하단 ─────────────────────────────────
 
-class _WardrobeAiSection extends StatelessWidget {
-  final List<ClothesModel> clothes;
-
-  const _WardrobeAiSection({required this.clothes});
-
-  String _buildQuery(ClothesModel item) {
-    final name = item.name?.trim() ?? '';
-    final cat = item.category?.trim() ?? '';
-    if (name.isNotEmpty) return '내 옷 "$name" 어울리는 코디 추천해줘';
-    if (cat.isNotEmpty) return '내 $cat 어울리는 코디 추천해줘';
-    return '내 옷 어울리는 코디 추천해줘';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 섹션 헤더
-        Row(
-          children: [
-            const Text(
-              '내 옷장',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppColors.BLACK,
-                letterSpacing: -0.4,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '${clothes.length}개',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.MEDIUM_GREY,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '탭하면 AI가 코디 추천해드려요',
-              style: TextStyle(fontSize: 12, color: AppColors.MEDIUM_GREY),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (clothes.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Column(
-              children: [
-                Icon(
-                  Icons.checkroom_outlined,
-                  size: 32,
-                  color: AppColors.MEDIUM_GREY,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '옷을 추가하고 AI 추천을 받아보세요',
-                  style: TextStyle(fontSize: 13, color: AppColors.MEDIUM_GREY),
-                ),
-              ],
-            ),
-          )
-        else
-          SizedBox(
-            height: 130,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: clothes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final item = clothes[index];
-                return GestureDetector(
-                  onTap: () => Navigator.of(context).push(
-                    PageRouteBuilder(
-                      pageBuilder: (_, animation, __) =>
-                          AiChatScreen(initialMessage: _buildQuery(item)),
-                      transitionDuration: const Duration(milliseconds: 350),
-                      transitionsBuilder: (_, animation, __, child) {
-                        final slide =
-                            Tween<Offset>(
-                              begin: const Offset(0, 0.12),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOutCubic,
-                              ),
-                            );
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(position: slide, child: child),
-                        );
-                      },
-                    ),
-                  ),
-                  child: Container(
-                    width: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (item.imgUrl != null && item.imgUrl!.isNotEmpty)
-                          Image.network(
-                            item.imgUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          )
-                        else
-                          _placeholder(),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _placeholder() => Container(
-    color: const Color(0xFFEEEEEE),
-    child: const Icon(
-      Icons.checkroom_outlined,
-      size: 32,
-      color: AppColors.MEDIUM_GREY,
-    ),
-  );
-}

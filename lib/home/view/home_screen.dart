@@ -12,6 +12,10 @@ import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
+import 'package:capstone_fe/fitting/component/ai_stylist_input.dart';
+import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
+import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
+import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -1039,6 +1043,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _loadingOutfits = true;
   WeatherInfo? _weather;
   String? _nickname;
+  List<ClothesModel> _serverClothes = [];
 
   @override
   void initState() {
@@ -1046,6 +1051,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _loadSavedOutfits();
     _loadWeather();
     _loadNickname();
+    _loadWardrobe();
+  }
+
+  Future<void> _loadWardrobe() async {
+    try {
+      final dio = createAuthDio();
+      final repo = ClothesRepository(dio, baseUrl: baseUrl);
+      final resp = await repo.getClothesList();
+      if (resp.success && mounted) {
+        setState(() => _serverClothes = resp.data ?? []);
+      }
+    } catch (e) {
+      debugPrint('⚠️ HomeScreen _loadWardrobe 에러: $e');
+    }
   }
 
   Future<void> _loadNickname() async {
@@ -1092,36 +1111,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '안녕하세요! ${_nickname ?? ''}님',
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1D1D1F),
-                        letterSpacing: -0.7,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '오늘은 어떤 옷을 입어볼까요?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.BODY_COLOR,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: AiStylistInput(nickname: _nickname),
               ),
             ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: _WardrobeAiSection(clothes: _serverClothes),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SectionHeader(title: '오늘의 PICK')),
             SliverToBoxAdapter(
               child: HowToDressTodaySection(
                 onWeather: widget.onWeather,
@@ -1184,4 +1187,141 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+}
+
+class _WardrobeAiSection extends StatelessWidget {
+  final List<ClothesModel> clothes;
+
+  const _WardrobeAiSection({required this.clothes});
+
+  String _buildQuery(ClothesModel item) {
+    final name = item.name?.trim() ?? '';
+    final cat = item.category?.trim() ?? '';
+    if (name.isNotEmpty) return '내 옷 "$name" 어울리는 코디 추천해줘';
+    if (cat.isNotEmpty) return '내 $cat 어울리는 코디 추천해줘';
+    return '내 옷 어울리는 코디 추천해줘';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              '내 옷장',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.BLACK,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${clothes.length}개',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.MEDIUM_GREY,
+              ),
+            ),
+            const Spacer(),
+            const Text(
+              '탭하면 AI가 코디 추천해드려요',
+              style: TextStyle(fontSize: 12, color: AppColors.MEDIUM_GREY),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (clothes.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.checkroom_outlined, size: 32, color: AppColors.MEDIUM_GREY),
+                SizedBox(height: 8),
+                Text(
+                  '옷을 추가하고 AI 추천을 받아보세요',
+                  style: TextStyle(fontSize: 13, color: AppColors.MEDIUM_GREY),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 130,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: clothes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final item = clothes[index];
+                return GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (_, animation, __) =>
+                          AiChatScreen(initialMessage: _buildQuery(item)),
+                      transitionDuration: const Duration(milliseconds: 350),
+                      transitionsBuilder: (_, animation, __, child) {
+                        final slide = Tween<Offset>(
+                          begin: const Offset(0, 0.12),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ));
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(position: slide, child: child),
+                        );
+                      },
+                    ),
+                  ),
+                  child: Container(
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (item.imgUrl != null && item.imgUrl!.isNotEmpty)
+                          Image.network(
+                            item.imgUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                          )
+                        else
+                          _placeholder(),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _placeholder() => Container(
+        color: const Color(0xFFEEEEEE),
+        child: const Icon(Icons.checkroom_outlined, size: 32, color: AppColors.MEDIUM_GREY),
+      );
 }

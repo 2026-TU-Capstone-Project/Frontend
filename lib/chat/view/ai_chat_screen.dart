@@ -63,20 +63,21 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           children: [
             Expanded(
               child: chatState.messages.isEmpty
-                  ? _EmptyState(
-                      onSuggestionTap: _sendMessage,
-                    )
+                  ? _EmptyState(onSuggestionTap: _sendMessage)
                   : ListView.builder(
                       // reverse: true — 새 메시지가 항상 하단에 표시, 수동 스크롤 불필요
                       reverse: true,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       itemCount: chatState.messages.length,
                       itemBuilder: (context, index) {
                         final reversedIndex =
                             chatState.messages.length - 1 - index;
                         return _buildMessageItem(
-                            chatState.messages[reversedIndex]);
+                          chatState.messages[reversedIndex],
+                        );
                       },
                     ),
             ),
@@ -97,8 +98,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       elevation: 0,
       surfaceTintColor: Colors.white,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-            color: _textPrimary, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: _textPrimary,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       title: const Column(
@@ -175,8 +179,11 @@ class _EmptyState extends StatelessWidget {
                 ),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  size: 40, color: Colors.white),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                size: 40,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -204,10 +211,12 @@ class _EmptyState extends StatelessWidget {
               runSpacing: 8,
               alignment: WrapAlignment.center,
               children: _suggestions
-                  .map((s) => _SuggestionChip(
-                        text: s,
-                        onTap: () => onSuggestionTap(s),
-                      ))
+                  .map(
+                    (s) => _SuggestionChip(
+                      text: s,
+                      onTap: () => onSuggestionTap(s),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -276,8 +285,7 @@ class _UserBubble extends StatelessWidget {
           const SizedBox(width: 60),
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
@@ -327,15 +335,18 @@ class _BotBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = message.responseData;
 
-    final outfits = data?.recommendations?.recommendations
+    final outfits =
+        data?.recommendations?.recommendations
             ?.whereType<RecommendationItem>()
             .toList() ??
         [];
-    final tops = data?.recommendationsTops?.items
+    final tops =
+        data?.recommendationsTops?.items
             ?.whereType<ClothesScoreItem>()
             .toList() ??
         [];
-    final bottoms = data?.recommendationsBottoms?.items
+    final bottoms =
+        data?.recommendationsBottoms?.items
             ?.whereType<ClothesScoreItem>()
             .toList() ??
         [];
@@ -357,8 +368,11 @@ class _BotBubble extends StatelessWidget {
               ),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                size: 17, color: Colors.white),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 17,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -412,7 +426,10 @@ class _BotTextBubble extends StatelessWidget {
           bottomLeft: Radius.circular(18),
           bottomRight: Radius.circular(18),
         ),
-        border: Border.all(color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.18), width: 1),
+        border: Border.all(
+          color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.18),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.07),
@@ -458,13 +475,15 @@ class _LoadingBubble extends StatelessWidget {
               ),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                size: 17, color: Colors.white),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 17,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 8),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.only(
@@ -581,14 +600,16 @@ class _ErrorBubble extends StatelessWidget {
               color: Colors.red.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.error_outline_rounded,
-                size: 16, color: Colors.redAccent),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              size: 16,
+              color: Colors.redAccent,
+            ),
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
                 borderRadius: const BorderRadius.only(
@@ -681,10 +702,13 @@ class _OutfitCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (imgUrl != null && imgUrl.isNotEmpty)
-                  Image.network(
-                    imgUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholder(),
+                  GestureDetector(
+                    onTap: () => _showFullScreenImage(context, imgUrl),
+                    child: Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    ),
                   )
                 else
                   _placeholder(),
@@ -701,8 +725,7 @@ class _OutfitCard extends StatelessWidget {
           // 스타일 분석 텍스트
           if (analysis != null && analysis.isNotEmpty)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Text(
                 analysis,
                 style: const TextStyle(
@@ -723,8 +746,11 @@ class _OutfitCard extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       color: const Color(0xFFE5E5EA),
-      child: const Icon(Icons.checkroom_outlined,
-          size: 48, color: Color(0xFFAEAEB2)),
+      child: const Icon(
+        Icons.checkroom_outlined,
+        size: 48,
+        color: Color(0xFFAEAEB2),
+      ),
     );
   }
 }
@@ -799,10 +825,13 @@ class _ClothesCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (imgUrl != null && imgUrl.isNotEmpty)
-                  Image.network(
-                    imgUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholder(),
+                  GestureDetector(
+                    onTap: () => _showFullScreenImage(context, imgUrl),
+                    child: Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    ),
                   )
                 else
                   _placeholder(),
@@ -855,8 +884,11 @@ class _ClothesCard extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       color: const Color(0xFFE5E5EA),
-      child: const Icon(Icons.checkroom_outlined,
-          size: 36, color: Color(0xFFAEAEB2)),
+      child: const Icon(
+        Icons.checkroom_outlined,
+        size: 36,
+        color: Color(0xFFAEAEB2),
+      ),
     );
   }
 }
@@ -962,14 +994,17 @@ class _InputBar extends StatelessWidget {
                 maxLines: 5,
                 minLines: 1,
                 textInputAction: TextInputAction.newline,
-                style: const TextStyle(
-                    fontSize: 15, color: Color(0xFF1D1D1F)),
+                style: const TextStyle(fontSize: 15, color: Color(0xFF1D1D1F)),
                 decoration: InputDecoration(
                   hintText: '스타일, 날씨, 상황을 알려주세요...',
                   hintStyle: const TextStyle(
-                      color: Color(0xFFAEAEB2), fontSize: 15),
+                    color: Color(0xFFAEAEB2),
+                    fontSize: 15,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 12),
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
                   border: InputBorder.none,
                 ),
               ),
@@ -992,14 +1027,61 @@ class _InputBar extends StatelessWidget {
                   ? const Padding(
                       padding: EdgeInsets.all(13),
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5),
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
                     )
-                  : const Icon(Icons.send_rounded,
-                      color: Colors.white, size: 20),
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+void _showFullScreenImage(BuildContext context, String imageUrl) {
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      opaque: false, // 배경 투명
+      barrierColor: Colors.black.withValues(alpha: 0.9), // 어두운 배경색
+      barrierDismissible: true,
+      fullscreenDialog: true,
+      pageBuilder: (context, _, __) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(), // 배경 탭시 닫기
+                  child: InteractiveViewer(
+                    maxScale: 5.0,
+                    minScale: 0.5,
+                    child: Image.network(imageUrl, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                right: 16,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
 }

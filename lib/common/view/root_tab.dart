@@ -36,7 +36,7 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
   void tabListener() {
     final newIndex = controller.index;
     setState(() => index = newIndex);
-    if (newIndex == 2) {
+    if (newIndex == 0) {
       FittingRoomScreen.onFittingTabSelected?.call();
     }
     if (newIndex == 1) {
@@ -46,7 +46,6 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // 홈(0)에서만 앱바 표시, 피팅룸/옷장/피드/유저(1~4)에서는 앱바 없음
     final showAppBar = (index == 0);
     return DefaultLayout(
       backgroundColor: const Color(0xFFF5F5F7),
@@ -79,13 +78,13 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
         physics: const NeverScrollableScrollPhysics(),
         controller: controller,
         children: [
+          FittingRoomScreen(),
+          WardrobeScreen(),
           HomeScreen(
-            onGoToFittingRoom: () => controller.animateTo(2),
-            onGoToStyleRecommendation: () => controller.animateTo(2),
+            onGoToFittingRoom: () => controller.animateTo(0),
+            onGoToStyleRecommendation: () => controller.animateTo(0),
             onWeather: () => navigateToWeatherRecommendation(context),
           ),
-          WardrobeScreen(),
-          FittingRoomScreen(),
           FashionFeedScreen(),
           UserProfileScreen(),
         ],
@@ -98,10 +97,7 @@ class _CustomBottomBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _CustomBottomBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const _CustomBottomBar({required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -124,10 +120,20 @@ class _CustomBottomBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildTab(0, Icons.home_outlined, Icons.home, '홈'),
-              _buildTab(1, Icons.door_sliding_outlined, Icons.door_sliding, '옷장'),
-              _buildTab(2, Icons.checkroom_outlined, Icons.checkroom, '피팅룸'),
+              _buildTab(
+                1,
+                Icons.door_sliding_outlined,
+                Icons.door_sliding,
+                '옷장',
+              ),
+              _buildTab(2, Icons.checkroom_outlined, Icons.checkroom, 'AI추천'),
               _buildTab(3, Icons.grid_view_outlined, Icons.grid_view, '피드'),
-              _buildTab(4, Icons.person_outline_rounded, Icons.person_rounded, 'MY'),
+              _buildTab(
+                4,
+                Icons.person_outline_rounded,
+                Icons.person_rounded,
+                'MY',
+              ),
             ],
           ),
         ),
@@ -148,7 +154,9 @@ class _CustomBottomBar extends StatelessWidget {
               Icon(
                 selected ? activeIcon : icon,
                 size: 26,
-                color: selected ? AppColors.PRIMARYCOLOR : AppColors.MEDIUM_GREY,
+                color: selected
+                    ? AppColors.PRIMARYCOLOR
+                    : AppColors.MEDIUM_GREY,
               ),
               const SizedBox(height: 4),
               Text(
@@ -156,8 +164,9 @@ class _CustomBottomBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color:
-                      selected ? AppColors.PRIMARYCOLOR : AppColors.MEDIUM_GREY,
+                  color: selected
+                      ? AppColors.PRIMARYCOLOR
+                      : AppColors.MEDIUM_GREY,
                 ),
               ),
             ],
