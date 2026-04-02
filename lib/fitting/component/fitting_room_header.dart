@@ -6,26 +6,37 @@ class FittingRoomHeader extends StatelessWidget {
   /// 왼쪽 영역 (토글 등). null이면 비움
   final Widget? leading;
   final String? heightLabel;
+  final String? weightLabel;
   final String? sizeLabel;
 
   const FittingRoomHeader({
     super.key,
     this.leading,
     this.heightLabel,
+    this.weightLabel,
     this.sizeLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     final heightStr = heightLabel?.trim();
+    final weightStr = weightLabel?.trim();
     final sizeStr = sizeLabel?.trim();
     final hasHeight = heightStr != null && heightStr.isNotEmpty;
+    final hasWeight = weightStr != null && weightStr.isNotEmpty;
     final hasSize = sizeStr != null && sizeStr.isNotEmpty;
+
+    final bodyParts = [
+      if (hasHeight) '${heightStr}cm',
+      if (hasWeight) '${weightStr}kg',
+    ];
+    final bodyText = bodyParts.isNotEmpty ? bodyParts.join(' · ') : null;
+
     String specText = '미입력';
-    if (hasHeight && hasSize) {
-      specText = '${heightStr}cm · $sizeStr size';
-    } else if (hasHeight) {
-      specText = '${heightStr}cm';
+    if (bodyText != null && hasSize) {
+      specText = '$bodyText · $sizeStr size';
+    } else if (bodyText != null) {
+      specText = bodyText;
     } else if (hasSize) {
       specText = '$sizeStr size';
     }

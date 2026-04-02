@@ -26,10 +26,10 @@ class FitTypeSelectorSheet extends StatefulWidget {
 class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
   FitType _selected = FitType.regular; // 기본값: 레귤러핏
 
-  static const _fitIcons = <FitType, IconData>{
-    FitType.slim: Icons.vertical_align_center_rounded,
-    FitType.regular: Icons.checkroom_rounded,
-    FitType.oversize: Icons.zoom_out_map_rounded,
+  static const _fitImages = <FitType, String>{
+    FitType.slim: 'asset/img/slim.png',
+    FitType.regular: 'asset/img/regular.png',
+    FitType.oversize: 'asset/img/over.png',
   };
 
   @override
@@ -119,12 +119,12 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            _fitIcons[type],
-                            size: 28,
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.MEDIUM_GREY,
+                          Image.asset(
+                            _fitImages[type]!,
+                            width: 36,
+                            height: 36,
+                            color: isSelected ? Colors.white : null,
+                            colorBlendMode: BlendMode.srcIn,
                           ),
                           const SizedBox(height: 10),
                           Text(

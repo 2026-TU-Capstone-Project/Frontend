@@ -118,7 +118,6 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
 
   /// 헤더용: 서버 마이페이지 + 로컬 피팅 프로필 (피팅 탭 선택 시 갱신)
   UserMe? _userMeForHeader;
-  FittingProfile? _fittingProfileForHeader;
 
   /// 상단 토글: true = 피팅룸, false = AI 스타일리스트
   bool _isFittingRoomTab = true;
@@ -157,14 +156,12 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
       final authDio = createAuthDio();
       final authRepo = AuthRepository(Dio(), baseUrl: baseUrl);
       final me = await authRepo.getMe(authDio);
-      final profile = await FittingProfile.load();
       if (mounted) {
         final openAiStylist = FittingRoomScreen.requestOpenAiStylist;
         if (openAiStylist) FittingRoomScreen.requestOpenAiStylist = false;
         setState(() {
           _userMeForHeader = me;
-          _fittingProfileForHeader = profile;
-          if (openAiStylist) _isFittingRoomTab = false;
+if (openAiStylist) _isFittingRoomTab = false;
         });
       }
     } catch (_) {}
@@ -931,17 +928,11 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
               onSave: _saveFittingToWardrobe,
               onSaveToFolder: _saveToFolder,
             )
-          : _isFittingRoomTab
+          : _isFittingRoomTab && !_progress.isFittingNow
           ? _BottomCtaBar(
               isReady: isReady,
-              isLoading: _progress.isFittingNow,
               helperText: helperText,
-              latencyText: _progress.latency != null
-                  ? '${_progress.latency} 소요'
-                  : null,
-              onPressed: (_progress.isFittingNow || !isReady)
-                  ? null
-                  : _showFitTypeThenStart,
+              onPressed: isReady ? _showFitTypeThenStart : null,
             )
           : null,
       body: SafeArea(
@@ -963,7 +954,9 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
                   heightLabel: _userMeForHeader?.height != null
                       ? _userMeForHeader!.height!.toStringAsFixed(0)
                       : null,
-                  sizeLabel: _fittingProfileForHeader?.topSize,
+                  weightLabel: _userMeForHeader?.weight != null
+                      ? _userMeForHeader!.weight!.toStringAsFixed(0)
+                      : null,
                 ),
                 const SizedBox(height: 20),
 
@@ -972,8 +965,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
                   FittingMainStage(
                     mainImagePath:
                         _progress.resultImageUrl ??
-                        _selectedUserImage?.path ??
-                        'asset/img/fitting1.jpg',
+                        _selectedUserImage?.path,
                     isLoading: _progress.isFittingNow,
                     isResult:
                         _progress.resultImageUrl != null &&
@@ -1238,17 +1230,13 @@ class _ResultActionBar extends StatelessWidget {
 class _BottomCtaBar extends StatelessWidget {
   const _BottomCtaBar({
     required this.isReady,
-    required this.isLoading,
     required this.helperText,
     required this.onPressed,
-    this.latencyText,
   });
 
   final bool isReady;
-  final bool isLoading;
   final String helperText;
   final VoidCallback? onPressed;
-  final String? latencyText;
 
   @override
   Widget build(BuildContext context) {
@@ -1273,30 +1261,7 @@ class _BottomCtaBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // ── 안내 문구 ──────────
-              if (latencyText != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.timer_outlined,
-                        size: 14,
-                        color: AppColors.SUCCESS_COLOR,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        latencyText!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.SUCCESS_COLOR,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else if (!isReady)
+              if (!isReady)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
@@ -1329,10 +1294,10 @@ class _BottomCtaBar extends StatelessWidget {
                   height: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: (isReady && !isLoading)
+                    color: isReady
                         ? AppColors.PRIMARYCOLOR
                         : AppColors.BORDER_COLOR,
-                    boxShadow: (isReady && !isLoading)
+                    boxShadow: isReady
                         ? [
                             BoxShadow(
                               color: AppColors.PRIMARYCOLOR.withValues(
@@ -1345,39 +1310,14 @@ class _BottomCtaBar extends StatelessWidget {
                         : [],
                   ),
                   child: Center(
-                    child: isLoading
-                        ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                "스타일 분석 중...",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                                isReady ? "핏감 선택하기" : helperText,
-                                style: TextStyle(
-                                  color: isReady
-                                      ? Colors.white
-                                      : AppColors.MEDIUM_GREY,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
-                              ),
+                    child: Text(
+                      isReady ? "핏감 선택하기" : helperText,
+                      style: TextStyle(
+                        color: isReady ? Colors.white : AppColors.MEDIUM_GREY,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ),

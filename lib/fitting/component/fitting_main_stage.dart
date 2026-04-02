@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/component/fitting_loading_effect.dart';
 
@@ -99,7 +100,14 @@ class _FittingMainStageState extends State<FittingMainStage> {
               onTap: widget.onUserImageTap,
               child: Container(
                 decoration: BoxDecoration(
+                  color: AppColors.white,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: widget.mainImagePath != null
+                        ? AppColors.PRIMARYCOLOR
+                        : AppColors.BORDER_COLOR,
+                    width: widget.mainImagePath != null ? 1.5 : 1.0,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.06),
@@ -124,22 +132,26 @@ class _FittingMainStageState extends State<FittingMainStage> {
                       if (widget.isLoading) const FittingLoadingEffect(),
 
                       if (widget.mainImagePath == null)
-                        const Center(
+                        Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // 아이콘 크기 축소 40 -> 32
-                              Icon(
-                                Icons.add_a_photo_outlined,
-                                size: 32,
-                                color: AppColors.MEDIUM_GREY,
+                              SvgPicture.asset(
+                                'asset/img/human.svg',
+                                width: 50,
+                                height: 50,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.MEDIUM_GREY,
+                                  BlendMode.srcIn,
+                                ),
                               ),
-                              SizedBox(height: 8),
-                              Text(
+                              const SizedBox(height: 8),
+                              const Text(
                                 "전신 사진 추가",
                                 style: TextStyle(
                                   color: AppColors.MEDIUM_GREY,
                                   fontSize: 13,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -165,7 +177,15 @@ class _FittingMainStageState extends State<FittingMainStage> {
                     label: "상의 (필수)",
                     imageFile: widget.topImageFile,
                     imageUrl: widget.topImageUrl,
-                    placeholderIcon: Icons.checkroom_outlined,
+                    placeholderIcon: SvgPicture.asset(
+                      'asset/img/clothes.svg',
+                      width: 32,
+                      height: 32,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.MEDIUM_GREY,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                     isActive:
                         widget.topImageFile != null ||
                         widget.topImageUrl != null,
@@ -178,7 +198,15 @@ class _FittingMainStageState extends State<FittingMainStage> {
                     label: "하의 (선택)",
                     imageFile: widget.bottomImageFile,
                     imageUrl: widget.bottomImageUrl,
-                    placeholderIcon: Icons.accessibility_new_outlined,
+                    placeholderIcon: SvgPicture.asset(
+                      'asset/img/clothes2.svg',
+                      width: 32,
+                      height: 32,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.MEDIUM_GREY,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                     isActive:
                         widget.bottomImageFile != null ||
                         widget.bottomImageUrl != null,
@@ -259,7 +287,7 @@ class _ClothingSlot extends StatelessWidget {
   final String label;
   final File? imageFile;
   final String? imageUrl;
-  final IconData placeholderIcon;
+  final Widget placeholderIcon;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -306,12 +334,7 @@ class _ClothingSlot extends StatelessWidget {
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // 아이콘 크기 축소 40 -> 32
-                    Icon(
-                      placeholderIcon,
-                      color: AppColors.BORDER_COLOR,
-                      size: 32,
-                    ),
+                    placeholderIcon,
                     const SizedBox(height: 6),
                     Text(
                       "선택하기",

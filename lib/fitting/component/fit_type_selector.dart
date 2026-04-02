@@ -94,14 +94,14 @@ class _FitCard extends StatelessWidget {
     required this.onTapCancel,
   });
 
-  IconData get _icon {
+  String get _imagePath {
     switch (type) {
       case FitType.slim:
-        return Icons.vertical_align_center_rounded;
+        return 'asset/img/slim.png';
       case FitType.regular:
-        return Icons.checkroom_rounded;
+        return 'asset/img/regular.png';
       case FitType.oversize:
-        return Icons.zoom_out_map_rounded;
+        return 'asset/img/over.png';
     }
   }
 
@@ -140,10 +140,12 @@ class _FitCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                _icon,
-                size: 26,
-                color: isSelected ? Colors.white : AppColors.BODY_COLOR,
+              Image.asset(
+                _imagePath,
+                width: 36,
+                height: 36,
+                color: isSelected ? Colors.white : null,
+                colorBlendMode: BlendMode.srcIn,
               ),
               const SizedBox(height: 6),
               Text(
