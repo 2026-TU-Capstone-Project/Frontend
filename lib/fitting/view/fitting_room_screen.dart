@@ -20,7 +20,6 @@ import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repositor
 import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
-import '../component/fitting_onboarding_sheet.dart';
 import '../component/fitting_main_stage.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
@@ -87,7 +86,7 @@ class FittingRoomScreen extends ConsumerStatefulWidget {
 }
 
 class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => FittingRoomScreen._fittingProgress.isFittingNow;
 
@@ -108,8 +107,6 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
   int? _selectedTopClothesId;
   int? _selectedBottomClothesId;
 
-  late AnimationController _animationController;
-
   List<ClothesModel> _serverClothes = [];
 
   /// 헤더용: 서버 마이페이지 + 로컬 피팅 프로필 (피팅 탭 선택 시 갱신)
@@ -120,23 +117,13 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
   void initState() {
     super.initState();
     _progress.addListener(_onFittingProgressChanged);
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-      reverseDuration: const Duration(milliseconds: 400),
-    );
     _initServices();
     FittingRoomScreen.onFittingTabSelected = () {
       _loadHeaderUserInfo();
       _loadWardrobe();
     };
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          _showOnboardingIfNeeded();
-          _loadHeaderUserInfo();
-        }
-      });
+      _loadHeaderUserInfo();
     });
   }
 
@@ -158,16 +145,6 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     } catch (_) {}
   }
 
-  /// 유저에 저장된 피팅 프로필이 없을 때만 온보딩 표시 (저장된 경우 두 번 안 뜸)
-  Future<void> _showOnboardingIfNeeded() async {
-    final profile = await FittingProfile.load();
-    if (!mounted) return;
-    if (profile != null && profile.hasAnyData) {
-      return;
-    }
-    _showOnboardingSheet();
-  }
-
   Future<void> _initServices() async {
     final dio = createAuthDio();
     _fittingRepository = FittingRepository(dio, baseUrl: baseUrl);
@@ -180,21 +157,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
   void dispose() {
     _progress.removeListener(_onFittingProgressChanged);
     FittingRoomScreen.onFittingTabSelected = null;
-    _animationController.dispose();
     super.dispose();
-  }
-
-  void _showOnboardingSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
-      transitionAnimationController: _animationController,
-      builder: (context) =>
-          FittingOnboardingSheet(onStart: () => Navigator.pop(context)),
-    );
   }
 
   Future<void> _loadWardrobe() async {

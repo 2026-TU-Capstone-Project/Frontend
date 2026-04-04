@@ -66,4 +66,11 @@ class FittingProfile {
       return null;
     }
   }
+
+  static Future<void> clear() async {
+    try {
+      final file = await _getFile();
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
+  }
 }

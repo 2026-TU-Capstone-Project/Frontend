@@ -7,6 +7,7 @@ import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/user/model/auth_model.dart';
+import 'package:capstone_fe/user/model/fitting_profile.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:capstone_fe/user/component/user_me_edit_sheet.dart';
 import 'package:capstone_fe/user/view/social_login_screen.dart';
@@ -77,6 +78,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         await authRepository.logout(refreshToken: refreshToken);
       }
     } catch (_) {}
+    await FittingProfile.clear();
     await storage.deleteAll();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -122,12 +124,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                displayName,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.BLACK,
+                              Flexible(
+                                child: Text(
+                                  displayName,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.BLACK,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (gender != null && gender.isNotEmpty) ...[

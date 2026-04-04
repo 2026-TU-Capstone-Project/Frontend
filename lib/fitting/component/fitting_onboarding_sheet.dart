@@ -1,50 +1,50 @@
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
+import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 
-/// 가상 피팅 첫 진입 시 온보딩: 1) 환영 → 2) 정면 사진 → 3) 상의·하의 사이즈 (3가지만 저장)
-class FittingOnboardingSheet extends StatefulWidget {
+/// 최초 로그인 유저 온보딩: 1) 환영 → 2) 전신 사진 → 3) 신체 정보(키·몸무게·성별)
+/// 전신 사진을 서버 프로필 이미지 + 로컬 가상 피팅 frontImage로 동시 저장
+class FittingOnboardingSheet extends ConsumerStatefulWidget {
   final VoidCallback onStart;
 
   const FittingOnboardingSheet({required this.onStart, super.key});
 
   @override
-  State<FittingOnboardingSheet> createState() => _FittingOnboardingSheetState();
+  ConsumerState<FittingOnboardingSheet> createState() =>
+      _FittingOnboardingSheetState();
 }
 
-class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
+class _FittingOnboardingSheetState
+    extends ConsumerState<FittingOnboardingSheet> {
   static const int _totalSteps = 3;
   final PageController _pageController = PageController();
   int _currentStep = 0;
 
   bool _isAgreed = false;
   File? _frontImage;
-  final _topSizeController = TextEditingController();
-  final _bottomSizeController = TextEditingController();
+  bool _isSubmitting = false;
 
-  static const List<String> _topSizeOptions = [
-    'XS',
-    'S',
-    'M',
-    'L',
-    'XL',
-    'XXL',
-  ];
-  static final List<String> _bottomSizeOptions = List.generate(
-    15,
-    (i) => '${26 + i}',
-  );
+  // 신체 정보
+  double _height = 165;
+  double _weight = 60;
+  String _gender = 'MALE'; // 'MALE' | 'FEMALE'
+
+  static final List<double> _heightOptions =
+      List.generate(81, (i) => (140 + i).toDouble()); // 140~220 cm
+  static final List<double> _weightOptions =
+      List.generate(121, (i) => (30 + i).toDouble()); // 30~150 kg
 
   @override
   void dispose() {
     _pageController.dispose();
-    _topSizeController.dispose();
-    _bottomSizeController.dispose();
     super.dispose();
   }
 
@@ -61,44 +61,68 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
   }
 
   Future<void> _skip() async {
-    // 건너뛰기를 눌러도 온보딩 완료 플래그를 저장하여 재표시 방지
     try {
-      await FittingProfile.save(
-        FittingProfile(onboardingCompleted: true),
-      );
+      await FittingProfile.save(FittingProfile(onboardingCompleted: true));
     } catch (e) {
       debugPrint('온보딩 건너뛰기 저장 실패: $e');
     }
     if (mounted) widget.onStart();
   }
 
+  /// A. 서버에 프로필 전송 (키·몸무게·성별·사진)
+  /// B. 사진을 로컬에 복사 후 FittingProfile 저장
   Future<void> _saveAndStart() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
     String? savedFrontPath;
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final profileDir = Directory('${dir.path}/fitting_profile');
-      if (!await profileDir.exists()) await profileDir.create(recursive: true);
+      // A. 서버 전송
+      final repo = ref.read(authRepositoryProvider);
+      final authDio = ref.read(authDioProvider);
+      await repo.submitOnboardingProfile(
+        authDio,
+        height: _height,
+        weight: _weight,
+        gender: _gender,
+        profileImage: _frontImage,
+      );
+
+      // B. 로컬 저장
       if (_frontImage != null) {
+        final dir = await getApplicationDocumentsDirectory();
+        final profileDir = Directory('${dir.path}/fitting_profile');
+        if (!await profileDir.exists()) {
+          await profileDir.create(recursive: true);
+        }
         final ext = _frontImage!.path.split('.').last;
         final name = 'front_${DateTime.now().millisecondsSinceEpoch}.$ext';
         final dest = File('${profileDir.path}/$name');
         await _frontImage!.copy(dest.path);
         savedFrontPath = dest.path;
       }
-      final profile = FittingProfile(
-        frontImagePath: savedFrontPath,
-        topSize: _topSizeController.text.trim().isEmpty
-            ? null
-            : _topSizeController.text.trim(),
-        bottomSize: _bottomSizeController.text.trim().isEmpty
-            ? null
-            : _bottomSizeController.text.trim(),
-        onboardingCompleted: true,
+
+      await FittingProfile.save(
+        FittingProfile(
+          frontImagePath: savedFrontPath,
+          onboardingCompleted: true,
+        ),
       );
-      await FittingProfile.save(profile);
     } catch (e) {
       debugPrint('온보딩 프로필 저장 실패: $e');
+      // 서버 실패해도 로컬 온보딩 완료 처리
+      try {
+        await FittingProfile.save(
+          FittingProfile(
+            frontImagePath: savedFrontPath,
+            onboardingCompleted: true,
+          ),
+        );
+      } catch (_) {}
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
+
     if (mounted) widget.onStart();
   }
 
@@ -160,7 +184,8 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
     if (source == null || !mounted) return;
     if (source == ImageSource.camera) {
-      final file = await PhotoGuideScreen.open(context, type: PhotoGuideType.fullBody);
+      final file =
+          await PhotoGuideScreen.open(context, type: PhotoGuideType.fullBody);
       if (file != null && mounted) setState(() => _frontImage = file);
     } else {
       final x = await picker.pickImage(source: ImageSource.gallery);
@@ -221,9 +246,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (i) => setState(() => _currentStep = i),
               children: [
-                _buildOriginalWelcomeStep(),
+                _buildWelcomeStep(),
                 _buildFrontPhotoStep(),
-                _buildBodySizeStep(),
+                _buildBodyInfoStep(),
               ],
             ),
           ),
@@ -277,17 +302,17 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
   }
 
-  /// 수정 전 원래 환영 화면: 배경 이미지 + PERFECT FIT + 동의 + 지금 시작하기(다음으로 이동)
-  Widget _buildOriginalWelcomeStep() {
+  // ─── Step 1: 환영 ───────────────────────────────────────────────────────────
+
+  Widget _buildWelcomeStep() {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Stack(
           fit: StackFit.expand,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
-              ),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(32)),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -452,6 +477,8 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
   }
 
+  // ─── Step 2: 전신 사진 ─────────────────────────────────────────────────────
+
   Widget _buildFrontPhotoStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
@@ -468,7 +495,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           ),
           const SizedBox(height: 8),
           const Text(
-            '전신이 나오는 정면 사진을 등록해주세요.',
+            '전신이 나오는 정면 사진을 등록해주세요.\n프로필 사진과 가상 피팅에 함께 사용됩니다.',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.BODY_COLOR,
@@ -477,7 +504,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           ),
           const SizedBox(height: 28),
           const Text(
-            '정면 사진 (필수)',
+            '정면 전신 사진 (선택)',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -510,7 +537,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          '사진 촬영하기',
+                          '사진 촬영 또는 선택',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -523,7 +550,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           ),
           const SizedBox(height: 8),
           const Text(
-            '정면을 바라보고 전신이 나오게',
+            '정면을 바라보고 전신이 나오게 찍어주세요',
             style: TextStyle(fontSize: 12, color: AppColors.MEDIUM_GREY),
           ),
           const SizedBox(height: 40),
@@ -533,14 +560,16 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
   }
 
-  Widget _buildBodySizeStep() {
+  // ─── Step 3: 신체 정보 (키·몸무게·성별) ────────────────────────────────────
+
+  Widget _buildBodyInfoStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '상의·하의 사이즈를 선택해주세요',
+            '신체 정보를 입력해주세요',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -549,7 +578,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           ),
           const SizedBox(height: 8),
           const Text(
-            '가상 피팅 추천을 위해 옷 사이즈를 알려주세요.',
+            '정확한 가상 피팅을 위해 신체 정보를 알려주세요.',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.BODY_COLOR,
@@ -557,40 +586,46 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
             ),
           ),
           const SizedBox(height: 28),
+
+          // 성별 토글
+          const Text(
+            '성별',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.BLACK,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildGenderToggle(),
+          const SizedBox(height: 20),
+
+          // 키 & 몸무게
           Row(
             children: [
               Expanded(
-                child: _buildDropdownField(
-                  label: '상의 사이즈',
-                  value: _topSizeController.text.isEmpty
-                      ? null
-                      : _topSizeController.text,
-                  hint: '선택',
-                  items: _topSizeOptions,
-                  onChanged: (v) {
-                    _topSizeController.text = v ?? '';
-                    setState(() {});
-                  },
+                child: _buildNumericPickerField(
+                  label: '키',
+                  value: _height,
+                  options: _heightOptions,
+                  unit: 'cm',
+                  onChanged: (v) => setState(() => _height = v),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildDropdownField(
-                  label: '하의 사이즈',
-                  value: _bottomSizeController.text.isEmpty
-                      ? null
-                      : _bottomSizeController.text,
-                  hint: '선택',
-                  items: _bottomSizeOptions,
-                  onChanged: (v) {
-                    _bottomSizeController.text = v ?? '';
-                    setState(() {});
-                  },
+                child: _buildNumericPickerField(
+                  label: '몸무게',
+                  value: _weight,
+                  options: _weightOptions,
+                  unit: 'kg',
+                  onChanged: (v) => setState(() => _weight = v),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 24),
+
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -603,13 +638,9 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.lock_outline,
-                  size: 20,
-                  color: AppColors.ACCENT_COLOR,
-                ),
+                Icon(Icons.lock_outline, size: 20, color: AppColors.ACCENT_COLOR),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Text(
                     '입력하신 정보는 안전하게 보호되며, 가상 피팅 목적으로만 사용됩니다.',
                     style: TextStyle(
@@ -623,23 +654,38 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
             ),
           ),
           const SizedBox(height: 32),
+
           SizedBox(
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: _next,
+              onPressed: _isSubmitting ? null : _next,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.PRIMARYCOLOR,
+                disabledBackgroundColor: AppColors.INPUT_BG_COLOR,
                 foregroundColor: Colors.white,
+                disabledForegroundColor: AppColors.MEDIUM_GREY,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                '피팅룸 시작하기',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      '피팅룸 시작하기',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -647,41 +693,80 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
   }
 
-  /// iOS: Cupertino 스타일 피커 모달. Android: Material 드롭다운 사용
-  Widget _buildDropdownField({
+  /// 성별 토글 (MALE / FEMALE)
+  Widget _buildGenderToggle() {
+    return Row(
+      children: [
+        Expanded(child: _genderOption(label: '남성', value: 'MALE')),
+        const SizedBox(width: 12),
+        Expanded(child: _genderOption(label: '여성', value: 'FEMALE')),
+      ],
+    );
+  }
+
+  Widget _genderOption({required String label, required String value}) {
+    final selected = _gender == value;
+    return GestureDetector(
+      onTap: () => setState(() => _gender = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color:
+              selected ? AppColors.PRIMARYCOLOR : AppColors.INPUT_BG_COLOR,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.PRIMARYCOLOR : AppColors.BORDER_COLOR,
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : AppColors.MEDIUM_GREY,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// iOS → CupertinoPicker 모달, Android → DropdownButtonFormField
+  Widget _buildNumericPickerField({
     required String label,
-    required String? value,
-    required String hint,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
+    required double value,
+    required List<double> options,
+    required String unit,
+    required ValueChanged<double> onChanged,
   }) {
     if (Platform.isIOS) {
-      return _buildCupertinoSizeField(
+      return _buildCupertinoNumericField(
         label: label,
         value: value,
-        hint: hint,
-        items: items,
+        options: options,
+        unit: unit,
         onSelected: onChanged,
       );
     }
-    return _buildMaterialDropdownField(
+    return _buildMaterialNumericDropdown(
       label: label,
       value: value,
-      hint: hint,
-      items: items,
+      options: options,
+      unit: unit,
       onChanged: onChanged,
     );
   }
 
-  /// iOS 전용: 탭 시 CupertinoPicker 모달
-  Widget _buildCupertinoSizeField({
+  Widget _buildCupertinoNumericField({
     required String label,
-    required String? value,
-    required String hint,
-    required List<String> items,
-    required ValueChanged<String?> onSelected,
+    required double value,
+    required List<double> options,
+    required String unit,
+    required ValueChanged<double> onSelected,
   }) {
-    final display = (value != null && items.contains(value)) ? value : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -695,15 +780,12 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: () => _showCupertinoSizePicker(
-            context: context,
+          onTap: () => _showCupertinoNumericPicker(
             title: label,
-            options: items,
-            initialValue: display,
-            onSelected: (v) {
-              onSelected(v);
-              setState(() {});
-            },
+            options: options,
+            initialValue: value,
+            unit: unit,
+            onSelected: onSelected,
           ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -716,12 +798,10 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  display ?? hint,
-                  style: TextStyle(
+                  '${value.toStringAsFixed(0)} $unit',
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: display != null
-                        ? AppColors.BLACK
-                        : AppColors.MEDIUM_GREY,
+                    color: AppColors.BLACK,
                   ),
                 ),
                 const Icon(
@@ -737,16 +817,16 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
   }
 
-  void _showCupertinoSizePicker({
-    required BuildContext context,
+  void _showCupertinoNumericPicker({
     required String title,
-    required List<String> options,
-    required String? initialValue,
-    required ValueChanged<String?> onSelected,
+    required List<double> options,
+    required double initialValue,
+    required String unit,
+    required ValueChanged<double> onSelected,
   }) {
-    int index = initialValue != null && options.contains(initialValue)
-        ? options.indexOf(initialValue)
-        : 0;
+    int index = options.indexOf(initialValue).clamp(0, options.length - 1);
+    if (index < 0) index = 0;
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => Container(
@@ -768,6 +848,7 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     onPressed: () {
                       onSelected(options[index]);
+                      setState(() {});
                       Navigator.pop(ctx);
                     },
                     child: const Text('확인'),
@@ -782,7 +863,11 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
                   initialItem: index.clamp(0, options.length - 1),
                 ),
                 onSelectedItemChanged: (i) => index = i,
-                children: options.map((e) => Center(child: Text(e))).toList(),
+                children: options
+                    .map((e) => Center(
+                          child: Text('${e.toStringAsFixed(0)} $unit'),
+                        ))
+                    .toList(),
               ),
             ),
           ],
@@ -791,13 +876,12 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
     );
   }
 
-  /// Material 드롭다운: Android용
-  Widget _buildMaterialDropdownField({
+  Widget _buildMaterialNumericDropdown({
     required String label,
-    required String? value,
-    required String hint,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
+    required double value,
+    required List<double> options,
+    required String unit,
+    required ValueChanged<double> onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -811,12 +895,8 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value != null && items.contains(value) ? value : null,
-          hint: Text(
-            hint,
-            style: const TextStyle(color: AppColors.MEDIUM_GREY, fontSize: 16),
-          ),
+        DropdownButtonFormField<double>(
+          initialValue: options.contains(value) ? value : options.first,
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.INPUT_BG_COLOR,
@@ -828,15 +908,18 @@ class _FittingOnboardingSheetState extends State<FittingOnboardingSheet> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.BORDER_COLOR),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          items: items
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+          items: options
+              .map((e) => DropdownMenuItem(
+                    value: e,
+                    child: Text('${e.toStringAsFixed(0)} $unit'),
+                  ))
               .toList(),
-          onChanged: onChanged,
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:capstone_fe/user/repository/auth_client.dart';
 import '../model/auth_model.dart';
@@ -9,7 +10,25 @@ class AuthRepository {
   final String? baseUrl;
 
   AuthRepository(Dio dio, {this.baseUrl})
-    : _client = AuthClient(dio, baseUrl: baseUrl);
+    : _client = AuthClient(_withUnwrap(dio), baseUrl: baseUrl);
+
+  /// 서버가 { "success": true, "data": { ... } } 형태로 응답을 래핑할 때
+  /// Retrofit이 파싱하기 전에 data 필드만 꺼내도록 인터셉터를 추가한다.
+  static Dio _withUnwrap(Dio dio) {
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          final body = response.data;
+          if (body is Map<String, dynamic> &&
+              body['data'] is Map<String, dynamic>) {
+            response.data = body['data'] as Map<String, dynamic>;
+          }
+          handler.next(response);
+        },
+      ),
+    );
+    return dio;
+  }
 
   Future<bool> signUp({
     required String email,
@@ -120,6 +139,50 @@ class AuthRepository {
       if (data == null) return null;
       return UserMe.fromJson(data);
     } catch (_) {
+      return null;
+    }
+  }
+
+  /// 최초 온보딩 프로필 등록 (POST /api/v1/users/me).
+  /// Query params: height, weight, gender. Body: multipart file(선택).
+  Future<UserMe?> submitOnboardingProfile(
+    Dio authDio, {
+    required double height,
+    required double weight,
+    required String gender,
+    File? profileImage,
+  }) async {
+    try {
+      FormData? formData;
+      if (profileImage != null) {
+        formData = FormData();
+        formData.files.add(
+          MapEntry(
+            'file',
+            await MultipartFile.fromFile(
+              profileImage.path,
+              filename: 'profile.jpg',
+            ),
+          ),
+        );
+      }
+      final response = await authDio.post<Map<String, dynamic>>(
+        '/api/v1/users/me',
+        queryParameters: {
+          'height': height,
+          'weight': weight,
+          'gender': gender,
+        },
+        data: formData,
+        options: Options(responseType: ResponseType.json),
+      );
+      final body = response.data;
+      if (body == null) return null;
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      return UserMe.fromJson(data);
+    } catch (e) {
+      debugPrint('온보딩 프로필 전송 실패: $e');
       return null;
     }
   }
