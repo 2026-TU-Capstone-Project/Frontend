@@ -30,13 +30,13 @@ ChatRequestDto _$ChatRequestDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ChatRequestDtoToJson(ChatRequestDto instance) =>
     <String, dynamic>{
-      'message': instance.message,
-      'history': instance.history,
-      'temp': instance.temp,
-      'rain': instance.rain,
-      'snow': instance.snow,
-      'windSpeed': instance.windSpeed,
-      'humidity': instance.humidity,
+      'message': ?instance.message,
+      'history': ?instance.history,
+      'temp': ?instance.temp,
+      'rain': ?instance.rain,
+      'snow': ?instance.snow,
+      'windSpeed': ?instance.windSpeed,
+      'humidity': ?instance.humidity,
     };
 
 ChatResponseData _$ChatResponseDataFromJson(Map<String, dynamic> json) =>

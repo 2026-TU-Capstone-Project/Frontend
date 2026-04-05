@@ -11,7 +11,7 @@ import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
-import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
+
 import 'package:capstone_fe/fitting/component/ai_stylist_input.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
@@ -401,6 +401,7 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
         imageAsset: 'asset/img/App3.jpg',
         title: '다이버바가 추천하는\n현재 날씨 룩',
         subtitle: _weatherSubtitle(),
+        btnText: '날씨 코디 보기',
         onTap: widget.onWeather,
         gradientColors: const [Color(0xFF1A3A5C), Color(0xFF2D7DD2)],
         fallbackIcon: Icons.wb_sunny_outlined,
@@ -409,6 +410,7 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
         imageAsset: 'asset/img/App6.jpg',
         title: 'AI가 추천하는\n상황별 코디',
         subtitle: '내가 가진 옷으로 만드는 맞춤 코디',
+        btnText: 'AI 코디 받기',
         onTap: widget.onStyleRecommendation,
         gradientColors: const [Color(0xFF1A1A2E), Color(0xFF6B5CE7)],
         fallbackIcon: Icons.auto_awesome_outlined,
@@ -604,25 +606,46 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  // 명확한 우측 화살표 CTA 버튼
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          data.btnText,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: Colors.black,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
-            ),
-          ),
-          // 우측 상단 화살표 버튼
-          Positioned(
-            right: 16,
-            top: 16,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.arrow_forward_rounded,
-                size: 16,
-                color: Colors.white,
               ),
             ),
           ),
@@ -636,6 +659,7 @@ class _StackCardData {
   final String imageAsset;
   final String title;
   final String subtitle;
+  final String btnText;
   final VoidCallback? onTap;
   final List<Color> gradientColors;
   final IconData fallbackIcon;
@@ -644,6 +668,7 @@ class _StackCardData {
     required this.imageAsset,
     required this.title,
     required this.subtitle,
+    required this.btnText,
     this.onTap,
     required this.gradientColors,
     required this.fallbackIcon,
@@ -1130,8 +1155,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onWeather: widget.onWeather,
                 onPhotoFitting: widget.onGoToFittingRoom,
                 onStyleRecommendation: () {
-                  FittingRoomScreen.requestOpenAiStylist = true;
-                  widget.onGoToStyleRecommendation?.call();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AiChatScreen(),
+                    ),
+                  );
                 },
                 weather: _weather,
               ),

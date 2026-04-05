@@ -7,7 +7,7 @@ part 'chat_model.g.dart';
 // Request
 // ─────────────────────────────────────────────────────────────────────────────
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false)
 class ChatHistoryItem {
   final String role;
   final String content;
@@ -20,7 +20,7 @@ class ChatHistoryItem {
   Map<String, dynamic> toJson() => _$ChatHistoryItemToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false)
 class ChatRequestDto {
   final String? message;
   final List<ChatHistoryItem>? history;

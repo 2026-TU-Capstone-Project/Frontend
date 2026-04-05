@@ -60,7 +60,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final historyList = state.messages
         .where((m) => m.text != null && !m.isLoading && m.errorMessage == null)
         .map((m) => ChatHistoryItem(
-              role: m.isUser ? 'user' : 'assistant',
+              role: m.isUser ? 'user' : 'model',
               content: m.text!,
             ))
         .toList();
