@@ -3,6 +3,7 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/chat/model/chat_model.dart';
 import 'package:capstone_fe/chat/repository/chat_repository.dart';
+import 'package:capstone_fe/fitting/util/weather_util.dart';
 
 // ─── Repository Provider ──────────────────────────────────────────────────────
 
@@ -55,7 +56,33 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final trimmed = text.trim();
     if (trimmed.isEmpty || state.isSending) return;
 
-    // 1. 유저 말풍선 + 로딩 말풍선을 즉시 노출
+    // 1. 이전 대화 히스토리 추출
+    final historyList = state.messages
+        .where((m) => m.text != null && !m.isLoading && m.errorMessage == null)
+        .map((m) => ChatHistoryItem(
+              role: m.isUser ? 'user' : 'assistant',
+              content: m.text!,
+            ))
+        .toList();
+
+    // 2. 현재 날씨 조회 (실패 시 기본값 사용)
+    WeatherInfo? weather;
+    try {
+      weather = await fetchWeatherFromCurrentPosition();
+    } catch (_) {}
+
+    // 3. 요청 DTO 구성
+    final requestDto = ChatRequestDto(
+      message: trimmed,
+      history: historyList,
+      temp: weather?.temp ?? 15.0,
+      rain: weather?.rain ?? 0.0,
+      snow: weather?.snow ?? 0.0,
+      windSpeed: weather?.windSpeed ?? 0.0,
+      humidity: weather?.humidity ?? 0,
+    );
+
+    // 4. 유저 말풍선 + 로딩 말풍선을 즉시 노출
     state = state.copyWith(
       messages: [
         ...state.messages,
@@ -67,7 +94,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     try {
       final response = await _repository.sendMessage(
-        body: ChatRequestDto(message: trimmed),
+        body: requestDto,
       );
 
       // 2. 로딩 말풍선을 실제 응답으로 교체

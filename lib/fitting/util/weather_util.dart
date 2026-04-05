@@ -12,12 +12,20 @@ class WeatherInfo {
   final String description;
   final String cityName;
   final int conditionCode;
+  final double rain;
+  final double snow;
+  final double windSpeed;
+  final int humidity;
 
   const WeatherInfo({
     required this.temp,
     required this.description,
     required this.cityName,
     this.conditionCode = 800,
+    this.rain = 0.0,
+    this.snow = 0.0,
+    this.windSpeed = 0.0,
+    this.humidity = 0,
   });
 }
 
@@ -63,11 +71,19 @@ Future<WeatherInfo> fetchWeather(double lat, double lon) async {
     final conditionCode = body['weather'][0]['id'] as int? ?? 800;
     final city = body['name'] as String? ?? '';
     final desc = weatherLabel(conditionCode).description;
+    final windSpeed = (body['wind']?['speed'] as num?)?.toDouble() ?? 0.0;
+    final humidity = body['main']?['humidity'] as int? ?? 0;
+    final rain = (body['rain']?['1h'] as num?)?.toDouble() ?? 0.0;
+    final snow = (body['snow']?['1h'] as num?)?.toDouble() ?? 0.0;
     return WeatherInfo(
       temp: temp,
       description: desc,
       cityName: city,
       conditionCode: conditionCode,
+      windSpeed: windSpeed,
+      humidity: humidity,
+      rain: rain,
+      snow: snow,
     );
   } catch (_) {
     return const WeatherInfo(
@@ -75,31 +91,47 @@ Future<WeatherInfo> fetchWeather(double lat, double lon) async {
       description: '맑음',
       cityName: '서울',
       conditionCode: 800,
+      rain: 0.0,
+      snow: 0.0,
+      windSpeed: 0.0,
+      humidity: 0,
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────
-// 현재 위치 기반 날씨 조회 (권한 없으면 null 반환)
+// 현재 위치 기반 날씨 조회
+// 실패 이유를 구분할 수 있도록 null 대신 예외를 throw한다.
 // ─────────────────────────────────────────────────────────
-Future<WeatherInfo?> fetchWeatherFromCurrentPosition() async {
-  try {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return null;
-    }
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.low,
-        timeLimit: Duration(seconds: 8),
-      ),
-    );
-    return fetchWeather(position.latitude, position.longitude);
-  } catch (_) {
-    return null;
+Future<WeatherInfo> fetchWeatherFromCurrentPosition() async {
+  // 1) 위치 서비스(GPS 토글) 활성화 여부 확인
+  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    throw const LocationServiceDisabledException();
   }
+
+  // 2) 위치 권한 확인 및 요청
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+  }
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    throw PermissionDeniedException('위치 권한이 거부되었습니다.');
+  }
+
+  // 3) 캐시된 위치 우선 사용, 없으면 현재 위치 요청
+  Position? position;
+  try {
+    position = await Geolocator.getLastKnownPosition();
+  } catch (_) {}
+
+  position ??= await Geolocator.getCurrentPosition(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.low,
+      timeLimit: Duration(seconds: 20),
+    ),
+  );
+
+  return fetchWeather(position.latitude, position.longitude);
 }

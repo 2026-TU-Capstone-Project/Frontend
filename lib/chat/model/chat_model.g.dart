@@ -6,11 +6,38 @@ part of 'chat_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+ChatHistoryItem _$ChatHistoryItemFromJson(Map<String, dynamic> json) =>
+    ChatHistoryItem(
+      role: json['role'] as String,
+      content: json['content'] as String,
+    );
+
+Map<String, dynamic> _$ChatHistoryItemToJson(ChatHistoryItem instance) =>
+    <String, dynamic>{'role': instance.role, 'content': instance.content};
+
 ChatRequestDto _$ChatRequestDtoFromJson(Map<String, dynamic> json) =>
-    ChatRequestDto(message: json['message'] as String?);
+    ChatRequestDto(
+      message: json['message'] as String?,
+      history: (json['history'] as List<dynamic>?)
+          ?.map((e) => ChatHistoryItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      temp: (json['temp'] as num?)?.toDouble(),
+      rain: (json['rain'] as num?)?.toDouble(),
+      snow: (json['snow'] as num?)?.toDouble(),
+      windSpeed: (json['windSpeed'] as num?)?.toDouble(),
+      humidity: (json['humidity'] as num?)?.toInt(),
+    );
 
 Map<String, dynamic> _$ChatRequestDtoToJson(ChatRequestDto instance) =>
-    <String, dynamic>{'message': instance.message};
+    <String, dynamic>{
+      'message': instance.message,
+      'history': instance.history,
+      'temp': instance.temp,
+      'rain': instance.rain,
+      'snow': instance.snow,
+      'windSpeed': instance.windSpeed,
+      'humidity': instance.humidity,
+    };
 
 ChatResponseData _$ChatResponseDataFromJson(Map<String, dynamic> json) =>
     ChatResponseData(

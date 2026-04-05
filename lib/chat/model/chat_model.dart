@@ -8,10 +8,37 @@ part 'chat_model.g.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 @JsonSerializable()
+class ChatHistoryItem {
+  final String role;
+  final String content;
+
+  ChatHistoryItem({required this.role, required this.content});
+
+  factory ChatHistoryItem.fromJson(Map<String, dynamic> json) =>
+      _$ChatHistoryItemFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ChatHistoryItemToJson(this);
+}
+
+@JsonSerializable()
 class ChatRequestDto {
   final String? message;
+  final List<ChatHistoryItem>? history;
+  final double? temp;
+  final double? rain;
+  final double? snow;
+  final double? windSpeed;
+  final int? humidity;
 
-  ChatRequestDto({this.message});
+  ChatRequestDto({
+    this.message,
+    this.history,
+    this.temp,
+    this.rain,
+    this.snow,
+    this.windSpeed,
+    this.humidity,
+  });
 
   factory ChatRequestDto.fromJson(Map<String, dynamic> json) =>
       _$ChatRequestDtoFromJson(json);

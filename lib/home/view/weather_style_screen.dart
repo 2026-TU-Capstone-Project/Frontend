@@ -133,11 +133,11 @@ class _WeatherBanner extends StatelessWidget {
     final (icon, seasonLabel, gradient, guideText) = _seasonTheme(now.month);
 
     // API가 날씨 정보를 반환했으면 온도/지역을 함께 표시
-    final tempStr = weatherInfo?.temperature != null
-        ? '${weatherInfo!.temperature}°C'
+    final tempStr = weatherInfo?.temp != null
+        ? '${weatherInfo!.temp.round()}°C'
         : null;
-    final location = weatherInfo?.location;
-    final condition = weatherInfo?.condition ?? seasonLabel;
+    final location = weatherInfo?.cityName;
+    final condition = weatherInfo?.description ?? seasonLabel;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),

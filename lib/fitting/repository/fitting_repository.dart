@@ -13,6 +13,7 @@ abstract class FittingRepository {
   @MultiPart()
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<FittingRequestData>> requestFitting({
+    @Query("fit_type") required String fitType,
     @Part(name: "user_image") required File userImage,
     @Part(name: "top_image") required File topImage,
     @Part(name: "bottom_image") File? bottomImage,

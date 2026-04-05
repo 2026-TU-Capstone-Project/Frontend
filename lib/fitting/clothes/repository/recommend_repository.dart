@@ -19,8 +19,15 @@ abstract class RecommendRepository {
     @Query('query') required String query,
   });
 
-  /// GET /api/v1/virtual-fitting/recommendation/weather-style
-  @GET('/api/v1/virtual-fitting/recommendation/weather-style')
+  /// POST /api/v1/virtual-fitting/recommendation/weather-style
+  @POST('/api/v1/virtual-fitting/recommendation/weather-style')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<WeatherStyleResult>> getWeatherStyleRecommendations();
+  Future<ApiResponse<WeatherStyleResult>> getWeatherStyleRecommendations({
+    @Query('query') required String query,
+    @Query('temp') required double temp,
+    @Query('rain') required double rain,
+    @Query('snow') required double snow,
+    @Query('windSpeed') required double windSpeed,
+    @Query('humidity') required int humidity,
+  });
 }

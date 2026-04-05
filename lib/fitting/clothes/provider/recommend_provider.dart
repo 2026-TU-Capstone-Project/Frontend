@@ -4,6 +4,7 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/fitting/clothes/model/weather_recommend_model.dart';
 import 'package:capstone_fe/fitting/clothes/repository/recommend_repository.dart';
+import 'package:capstone_fe/fitting/util/weather_util.dart';
 
 final recommendRepositoryProvider = Provider<RecommendRepository>((ref) {
   return RecommendRepository(ref.watch(authDioProvider), baseUrl: baseUrl);
@@ -14,12 +15,24 @@ class WeatherStyleNotifier extends AsyncNotifier<WeatherStyleResult> {
   Future<WeatherStyleResult> build() => _fetch();
 
   Future<WeatherStyleResult> _fetch() async {
+    final localWeather = await fetchWeatherFromCurrentPosition();
+
     try {
       final resp = await ref
           .read(recommendRepositoryProvider)
-          .getWeatherStyleRecommendations();
+          .getWeatherStyleRecommendations(
+            query: localWeather.description,
+            temp: localWeather.temp,
+            rain: localWeather.rain,
+            snow: localWeather.snow,
+            windSpeed: localWeather.windSpeed,
+            humidity: localWeather.humidity,
+          );
       if (resp.data == null) throw Exception(resp.message);
-      return resp.data!;
+      return WeatherStyleResult(
+        weatherInfo: localWeather,
+        recommendations: resp.data?.recommendations ?? [],
+      );
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       if (status == 500) {

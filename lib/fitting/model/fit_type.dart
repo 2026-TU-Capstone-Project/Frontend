@@ -29,11 +29,11 @@ enum FitType {
   String get apiValue {
     switch (this) {
       case FitType.slim:
-        return 'SLIM';
+        return 'SLIM_FIT';
       case FitType.regular:
-        return 'REGULAR';
+        return 'REGULAR_FIT';
       case FitType.oversize:
-        return 'OVERSIZE';
+        return 'OVERSIZED_FIT';
     }
   }
 }

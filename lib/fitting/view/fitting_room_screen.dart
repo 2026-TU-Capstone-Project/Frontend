@@ -18,7 +18,6 @@ import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repository.dart';
 import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
-import 'package:capstone_fe/user/model/fitting_profile.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import '../component/fitting_main_stage.dart';
 import '../component/add_clothing_sheet.dart';
@@ -240,30 +239,47 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     if (result == null || !mounted) return;
 
     if (result == 'profile') {
-      final profile = await FittingProfile.load();
-      final path = profile?.frontImagePath;
-      if (path != null && path.isNotEmpty) {
-        final file = File(path);
-        if (file.existsSync() && mounted) {
-          setState(() => _selectedUserImage = file);
+      try {
+        final authDio = createAuthDio();
+        final authRepo = AuthRepository(Dio(), baseUrl: baseUrl);
+        final userInfo = await authRepo.getMe(authDio);
+        final profileImageUrl = userInfo?.profileImageUrl?.trim();
+
+        if (profileImageUrl == null || profileImageUrl.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '등록된 프로필 사진이 없어요. 유저 탭에서 사진을 먼저 등록해주세요.',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
+        final tempDir = await getTemporaryDirectory();
+        final tempPath =
+            '${tempDir.path}/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        await Dio().download(profileImageUrl, tempPath);
+
+        if (mounted) {
+          setState(() => _selectedUserImage = File(tempPath));
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('피팅 프로필의 전신 사진을 불러왔어요.')),
           );
-        } else if (mounted) {
+        }
+      } catch (e) {
+        debugPrint("⚠️ 서버 프로필 이미지 다운로드 실패: $e");
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                '저장된 전신 사진 파일을 찾을 수 없어요. 유저 탭에서 피팅 프로필을 다시 등록해주세요.',
+                '네트워크 오류로 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
               ),
             ),
           );
         }
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('저장된 피팅 프로필이 없어요. 유저 탭에서 정면 사진을 등록해주세요.'),
-          ),
-        );
       }
       return;
     }
@@ -411,6 +427,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     try {
       // 1. 서버에 가상 피팅 작업을 지시하고 Task ID를 받아옵니다.
       final reqResp = await _fittingRepository.requestFitting(
+        fitType: fitType.apiValue,
         userImage: _selectedUserImage!,
         topImage: _selectedTopFile!,
         bottomImage: _selectedBottomFile,

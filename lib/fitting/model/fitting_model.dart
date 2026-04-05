@@ -30,8 +30,6 @@ class FittingStatusData {
       _$FittingStatusDataFromJson(json);
 }
 
-/// 내가 저장한 코디 목록 응답 (GET /api/v1/virtual-fitting/my-closet)
-/// 스펙: 항목에 id, resultImgUrl, topClothes, bottomClothes 등. id를 taskId로 매핑.
 @JsonSerializable(createFactory: false)
 class SavedFittingData {
   final int? taskId;

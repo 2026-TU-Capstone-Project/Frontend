@@ -21,12 +21,13 @@ class _FittingRepository implements FittingRepository {
 
   @override
   Future<ApiResponse<FittingRequestData>> requestFitting({
+    required String fitType,
     required File userImage,
     required File topImage,
     File? bottomImage,
   }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'fit_type': fitType};
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'accessToken': 'true'};
     _headers.removeWhere((k, v) => v == null);

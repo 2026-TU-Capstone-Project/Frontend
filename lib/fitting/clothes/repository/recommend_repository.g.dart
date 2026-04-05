@@ -55,15 +55,28 @@ class _RecommendRepository implements RecommendRepository {
   }
 
   @override
-  Future<ApiResponse<WeatherStyleResult>>
-  getWeatherStyleRecommendations() async {
+  Future<ApiResponse<WeatherStyleResult>> getWeatherStyleRecommendations({
+    required String query,
+    required double temp,
+    required double rain,
+    required double snow,
+    required double windSpeed,
+    required int humidity,
+  }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'query': query,
+      r'temp': temp,
+      r'rain': rain,
+      r'snow': snow,
+      r'windSpeed': windSpeed,
+      r'humidity': humidity,
+    };
     final _headers = <String, dynamic>{r'accessToken': 'true'};
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<ApiResponse<WeatherStyleResult>>(
-      Options(method: 'GET', headers: _headers, extra: _extra)
+      Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
             '/api/v1/virtual-fitting/recommendation/weather-style',
