@@ -11,6 +11,31 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   return ChatRepository(ref.watch(authDioProvider), baseUrl: baseUrl);
 });
 
+// ─── Weather Cache (5분 TTL) ─────────────────────────────────────────────────
+
+class _WeatherCache {
+  WeatherInfo? _data;
+  DateTime? _fetchedAt;
+  static const _ttl = Duration(minutes: 5);
+
+  bool get isValid =>
+      _data != null &&
+      _fetchedAt != null &&
+      DateTime.now().difference(_fetchedAt!) < _ttl;
+
+  WeatherInfo? get data => isValid ? _data : null;
+
+  void update(WeatherInfo info) {
+    _data = info;
+    _fetchedAt = DateTime.now();
+  }
+}
+
+final _weatherCache = _WeatherCache();
+
+/// 마지막으로 캐시된 날씨 정보를 UI에서 읽을 수 있도록 노출
+final cachedWeatherProvider = StateProvider<WeatherInfo?>((ref) => null);
+
 // ─── UI-only chat message model ───────────────────────────────────────────────
 
 class ChatMessage {
@@ -49,29 +74,68 @@ class ChatState {
 
 class ChatNotifier extends StateNotifier<ChatState> {
   final ChatRepository _repository;
+  final Ref _ref;
 
-  ChatNotifier(this._repository) : super(const ChatState());
+  ChatNotifier(this._repository, this._ref) : super(const ChatState());
+
+  /// 봇 메시지에서 히스토리용 텍스트를 추출한다.
+  /// text가 비어 있어도 추천 데이터가 있으면 요약 문자열을 반환한다.
+  String? _botHistoryContent(ChatMessage m) {
+    final parts = <String>[];
+    if (m.text != null && m.text!.isNotEmpty) parts.add(m.text!);
+
+    final data = m.responseData;
+    if (data != null) {
+      final outfitCount =
+          data.recommendations?.recommendations?.whereType<RecommendationItem>().length ?? 0;
+      final topCount =
+          data.recommendationsTops?.items?.whereType<ClothesScoreItem>().length ?? 0;
+      final bottomCount =
+          data.recommendationsBottoms?.items?.whereType<ClothesScoreItem>().length ?? 0;
+
+      if (outfitCount > 0 || topCount > 0 || bottomCount > 0) {
+        final segments = <String>[];
+        if (outfitCount > 0) segments.add('코디 $outfitCount개');
+        if (topCount > 0) segments.add('상의 $topCount개');
+        if (bottomCount > 0) segments.add('하의 $bottomCount개');
+        parts.add('[추천: ${segments.join(', ')}]');
+      }
+    }
+    return parts.isEmpty ? null : parts.join('\n');
+  }
 
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty || state.isSending) return;
 
-    // 1. 이전 대화 히스토리 추출
-    final historyList = state.messages
-        .where((m) => m.text != null && !m.isLoading && m.errorMessage == null)
-        .map((m) => ChatHistoryItem(
-              role: m.isUser ? 'user' : 'model',
-              content: m.text!,
-            ))
-        .toList();
+    // 1. 이전 대화 히스토리 추출 (추천 컨텍스트 포함)
+    final historyList = <ChatHistoryItem>[];
+    for (final m in state.messages) {
+      if (m.isLoading || m.errorMessage != null) continue;
+      final content = m.isUser ? m.text : _botHistoryContent(m);
+      if (content == null || content.isEmpty) continue;
+      historyList.add(ChatHistoryItem(
+        role: m.isUser ? 'user' : 'model',
+        content: content,
+      ));
+    }
 
-    // 2. 현재 날씨 조회 (실패 시 기본값 사용)
-    WeatherInfo? weather;
-    try {
-      weather = await fetchWeatherFromCurrentPosition();
-    } catch (_) {}
+    // 2. 날씨 조회 (캐시 5분 유효 → GPS 재호출 방지)
+    WeatherInfo? weather = _weatherCache.data;
+    if (weather == null) {
+      try {
+        weather = await fetchWeatherFromCurrentPosition();
+        _weatherCache.update(weather);
+      } catch (_) {}
+    }
+    // UI에서 날씨 정보를 표시할 수 있도록 캐시 갱신
+    if (weather != null) {
+      _ref.read(cachedWeatherProvider.notifier).state = weather;
+    }
 
-    // 3. 요청 DTO 구성
+    final isDefault = weather == null;
+
+    // 3. 요청 DTO 구성 (OrDefault 플래그로 폴백 여부 전달)
     final requestDto = ChatRequestDto(
       message: trimmed,
       history: historyList,
@@ -80,6 +144,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
       snow: weather?.snow ?? 0.0,
       windSpeed: weather?.windSpeed ?? 0.0,
       humidity: weather?.humidity ?? 0,
+      tempOrDefault: isDefault ? true : null,
+      rainOrDefault: isDefault ? true : null,
+      snowOrDefault: isDefault ? true : null,
+      windSpeedOrDefault: isDefault ? true : null,
+      humidityOrDefault: isDefault ? true : null,
     );
 
     // 4. 유저 말풍선 + 로딩 말풍선을 즉시 노출
@@ -121,9 +190,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 }
 
-// ─── Provider (autoDispose: 화면 이탈 시 대화 초기화) ─────────────────────────
+// ─── Provider (keepAlive: buyUrl 등 외부 이동 시 대화 유지) ──────────────────
 
 final chatProvider =
-    StateNotifierProvider.autoDispose<ChatNotifier, ChatState>(
-  (ref) => ChatNotifier(ref.read(chatRepositoryProvider)),
+    StateNotifierProvider<ChatNotifier, ChatState>(
+  (ref) => ChatNotifier(ref.read(chatRepositoryProvider), ref),
 );

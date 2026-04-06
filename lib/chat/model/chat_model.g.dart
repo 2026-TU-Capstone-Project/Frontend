@@ -26,6 +26,11 @@ ChatRequestDto _$ChatRequestDtoFromJson(Map<String, dynamic> json) =>
       snow: (json['snow'] as num?)?.toDouble(),
       windSpeed: (json['windSpeed'] as num?)?.toDouble(),
       humidity: (json['humidity'] as num?)?.toInt(),
+      tempOrDefault: json['tempOrDefault'] as bool?,
+      rainOrDefault: json['rainOrDefault'] as bool?,
+      snowOrDefault: json['snowOrDefault'] as bool?,
+      windSpeedOrDefault: json['windSpeedOrDefault'] as bool?,
+      humidityOrDefault: json['humidityOrDefault'] as bool?,
     );
 
 Map<String, dynamic> _$ChatRequestDtoToJson(ChatRequestDto instance) =>
@@ -37,6 +42,11 @@ Map<String, dynamic> _$ChatRequestDtoToJson(ChatRequestDto instance) =>
       'snow': ?instance.snow,
       'windSpeed': ?instance.windSpeed,
       'humidity': ?instance.humidity,
+      'tempOrDefault': ?instance.tempOrDefault,
+      'rainOrDefault': ?instance.rainOrDefault,
+      'snowOrDefault': ?instance.snowOrDefault,
+      'windSpeedOrDefault': ?instance.windSpeedOrDefault,
+      'humidityOrDefault': ?instance.humidityOrDefault,
     };
 
 ChatResponseData _$ChatResponseDataFromJson(Map<String, dynamic> json) =>

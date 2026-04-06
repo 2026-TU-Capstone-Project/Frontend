@@ -29,6 +29,11 @@ class ChatRequestDto {
   final double? snow;
   final double? windSpeed;
   final int? humidity;
+  final bool? tempOrDefault;
+  final bool? rainOrDefault;
+  final bool? snowOrDefault;
+  final bool? windSpeedOrDefault;
+  final bool? humidityOrDefault;
 
   ChatRequestDto({
     this.message,
@@ -38,6 +43,11 @@ class ChatRequestDto {
     this.snow,
     this.windSpeed,
     this.humidity,
+    this.tempOrDefault,
+    this.rainOrDefault,
+    this.snowOrDefault,
+    this.windSpeedOrDefault,
+    this.humidityOrDefault,
   });
 
   factory ChatRequestDto.fromJson(Map<String, dynamic> json) =>

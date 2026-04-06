@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 
-const _owmApiKey = '40591f2fa4b059a5ac307fc839eafc7f';
+final String _owmApiKey = dotenv.env['OWM_API_KEY'] ?? '';
 
 // ─────────────────────────────────────────────────────────
 // 날씨 DTO
