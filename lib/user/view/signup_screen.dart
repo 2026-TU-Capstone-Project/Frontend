@@ -1,3 +1,4 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:capstone_fe/common/const/data.dart';
@@ -248,11 +249,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 onPressed: _isLoading ? null : _onSignupPressed,
                 child: _isLoading
-                    ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
-                )
+                    ? const LoadingIndicator(size: 24)
                     : const Text(
                   '가입하기',
                   style: TextStyle(

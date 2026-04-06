@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
@@ -552,14 +553,7 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
                         ),
                       ),
                       child: _saving
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
+                          ? const LoadingIndicator(size: 24)
                           : const Text('저장'),
                     ),
                   ),

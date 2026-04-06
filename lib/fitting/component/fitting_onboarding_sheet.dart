@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
@@ -671,14 +672,7 @@ class _FittingOnboardingSheetState
                 ),
               ),
               child: _isSubmitting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
+                  ? const LoadingIndicator(size: 24)
                   : const Text(
                       '피팅룸 시작하기',
                       style: TextStyle(

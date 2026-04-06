@@ -1,3 +1,4 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
@@ -240,9 +241,7 @@ class _ClothesSetDetailScreenState extends State<ClothesSetDetailScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
-            )
+          ? const LoadingIndicator()
           : tasks.isEmpty
               ? _buildEmpty()
               : GridView.builder(

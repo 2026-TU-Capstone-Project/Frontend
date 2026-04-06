@@ -1,3 +1,4 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
@@ -62,7 +63,7 @@ class FeedDetailScreen extends ConsumerWidget {
             : null,
       ),
       body: detailAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingIndicator(size: 80),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -421,10 +422,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
           TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? const LoadingIndicator(size: 20)
                 : const Text('저장',
                     style: TextStyle(fontWeight: FontWeight.w700)),
           ),

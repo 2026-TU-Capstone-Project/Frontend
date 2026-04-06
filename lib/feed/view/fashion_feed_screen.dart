@@ -1,3 +1,5 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
@@ -78,7 +80,7 @@ class FashionFeedScreen extends ConsumerWidget {
               Expanded(
                 child: feedAsync.when(
                   loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                      const LoadingIndicator(size: 80),
                   error: (e, _) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -1,3 +1,4 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -81,9 +82,7 @@ class _OAuthWebViewScreenState extends State<OAuthWebViewScreen> {
               child: WebViewWidget(controller: _controller),
             ),
             if (_isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
-              ),
+              const LoadingIndicator(),
           ],
         ),
       ),

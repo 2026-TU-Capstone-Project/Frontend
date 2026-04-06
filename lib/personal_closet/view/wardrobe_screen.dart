@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
@@ -212,8 +213,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
                     const Text(
@@ -385,7 +385,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     return Scaffold(
       backgroundColor: _kBg,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR))
+          ? const LoadingIndicator()
           : SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1182,15 +1182,7 @@ class _FullScreenImageView extends StatelessWidget {
                   fit: BoxFit.contain,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                        color: Colors.white,
-                      ),
-                    );
+                    return const LoadingIndicator(size: 150);
                   },
                   errorBuilder: (_, __, ___) => const Center(
                     child: Icon(

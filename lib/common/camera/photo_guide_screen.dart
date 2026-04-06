@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 
 enum PhotoGuideType { topClothing, bottomClothing, fullBody, profile }
@@ -281,14 +282,7 @@ class _PhotoGuideScreenState extends State<PhotoGuideScreen> {
         ),
         alignment: Alignment.center,
         child: _isCapturing
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
+            ? const LoadingIndicator(size: 22)
             : const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

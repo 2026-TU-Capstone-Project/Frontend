@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -1169,7 +1170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: _loadingOutfits
                   ? const SizedBox(
                       height: 200,
-                      child: Center(child: CircularProgressIndicator()),
+                      child: LoadingIndicator(),
                     )
                   : _savedOutfits.isEmpty
                   ? _EmptyOutfitBanner(onTap: widget.onGoToFittingRoom)
@@ -1206,7 +1207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _ => const SliverToBoxAdapter(
                 child: SizedBox(
                   height: 120,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: LoadingIndicator(),
                 ),
               ),
             },

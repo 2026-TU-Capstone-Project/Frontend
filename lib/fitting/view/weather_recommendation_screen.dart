@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/component/style_analysis_widget.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
@@ -314,16 +315,6 @@ class _DynamicWeatherHeader extends StatelessWidget {
 
   String get _weatherIcon => weatherLabel(weather.conditionCode).emoji;
 
-  String get _tempFeeling {
-    final t = weather.temp;
-    if (t >= 28) return '🔥 매우 더움';
-    if (t >= 23) return '😎 더움';
-    if (t >= 18) return '🙂 쾌적';
-    if (t >= 12) return '🧥 선선함';
-    if (t >= 5) return '🥶 추움';
-    return '❄️ 매우 추움';
-  }
-
   @override
   Widget build(BuildContext context) {
     final statusBarHeight = MediaQuery.of(context).padding.top;
@@ -492,25 +483,6 @@ class _DynamicWeatherHeader extends StatelessWidget {
                                     color: Colors.white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _tempFeeling,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
                                   ),
                                 ),
                               ],
@@ -813,16 +785,7 @@ class _ImageSection extends StatelessWidget {
                 if (progress == null) return child;
                 return Container(
                   color: AppColors.INPUT_BG_COLOR,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      value: progress.expectedTotalBytes != null
-                          ? progress.cumulativeBytesLoaded /
-                                progress.expectedTotalBytes!
-                          : null,
-                      strokeWidth: 2,
-                      color: AppColors.ACCENT_BLUE,
-                    ),
-                  ),
+                  child: const LoadingIndicator(size: 80),
                 );
               },
             ),
@@ -1072,16 +1035,7 @@ class _LoadingDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 48,
-              height: 48,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  AppColors.ACCENT_BLUE,
-                ),
-              ),
-            ),
+            const LoadingIndicator(size: 80),
             const SizedBox(height: 20),
             const Text(
               '날씨를 확인하고 있어요',

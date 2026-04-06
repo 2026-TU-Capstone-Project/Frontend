@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/component/fitting_loading_effect.dart';
 
@@ -234,14 +235,8 @@ class _FittingMainStageState extends State<FittingMainStage> {
         // 💡 [추가] 다운로드 중일 때 로딩 스피너 표시
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                        (loadingProgress.expectedTotalBytes ?? 1)
-                  : null,
-              color: AppColors.PRIMARYCOLOR,
-            ),
+          return const Center(
+            child: LoadingIndicator(),
           );
         },
         // 🚨 [추가] URL이 가짜이거나 깨져있을 때 (에러 발생 시) 엑스박스 표시

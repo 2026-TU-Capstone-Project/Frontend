@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/chat/model/chat_model.dart';
 import 'package:capstone_fe/chat/provider/chat_provider.dart';
 import 'package:capstone_fe/common/const/colors.dart';
@@ -1434,10 +1435,7 @@ class _SendButtonState extends State<_SendButton>
           child: widget.isSending
               ? const Padding(
                   padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
-                  ),
+                  child: LoadingIndicator(size: 24),
                 )
               : const Icon(
                   Icons.arrow_upward_rounded,

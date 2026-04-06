@@ -1,3 +1,4 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
@@ -122,7 +123,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
         ),
       ),
       body: closetAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingIndicator(size: 80),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -251,12 +252,7 @@ class _WriteBody extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           if (loadingPreview)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            )
+            const LoadingIndicator(size: 80)
           else if (preview != null) ...[
             const Text('미리보기',
                 style: TextStyle(
@@ -323,11 +319,7 @@ class _WriteBody extends StatelessWidget {
                   elevation: 0,
                 ),
                 child: posting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                    ? const LoadingIndicator(size: 20)
                     : const Text('게시하기'),
               ),
             ),

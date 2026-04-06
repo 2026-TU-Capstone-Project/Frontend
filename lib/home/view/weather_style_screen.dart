@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/component/style_analysis_widget.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/clothes/model/recommend_model.dart';
@@ -34,9 +35,7 @@ class WeatherStyleScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       body: resultAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
-        ),
+        loading: () => const LoadingIndicator(),
         error: (e, _) => _ErrorBody(
           message: e.toString(),
           onRetry: () =>

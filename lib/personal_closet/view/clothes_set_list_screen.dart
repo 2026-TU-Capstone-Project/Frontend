@@ -1,3 +1,4 @@
+import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:capstone_fe/common/const/colors.dart';
@@ -33,9 +34,7 @@ class ClothesSetListScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       body: foldersAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.PRIMARYCOLOR),
-        ),
+        loading: () => const LoadingIndicator(),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
