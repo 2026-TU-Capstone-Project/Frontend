@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -302,10 +301,10 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
   late AnimationController _animCtrl;
 
   static const int _totalCards = 2;
-  static const double _cardH = 400.0;       // 카드 높이 (크게)
-  static const double _backScale = 0.93;    // 뒤 카드 크기 비율
-  static const double _cardWRatio = 0.75;   // 카드 너비 = 화면의 75%
-  static const double _hPad = 20.0;         // 왼쪽 패딩
+  static const double _cardH = 400.0; // 카드 높이 (크게)
+  static const double _backScale = 0.93; // 뒤 카드 크기 비율
+  static const double _cardWRatio = 0.75; // 카드 너비 = 화면의 75%
+  static const double _hPad = 20.0; // 왼쪽 패딩
   static const double _rightPeekMargin = 8.0; // 뒤 카드 오른쪽 끝 여백
   static const double _swipeThreshold = 70.0;
   static const double _velThreshold = 380.0;
@@ -354,26 +353,50 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
 
     if ((_dragOffset < -_swipeThreshold || vel < -_velThreshold) && _hasNext) {
       // 다음 카드가 정확히 0 위치에 착지하도록 -sw 로 이동
-      _animate(to: -sw, curve: Curves.easeOutCubic, onDone: () {
-        setState(() { _currentIndex++; _dragOffset = 0; });
-      });
-    } else if ((_dragOffset > _swipeThreshold || vel > _velThreshold) && _hasPrev) {
+      _animate(
+        to: -sw,
+        curve: Curves.easeOutCubic,
+        onDone: () {
+          setState(() {
+            _currentIndex++;
+            _dragOffset = 0;
+          });
+        },
+      );
+    } else if ((_dragOffset > _swipeThreshold || vel > _velThreshold) &&
+        _hasPrev) {
       // 이전 카드가 정확히 0 위치에 착지하도록 +sw 로 이동
-      _animate(to: sw, curve: Curves.easeOutCubic, onDone: () {
-        setState(() { _currentIndex--; _dragOffset = 0; });
-      });
+      _animate(
+        to: sw,
+        curve: Curves.easeOutCubic,
+        onDone: () {
+          setState(() {
+            _currentIndex--;
+            _dragOffset = 0;
+          });
+        },
+      );
     } else {
       _animate(to: 0, curve: Curves.easeOutCubic);
     }
   }
 
-  void _animate({required double to, required Curve curve, VoidCallback? onDone}) {
+  void _animate({
+    required double to,
+    required Curve curve,
+    VoidCallback? onDone,
+  }) {
     final start = _dragOffset;
     _animCtrl.reset();
-    final anim = Tween<double>(begin: start, end: to)
-        .animate(CurvedAnimation(parent: _animCtrl, curve: curve));
+    final anim = Tween<double>(
+      begin: start,
+      end: to,
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: curve));
 
-    void listener() { if (mounted) setState(() => _dragOffset = anim.value); }
+    void listener() {
+      if (mounted) setState(() => _dragOffset = anim.value);
+    }
+
     anim.addListener(listener);
     _animCtrl.forward().then((_) {
       anim.removeListener(listener);
@@ -416,7 +439,6 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
         gradientColors: const [Color(0xFF1A1A2E), Color(0xFF6B5CE7)],
         fallbackIcon: Icons.auto_awesome_outlined,
       ),
-
     ];
 
     return Column(
@@ -472,7 +494,10 @@ class _HowToDressTodaySectionState extends State<HowToDressTodaySection>
                   child: Transform.translate(
                     offset: Offset(_dragOffset, 0),
                     child: Opacity(
-                      opacity: (1.0 - prog * 0.25 - prevProg * 0.25).clamp(0.0, 1.0),
+                      opacity: (1.0 - prog * 0.25 - prevProg * 0.25).clamp(
+                        0.0,
+                        1.0,
+                      ),
                       child: GestureDetector(
                         onTap: _dragOffset.abs() < 6
                             ? cards[_currentIndex].onTap
@@ -1157,9 +1182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onPhotoFitting: widget.onGoToFittingRoom,
                 onStyleRecommendation: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AiChatScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const AiChatScreen()),
                   );
                 },
                 weather: _weather,
@@ -1170,7 +1193,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: _loadingOutfits
                   ? const SizedBox(
                       height: 200,
-                      child: LoadingIndicator(),
+                      child: Center(child: CircularProgressIndicator()),
                     )
                   : _savedOutfits.isEmpty
                   ? _EmptyOutfitBanner(onTap: widget.onGoToFittingRoom)
@@ -1207,7 +1230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _ => const SliverToBoxAdapter(
                 child: SizedBox(
                   height: 120,
-                  child: LoadingIndicator(),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
               ),
             },
@@ -1274,7 +1297,11 @@ class _WardrobeAiSection extends StatelessWidget {
             ),
             child: const Column(
               children: [
-                Icon(Icons.checkroom_outlined, size: 32, color: AppColors.MEDIUM_GREY),
+                Icon(
+                  Icons.checkroom_outlined,
+                  size: 32,
+                  color: AppColors.MEDIUM_GREY,
+                ),
                 SizedBox(height: 8),
                 Text(
                   '옷을 추가하고 AI 추천을 받아보세요',
@@ -1299,13 +1326,16 @@ class _WardrobeAiSection extends StatelessWidget {
                           AiChatScreen(initialMessage: _buildQuery(item)),
                       transitionDuration: const Duration(milliseconds: 350),
                       transitionsBuilder: (_, animation, __, child) {
-                        final slide = Tween<Offset>(
-                          begin: const Offset(0, 0.12),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ));
+                        final slide =
+                            Tween<Offset>(
+                              begin: const Offset(0, 0.12),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
                         return FadeTransition(
                           opacity: animation,
                           child: SlideTransition(position: slide, child: child),
@@ -1350,7 +1380,11 @@ class _WardrobeAiSection extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: const Color(0xFFEEEEEE),
-        child: const Icon(Icons.checkroom_outlined, size: 32, color: AppColors.MEDIUM_GREY),
-      );
+    color: const Color(0xFFEEEEEE),
+    child: const Icon(
+      Icons.checkroom_outlined,
+      size: 32,
+      color: AppColors.MEDIUM_GREY,
+    ),
+  );
 }
