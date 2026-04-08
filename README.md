@@ -214,17 +214,17 @@ lib/
 
 <table>
   <tr>
-    <td align="center"><img src="asset/img/App1.jpg" width="220px" alt="App Screenshot 1"/></td>
-    <td align="center"><img src="asset/img/App2.jpg" width="220px" alt="App Screenshot 2"/></td>
-    <td align="center"><img src="asset/img/App3.jpg" width="220px" alt="App Screenshot 3"/></td>
+    <td align="center"><img src="asset/img/App1.png" width="220px" alt="App Screenshot 1"/></td>
+    <td align="center"><img src="asset/img/App2.png" width="220px" alt="App Screenshot 2"/></td>
+    <td align="center"><img src="asset/img/App3.png" width="220px" alt="App Screenshot 3"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="asset/img/App4.jpg" width="220px" alt="App Screenshot 4"/></td>
-    <td align="center"><img src="asset/img/App5.jpg" width="220px" alt="App Screenshot 5"/></td>
-    <td align="center"><img src="asset/img/App6.jpg" width="220px" alt="App Screenshot 6"/></td>
+    <td align="center"><img src="asset/img/App4.png" width="220px" alt="App Screenshot 4"/></td>
+    <td align="center"><img src="asset/img/App5.png" width="220px" alt="App Screenshot 5"/></td>
+    <td align="center"><img src="asset/img/App6.png" width="220px" alt="App Screenshot 6"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="asset/img/App7.jpg" width="220px" alt="App Screenshot 7"/></td>
+    <td align="center"><img src="asset/img/App7.png" width="220px" alt="App Screenshot 7"/></td>
   </tr>
 </table>
 
