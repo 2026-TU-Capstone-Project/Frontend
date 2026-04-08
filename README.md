@@ -4,7 +4,7 @@
 ![Dart](https://img.shields.io/badge/dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)
 ![Android Studio](https://img.shields.io/badge/Android%20Studio-3DDC84.svg?style=for-the-badge&logo=android-studio&logoColor=white)
 
-## 🛠 Tech Stack
+## 🛠 기술 스택
 
 | Category | Technology | Description |
 | :--- | :--- | :--- |
@@ -16,12 +16,12 @@
 
 <br>
 
-## 🚀 Getting Started (Android Guide)
+## 🚀 시작하기 (Android 가이드)
 
 이 프로젝트를 **Android 환경**에서 실행하기 위한 상세 가이드입니다.
 Flutter 환경 설정이 처음이라면 **1. 사전 준비 사항**부터 차근차근 진행해 주세요.
 
-### 1. Prerequisites (사전 준비 사항)
+### 1. 사전 준비 사항
 앱을 실행하기 위해 다음 도구들이 설치되어 있어야 합니다.
 
 1.  **Flutter SDK 설치**: [공식 가이드](https://docs.flutter.dev/get-started/install/windows/mobile)를 참고하여 설치 및 환경 변수(PATH)를 설정합니다.
@@ -35,28 +35,32 @@ flutter doctor
 # 모든 항목에 체크(v)가 되어 있어야 정상입니다.
 # [!] 표시가 있다면 해당 에러 메시지의 가이드를 따라 해결해주세요.
 ```
-## 2. Installation (프로젝트 설치)
+## 2. 설치
 
-### Step 1. 프로젝트 복제 (Clone)
+### 단계 1. 프로젝트 복제
 
 ```Bash
 git clone [https://github.com/2026-TU-Capstone-Project/Frontend.git](https://github.com/2026-TU-Capstone-Project/Frontend.git)
 cd Frontend
 ```
 
-### Step 2. 라이브러리 설치 (Dependencies) 프로젝트에 필요한 패키지들을 다운로드합니다.
+### 단계 2. 라이브러리 설치
+
+프로젝트에 필요한 패키지들을 다운로드합니다.
 
 ```Bash
 flutter pub get
 ```
 
-### Step 3. 코드 생성 (Code Generation) ⭐ 중요 이 프로젝트는 Retrofit과 JsonSerializable을 사용합니다. 모델 변경 사항을 반영하고 .g.dart 파일을 생성하기 위해 반드시 아래 명령어를 실행해야 합니다.
+### 단계 3. 코드 생성 ⭐ 중요
+
+이 프로젝트는 Retrofit과 JsonSerializable을 사용합니다. 모델 변경 사항을 반영하고 .g.dart 파일을 생성하기 위해 반드시 아래 명령어를 실행해야 합니다.
 
 ```Bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-### 3. Run APP (앱 실행)
+### 3. 앱 실행
 ```
 Option A. 에뮬레이터(Emulator) 실행
 
@@ -84,7 +88,7 @@ flutter run
 # Release Mode
 flutter run --release
 ```
-## 4. Project Structure
+## 4. 프로젝트 구조
 프로젝트의 현재 폴더 구조입니다. (Last Update: 04/05)
 ```bash
 lib/
@@ -197,7 +201,7 @@ lib/
 └── main.dart                          # 앱 진입점 (MaterialApp)
 ```
 
-## ✨ Latest Core Feature Updates
+## ✨ 최신 핵심 기능 업데이트
 
 *   **Virtual Fitting API Synchronization**:
     *   가상 피팅 메인 모델 이미지 로딩 로직을 로컬 캐시에서 서버 프로필 기반 우선 호출(Single Source of Truth) 방식으로 완벽히 통합했습니다.
@@ -210,7 +214,7 @@ lib/
 
 <br>
 
-## 📸 Screenshots
+## 📸 스크린샷
 
 <table>
   <tr>
