@@ -208,3 +208,23 @@ lib/
     *   AI 챗봇 통신 시 프론트엔드에서 현재 날씨 데이터를 래핑하여 백그라운드 전송하도록 개선했습니다.
     *   챗봇 대화 간의 문맥 유지를 위해 이전 대화 내역(`history`)을 `assistant` 와 `user` Role로 치환하여 발송하는 등 기능적 완성도를 극대화했습니다.
 
+<br>
+
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="asset/img/App1.jpg" width="220px" alt="App Screenshot 1"/></td>
+    <td align="center"><img src="asset/img/App2.jpg" width="220px" alt="App Screenshot 2"/></td>
+    <td align="center"><img src="asset/img/App3.jpg" width="220px" alt="App Screenshot 3"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="asset/img/App4.jpg" width="220px" alt="App Screenshot 4"/></td>
+    <td align="center"><img src="asset/img/App5.jpg" width="220px" alt="App Screenshot 5"/></td>
+    <td align="center"><img src="asset/img/App6.jpg" width="220px" alt="App Screenshot 6"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="asset/img/App7.jpg" width="220px" alt="App Screenshot 7"/></td>
+  </tr>
+</table>
+
