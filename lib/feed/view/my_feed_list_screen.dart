@@ -33,7 +33,7 @@ class MyFeedListScreen extends ConsumerWidget {
         ),
       ),
       body: feedAsync.when(
-        loading: () => const LoadingIndicator(size: 80),
+        loading: () => const LoadingIndicator(),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

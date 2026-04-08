@@ -12,7 +12,7 @@ class LoadingIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Lottie.asset(
-        'asset/json/default_Loading.json',
+        'asset/json/loading.json',
         width: size,
         height: size,
         fit: BoxFit.contain,

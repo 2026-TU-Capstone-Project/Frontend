@@ -80,7 +80,7 @@ class FashionFeedScreen extends ConsumerWidget {
               Expanded(
                 child: feedAsync.when(
                   loading: () =>
-                      const LoadingIndicator(size: 80),
+                      const LoadingIndicator(),
                   error: (e, _) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

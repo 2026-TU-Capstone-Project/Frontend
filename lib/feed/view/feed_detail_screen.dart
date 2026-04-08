@@ -63,7 +63,7 @@ class FeedDetailScreen extends ConsumerWidget {
             : null,
       ),
       body: detailAsync.when(
-        loading: () => const LoadingIndicator(size: 80),
+        loading: () => const LoadingIndicator(),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
