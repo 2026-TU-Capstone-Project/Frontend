@@ -492,8 +492,6 @@ class _ClothingDeleteProgressDialogState
             _buildTitle(),
             const SizedBox(height: 8),
             _buildStatusMessage(),
-            const SizedBox(height: 24),
-            _buildProgressBar(),
           ],
         ),
       ),
@@ -593,20 +591,4 @@ class _ClothingDeleteProgressDialogState
     }
   }
 
-  Widget _buildProgressBar() {
-    if (_step == _DeleteStep.failed) return const SizedBox.shrink();
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: LinearProgressIndicator(
-        value: _step == _DeleteStep.deleting ? null : 1.0,
-        minHeight: 6,
-        backgroundColor: AppColors.BORDER_COLOR,
-        valueColor: AlwaysStoppedAnimation<Color>(
-          _step == _DeleteStep.completed
-              ? AppColors.SUCCESS_COLOR
-              : AppColors.ACCENT_BLUE,
-        ),
-      ),
-    );
-  }
 }
