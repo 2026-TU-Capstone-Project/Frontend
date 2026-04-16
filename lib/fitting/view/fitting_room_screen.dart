@@ -890,7 +890,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
         _progress.resultImageUrl != null && _progress.currentTaskId != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Colors.transparent,
       bottomNavigationBar: hasResult
           ? _ResultActionBar(
               latencyText: _progress.latency != null
@@ -907,73 +907,114 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
               onPressed: isReady ? _showFitTypeThenStart : null,
             )
           : null,
-      body: SafeArea(
-        top: true,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF8FAFF),
+              Color(0xFFEEF1F8),
+              Color(0xFFF5F5F7),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          top: true,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
 
-                // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
-                FittingMainStage(
-                    mainImagePath:
-                        _progress.resultImageUrl ??
-                        _selectedUserImage?.path,
-                    isLoading: _progress.isFittingNow,
-                    isResult:
-                        _progress.resultImageUrl != null &&
-                        !_progress.isFittingNow,
+                  // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
+                  FittingMainStage(
+                      mainImagePath:
+                          _progress.resultImageUrl ??
+                          _selectedUserImage?.path,
+                      isLoading: _progress.isFittingNow,
+                      isResult:
+                          _progress.resultImageUrl != null &&
+                          !_progress.isFittingNow,
 
-                    // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
-                    onUserImageTap: _progress.resultImageUrl != null
-                        ? _openResultImageFullScreen
-                        : _pickUserImage,
+                      // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
+                      onUserImageTap: _progress.resultImageUrl != null
+                          ? _openResultImageFullScreen
+                          : _pickUserImage,
 
-                    // 상의 선택 로직
-                    topImageFile: _selectedTopFile,
-                    topImageUrl: _selectedTopUrl,
-                    onTopTap: () => showAddClothingBottomSheet(
-                      context,
-                      '상의',
-                      onWardrobeTap: () => _openWardrobePicker('TOP'),
-                      onImageSelected: (file) {
-                        setState(() {
-                          _selectedTopFile = file;
-                          _selectedTopUrl = null;
-                        });
-                      },
+                      // 상의 선택 로직
+                      topImageFile: _selectedTopFile,
+                      topImageUrl: _selectedTopUrl,
+                      onTopTap: () => showAddClothingBottomSheet(
+                        context,
+                        '상의',
+                        onWardrobeTap: () => _openWardrobePicker('TOP'),
+                        onImageSelected: (file) {
+                          setState(() {
+                            _selectedTopFile = file;
+                            _selectedTopUrl = null;
+                          });
+                        },
+                      ),
+
+                      // 하의 선택 로직
+                      bottomImageFile: _selectedBottomFile,
+                      bottomImageUrl: _selectedBottomUrl,
+                      onBottomTap: () => showAddClothingBottomSheet(
+                        context,
+                        '하의',
+                        onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
+                        onImageSelected: (file) {
+                          setState(() {
+                            _selectedBottomFile = file;
+                            _selectedBottomUrl = null;
+                          });
+                        },
+                      ),
                     ),
-
-                    // 하의 선택 로직
-                    bottomImageFile: _selectedBottomFile,
-                    bottomImageUrl: _selectedBottomUrl,
-                    onBottomTap: () => showAddClothingBottomSheet(
-                      context,
-                      '하의',
-                      onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
-                      onImageSelected: (file) {
-                        setState(() {
-                          _selectedBottomFile = file;
-                          _selectedBottomUrl = null;
-                        });
-                      },
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.ACCENT_BLUE.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: AppColors.ACCENT_BLUE.withValues(alpha: 0.18),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.touch_app_outlined,
+                            size: 14,
+                            color: AppColors.ACCENT_BLUE,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            "좌측 이미지를 탭하여 전신 사진을 변경하세요",
+                            style: TextStyle(
+                              color: AppColors.BODY_COLOR,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                const SizedBox(height: 16),
-                const Center(
-                  child: Text(
-                    "좌측 이미지를 탭하여 전신 사진을 변경하세요",
-                    style: TextStyle(
-                      color: AppColors.MEDIUM_GREY,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 120),
-              ],
+                  const SizedBox(height: 120),
+                ],
+              ),
             ),
           ),
         ),
@@ -1004,40 +1045,58 @@ class _ResultActionBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.white, Color(0xFFFBFCFE)],
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+            color: AppColors.PRIMARYCOLOR.withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottom),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 12 + bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (latencyText != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.SUCCESS_COLOR.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.SUCCESS_COLOR.withValues(alpha: 0.35),
+                      width: 1,
+                    ),
+                  ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.timer_outlined,
-                        size: 14,
+                        Icons.check_circle_outline_rounded,
+                        size: 15,
                         color: AppColors.SUCCESS_COLOR,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         latencyText!,
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           color: AppColors.SUCCESS_COLOR,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ],
@@ -1049,11 +1108,20 @@ class _ResultActionBar extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: onClose,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.MEDIUM_GREY,
-                        side: const BorderSide(color: AppColors.BORDER_COLOR),
+                        foregroundColor: AppColors.BODY_COLOR,
+                        backgroundColor: AppColors.INPUT_BG_COLOR,
+                        side: const BorderSide(
+                          color: AppColors.BORDER_COLOR,
+                          width: 1.2,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       child: const Text('닫기'),
@@ -1062,30 +1130,62 @@ class _ResultActionBar extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
-                    child: FilledButton(
-                      onPressed: onSave,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.PRIMARYCOLOR,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.PRIMARYCOLOR,
+                            Color(0xFF3F4651),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.PRIMARYCOLOR.withValues(
+                              alpha: 0.38,
+                            ),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      child: const Text('저장하기'),
+                      child: FilledButton(
+                        onPressed: onSave,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        child: const Text('저장하기'),
+                      ),
                     ),
                   ),
                 ],
               ),
               if (onSaveToFolder != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
+                  padding: const EdgeInsets.only(top: 10.0),
                   child: TextButton.icon(
                     onPressed: onSaveToFolder,
                     icon: const Icon(Icons.folder_outlined, size: 18),
                     label: const Text('폴더에 저장'),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.PRIMARYCOLOR,
+                      foregroundColor: AppColors.ACCENT_BLUE,
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -1115,41 +1215,59 @@ class _BottomCtaBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.white, Color(0xFFFBFCFE)],
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+            color: AppColors.PRIMARYCOLOR.withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + bottom),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 14 + bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // ── 안내 문구 ──────────
               if (!isReady)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.ACCENT_BLUE.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.ACCENT_BLUE.withValues(alpha: 0.22),
+                      width: 1,
+                    ),
+                  ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.info_outline,
+                        Icons.info_outline_rounded,
                         size: 14,
-                        color: AppColors.MEDIUM_GREY,
+                        color: AppColors.ACCENT_BLUE,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         helperText,
                         style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.MEDIUM_GREY,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                          color: AppColors.ACCENT_BLUE,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ],
@@ -1160,34 +1278,66 @@ class _BottomCtaBar extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
                   width: double.infinity,
-                  height: 56,
+                  height: 58,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: isReady
-                        ? AppColors.PRIMARYCOLOR
-                        : AppColors.BORDER_COLOR,
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: isReady
+                        ? const LinearGradient(
+                            colors: [
+                              AppColors.ACCENT_BLUE,
+                              AppColors.ACCENT_PURPLE,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isReady ? null : AppColors.BORDER_COLOR,
                     boxShadow: isReady
                         ? [
                             BoxShadow(
-                              color: AppColors.PRIMARYCOLOR.withValues(
-                                alpha: 0.3,
+                              color: AppColors.ACCENT_BLUE.withValues(
+                                alpha: 0.36,
                               ),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: AppColors.ACCENT_PURPLE.withValues(
+                                alpha: 0.22,
+                              ),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
                             ),
                           ]
                         : [],
                   ),
                   child: Center(
-                    child: Text(
-                      isReady ? "핏감 선택하기" : helperText,
-                      style: TextStyle(
-                        color: isReady ? Colors.white : AppColors.MEDIUM_GREY,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isReady) ...[
+                          const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          isReady ? "핏감 선택하기" : helperText,
+                          style: TextStyle(
+                            color: isReady
+                                ? Colors.white
+                                : AppColors.MEDIUM_GREY,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
