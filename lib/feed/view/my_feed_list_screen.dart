@@ -103,7 +103,7 @@ class MyFeedListScreen extends ConsumerWidget {
 }
 
 class _FeedGridItem extends StatelessWidget {
-  final FeedListItem feed;
+  final FeedListResponseDto feed;
   const _FeedGridItem({required this.feed});
 
   @override

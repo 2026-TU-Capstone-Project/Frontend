@@ -7,9 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:capstone_fe/fitting/provider/fitting_provider.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
@@ -171,167 +169,59 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     }
   }
 
-  /// 전신 사진 선택: 하단 시트 → 사진 촬영 / 갤러리 / 내 피팅 프로필 불러오기
+  /// 전신 사진 선택: 통합 AddClothingSheet → 촬영 / 갤러리 / 내 피팅프로필 불러오기
   Future<void> _pickUserImage() async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.BORDER_COLOR,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                '전신 사진 선택',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.BLACK,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _userImageSourceTile(
-                context: ctx,
-                icon: Icons.camera_alt_outlined,
-                label: '사진 촬영하기',
-                onTap: () => Navigator.pop(ctx, 'camera'),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Divider(height: 1, color: AppColors.BORDER_COLOR),
-              ),
-              _userImageSourceTile(
-                context: ctx,
-                icon: Icons.photo_library_outlined,
-                label: '갤러리에서 선택',
-                onTap: () => Navigator.pop(ctx, 'gallery'),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Divider(height: 1, color: AppColors.BORDER_COLOR),
-              ),
-              _userImageSourceTile(
-                context: ctx,
-                icon: Icons.person_outline_rounded,
-                label: '내 피팅 프로필 불러오기',
-                onTap: () => Navigator.pop(ctx, 'profile'),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (result == null || !mounted) return;
+    showAddClothingBottomSheet(
+      context,
+      '전신',
+      onWardrobeTap: () {},
+      onImageSelected: (file) {
+        if (mounted) setState(() => _selectedUserImage = file);
+      },
+      onProfileTap: () async {
+        try {
+          final authDio = createAuthDio();
+          final authRepo = AuthRepository(Dio(), baseUrl: baseUrl);
+          final userInfo = await authRepo.getMe(authDio);
+          final profileImageUrl = userInfo?.profileImageUrl?.trim();
 
-    if (result == 'profile') {
-      try {
-        final authDio = createAuthDio();
-        final authRepo = AuthRepository(Dio(), baseUrl: baseUrl);
-        final userInfo = await authRepo.getMe(authDio);
-        final profileImageUrl = userInfo?.profileImageUrl?.trim();
+          if (profileImageUrl == null || profileImageUrl.isEmpty) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '등록된 프로필 사진이 없어요. 유저 탭에서 사진을 먼저 등록해주세요.',
+                  ),
+                ),
+              );
+            }
+            return;
+          }
 
-        if (profileImageUrl == null || profileImageUrl.isEmpty) {
+          final tempDir = await getTemporaryDirectory();
+          final tempPath =
+              '${tempDir.path}/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          await Dio().download(profileImageUrl, tempPath);
+
+          if (mounted) {
+            setState(() => _selectedUserImage = File(tempPath));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('피팅 프로필의 전신 사진을 불러왔어요.')),
+            );
+          }
+        } catch (e) {
+          debugPrint("⚠️ 서버 프로필 이미지 다운로드 실패: $e");
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  '등록된 프로필 사진이 없어요. 유저 탭에서 사진을 먼저 등록해주세요.',
+                  '네트워크 오류로 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
                 ),
               ),
             );
           }
-          return;
         }
-
-        final tempDir = await getTemporaryDirectory();
-        final tempPath =
-            '${tempDir.path}/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await Dio().download(profileImageUrl, tempPath);
-
-        if (mounted) {
-          setState(() => _selectedUserImage = File(tempPath));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('피팅 프로필의 전신 사진을 불러왔어요.')),
-          );
-        }
-      } catch (e) {
-        debugPrint("⚠️ 서버 프로필 이미지 다운로드 실패: $e");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                '네트워크 오류로 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-              ),
-            ),
-          );
-        }
-      }
-      return;
-    }
-
-    if (result == 'camera') {
-      final file = await PhotoGuideScreen.open(
-        context,
-        type: PhotoGuideType.fullBody,
-      );
-      if (file != null && mounted) setState(() => _selectedUserImage = file);
-    } else {
-      final picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-      if (image != null && mounted) {
-        setState(() => _selectedUserImage = File(image.path));
-      }
-    }
-  }
-
-  Widget _userImageSourceTile({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.ACCENT_COLOR.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 24, color: AppColors.ACCENT_COLOR),
-            ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.BLACK,
-              ),
-            ),
-          ],
-        ),
-      ),
+      },
     );
   }
 

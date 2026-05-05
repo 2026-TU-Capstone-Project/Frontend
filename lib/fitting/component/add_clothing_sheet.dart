@@ -10,6 +10,7 @@ void showAddClothingBottomSheet(
     String type, {
       required VoidCallback onWardrobeTap,
       required Function(File) onImageSelected,
+      VoidCallback? onProfileTap,
     }) {
   showModalBottomSheet(
     context: context,
@@ -19,6 +20,7 @@ void showAddClothingBottomSheet(
       type: type,
       onWardrobeTap: onWardrobeTap,
       onImageSelected: onImageSelected,
+      onProfileTap: onProfileTap,
     ),
   );
 }
@@ -27,11 +29,13 @@ class AddClothingSheet extends StatelessWidget {
   final String type;
   final VoidCallback onWardrobeTap;
   final Function(File) onImageSelected;
+  final VoidCallback? onProfileTap;
 
   const AddClothingSheet({
     required this.type,
     required this.onWardrobeTap,
     required this.onImageSelected,
+    this.onProfileTap,
     super.key,
   });
 
@@ -43,6 +47,11 @@ class AddClothingSheet extends StatelessWidget {
             ? PhotoGuideType.topClothing
             : PhotoGuideType.bottomClothing;
         file = await PhotoGuideScreen.open(context, type: guideType);
+      } else if (type == '전신') {
+        file = await PhotoGuideScreen.open(
+          context,
+          type: PhotoGuideType.fullBody,
+        );
       } else {
         final picker = ImagePicker();
         final XFile? img = await picker.pickImage(
@@ -122,31 +131,55 @@ class AddClothingSheet extends StatelessWidget {
               const SizedBox(height: 32),
 
               // 옵션 리스트
-              _buildMinimalOption(
-                context,
-                icon: Icons.camera_alt_outlined, // 라인 아이콘 사용
-                title: '사진 촬영',
-                onTap: () => _pickImage(ImageSource.camera, context),
-              ),
-              const SizedBox(height: 12),
-
-              _buildMinimalOption(
-                context,
-                icon: Icons.checkroom_outlined,
-                title: '나만의 옷장',
-                onTap: () {
-                  Navigator.pop(context);
-                  onWardrobeTap();
-                },
-              ),
-              const SizedBox(height: 12),
-
-              _buildMinimalOption(
-                context,
-                icon: Icons.photo_library_outlined,
-                title: '갤러리 선택',
-                onTap: () => _pickImage(ImageSource.gallery, context),
-              ),
+              if (type == '전신') ...[
+                _buildMinimalOption(
+                  context,
+                  icon: Icons.camera_alt_outlined,
+                  title: '사진 촬영',
+                  onTap: () => _pickImage(ImageSource.camera, context),
+                ),
+                const SizedBox(height: 12),
+                _buildMinimalOption(
+                  context,
+                  icon: Icons.photo_library_outlined,
+                  title: '갤러리 선택',
+                  onTap: () => _pickImage(ImageSource.gallery, context),
+                ),
+                const SizedBox(height: 12),
+                _buildMinimalOption(
+                  context,
+                  icon: Icons.person_outline_rounded,
+                  title: '내 피팅프로필 불러오기',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onProfileTap?.call();
+                  },
+                ),
+              ] else ...[
+                _buildMinimalOption(
+                  context,
+                  icon: Icons.camera_alt_outlined,
+                  title: '사진 촬영',
+                  onTap: () => _pickImage(ImageSource.camera, context),
+                ),
+                const SizedBox(height: 12),
+                _buildMinimalOption(
+                  context,
+                  icon: Icons.checkroom_outlined,
+                  title: '나만의 옷장',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onWardrobeTap();
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildMinimalOption(
+                  context,
+                  icon: Icons.photo_library_outlined,
+                  title: '갤러리 선택',
+                  onTap: () => _pickImage(ImageSource.gallery, context),
+                ),
+              ],
             ],
           ),
         ),

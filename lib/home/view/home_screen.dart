@@ -1035,7 +1035,7 @@ class RecommendedRack extends StatelessWidget {
 // 3. 2열 그리드 카드
 // =============================================================================
 class ProductGridCard extends StatelessWidget {
-  final FeedListItem item;
+  final FeedListResponseDto item;
   final VoidCallback? onTap;
 
   const ProductGridCard({super.key, required this.item, this.onTap});
@@ -1213,11 +1213,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => ProductGridCard(
-                      item: value[index],
-                      onTap: () =>
-                          showFeedDetailSheet(context, value[index].feedId),
+                      item: value.items[index],
+                      onTap: () => showFeedDetailSheet(
+                          context, value.items[index].feedId),
                     ),
-                    childCount: value.length,
+                    childCount: value.items.length,
                   ),
                 ),
               ),

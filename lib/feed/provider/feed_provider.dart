@@ -4,50 +4,155 @@ import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Feed API Repository를 앱 전역에서 공유.
+const int _kDefaultPage = 0;
+const int _kDefaultPageSize = 20;
+
 final feedRepositoryProvider = Provider<FeedRepository>((ref) {
   return FeedRepository(ref.watch(authDioProvider), baseUrl: baseUrl);
 });
 
-// ─────────────────────────────────────────────
-// 전체 피드 목록
-// ─────────────────────────────────────────────
+class FeedListState {
+  final List<FeedListResponseDto> items;
+  final int page;
+  final int totalPages;
+  final int totalElements;
+  final bool isFetchingMore;
+  final bool isLast;
 
-/// [비유] 진열대 담당자: build()에서 처음 채우고, refresh()로 새로고침.
-class FeedListNotifier extends AsyncNotifier<List<FeedListItem>> {
+  const FeedListState({
+    required this.items,
+    required this.page,
+    required this.totalPages,
+    required this.totalElements,
+    this.isFetchingMore = false,
+    this.isLast = false,
+  });
+
+  FeedListState copyWith({
+    List<FeedListResponseDto>? items,
+    int? page,
+    int? totalPages,
+    int? totalElements,
+    bool? isFetchingMore,
+    bool? isLast,
+  }) {
+    return FeedListState(
+      items: items ?? this.items,
+      page: page ?? this.page,
+      totalPages: totalPages ?? this.totalPages,
+      totalElements: totalElements ?? this.totalElements,
+      isFetchingMore: isFetchingMore ?? this.isFetchingMore,
+      isLast: isLast ?? this.isLast,
+    );
+  }
+}
+
+class FeedListNotifier extends AsyncNotifier<FeedListState> {
   @override
-  Future<List<FeedListItem>> build() => _fetch();
+  Future<FeedListState> build() => _fetchPage(0);
 
-  Future<List<FeedListItem>> _fetch() async {
+  Future<FeedListState> _fetchPage(int page) async {
     final repo = ref.read(feedRepositoryProvider);
-    final resp = await repo.getFeeds();
-    if (resp.success && resp.data != null) return resp.data!;
-    throw Exception(resp.message);
+    final resp = await repo.listAll(page, _kDefaultPageSize);
+    if (!resp.success || resp.data == null) {
+      throw Exception(resp.message);
+    }
+    final p = resp.data!;
+    return FeedListState(
+      items: p.content,
+      page: p.number,
+      totalPages: p.totalPages,
+      totalElements: p.totalElements,
+      isLast: p.last,
+    );
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+    state = await AsyncValue.guard(() => _fetchPage(0));
+  }
+
+  Future<void> fetchMore() async {
+    final current = state.valueOrNull;
+    if (current == null || current.isFetchingMore || current.isLast) return;
+    state = AsyncData(current.copyWith(isFetchingMore: true));
+    try {
+      final repo = ref.read(feedRepositoryProvider);
+      final nextPage = current.page + 1;
+      final resp = await repo.listAll(nextPage, _kDefaultPageSize);
+      if (!resp.success || resp.data == null) {
+        state = AsyncData(current.copyWith(isFetchingMore: false));
+        return;
+      }
+      final p = resp.data!;
+      state = AsyncData(current.copyWith(
+        items: [...current.items, ...p.content],
+        page: p.number,
+        totalPages: p.totalPages,
+        totalElements: p.totalElements,
+        isFetchingMore: false,
+        isLast: p.last,
+      ));
+    } catch (_) {
+      state = AsyncData(current.copyWith(isFetchingMore: false));
+    }
+  }
+
+  Future<void> toggleLike(int feedId) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final idx = current.items.indexWhere((f) => f.feedId == feedId);
+    if (idx == -1) return;
+    final original = current.items[idx];
+    final wasLiked = original.liked ?? false;
+    final originalCount = original.likeCount ?? 0;
+    final optimistic = FeedListResponseDto(
+      feedId: original.feedId,
+      feedTitle: original.feedTitle,
+      styleImageUrl: original.styleImageUrl,
+      authorNickname: original.authorNickname,
+      authorProfileImageUrl: original.authorProfileImageUrl,
+      likeCount: wasLiked ? originalCount - 1 : originalCount + 1,
+      visibility: original.visibility,
+      liked: !wasLiked,
+    );
+    final newItems = [...current.items];
+    newItems[idx] = optimistic;
+    state = AsyncData(current.copyWith(items: newItems));
+
+    try {
+      final repo = ref.read(feedRepositoryProvider);
+      final resp = await repo.toggleLike(feedId);
+      if (!resp.success) {
+        _revert(idx, original);
+      }
+    } catch (_) {
+      _revert(idx, original);
+    }
+  }
+
+  void _revert(int idx, FeedListResponseDto original) {
+    final s = state.valueOrNull;
+    if (s == null || idx < 0 || idx >= s.items.length) return;
+    final reverted = [...s.items];
+    reverted[idx] = original;
+    state = AsyncData(s.copyWith(items: reverted));
   }
 }
 
 final feedListProvider =
-    AsyncNotifierProvider<FeedListNotifier, List<FeedListItem>>(
+    AsyncNotifierProvider<FeedListNotifier, FeedListState>(
   FeedListNotifier.new,
 );
 
-// ─────────────────────────────────────────────
-// 내 피드 목록
-// ─────────────────────────────────────────────
-
-class MyFeedListNotifier extends AsyncNotifier<List<FeedListItem>> {
+class MyFeedListNotifier extends AsyncNotifier<List<FeedListResponseDto>> {
   @override
-  Future<List<FeedListItem>> build() => _fetch();
+  Future<List<FeedListResponseDto>> build() => _fetch();
 
-  Future<List<FeedListItem>> _fetch() async {
+  Future<List<FeedListResponseDto>> _fetch() async {
     final repo = ref.read(feedRepositoryProvider);
-    final resp = await repo.getMyFeeds();
-    if (resp.success && resp.data != null) return resp.data!;
+    final resp = await repo.listMy(_kDefaultPage, _kDefaultPageSize);
+    if (resp.success && resp.data != null) return resp.data!.content;
     throw Exception(resp.message);
   }
 
@@ -58,24 +163,18 @@ class MyFeedListNotifier extends AsyncNotifier<List<FeedListItem>> {
 }
 
 final myFeedListProvider =
-    AsyncNotifierProvider<MyFeedListNotifier, List<FeedListItem>>(
+    AsyncNotifierProvider<MyFeedListNotifier, List<FeedListResponseDto>>(
   MyFeedListNotifier.new,
 );
 
-// ─────────────────────────────────────────────
-// 피드 상세 (feedId 기반 family provider)
-// ─────────────────────────────────────────────
-
-/// [비유] 특정 상품의 상세 페이지 담당자.
-/// feedId별로 독립된 인스턴스를 유지한다.
 class FeedDetailNotifier
-    extends FamilyAsyncNotifier<FeedDetailData, int> {
+    extends FamilyAsyncNotifier<FeedDetailResponseDto, int> {
   @override
-  Future<FeedDetailData> build(int arg) => _fetch(arg);
+  Future<FeedDetailResponseDto> build(int arg) => _fetch(arg);
 
-  Future<FeedDetailData> _fetch(int feedId) async {
+  Future<FeedDetailResponseDto> _fetch(int feedId) async {
     final repo = ref.read(feedRepositoryProvider);
-    final resp = await repo.getFeedDetail(feedId);
+    final resp = await repo.getDetail(feedId);
     if (resp.success && resp.data != null) return resp.data!;
     throw Exception(resp.message);
   }
@@ -87,6 +186,6 @@ class FeedDetailNotifier
 }
 
 final feedDetailProvider = AsyncNotifierProviderFamily<FeedDetailNotifier,
-    FeedDetailData, int>(
+    FeedDetailResponseDto, int>(
   FeedDetailNotifier.new,
 );

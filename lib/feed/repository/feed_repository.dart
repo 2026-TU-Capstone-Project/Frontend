@@ -9,45 +9,58 @@ part 'feed_repository.g.dart';
 abstract class FeedRepository {
   factory FeedRepository(Dio dio, {String? baseUrl}) = _FeedRepository;
 
-  /// 피드 전체 목록 (삭제되지 않은)
+  /// 피드 전체 목록 (페이지네이션)
   @GET('/api/v1/feeds')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<FeedListItem>>> getFeeds();
+  Future<ApiResponse<PageFeedListResponseDto>> listAll(
+    @Query('page') int page,
+    @Query('size') int size,
+  );
+
+  /// 피드 작성
+  @POST('/api/v1/feeds')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<void>> create(@Body() Map<String, dynamic> body);
+
+  /// 피드 좋아요 토글
+  @POST('/api/v1/feeds/{feedId}/like')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<bool>> toggleLike(@Path('feedId') int feedId);
 
   /// 피드 상세
   @GET('/api/v1/feeds/{feedId}')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<FeedDetailData>> getFeedDetail(@Path('feedId') int feedId);
-
-  /// 피드 게시 전 미리보기 (가상 피팅 task 기준)
-  @GET('/api/v1/feeds/preview/{fittingTaskId}')
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<FeedPreviewData>> getFeedPreview(
-    @Path('fittingTaskId') int fittingTaskId,
-  );
-
-  /// 내 피드 목록
-  @GET('/api/v1/feeds/me')
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<FeedListItem>>> getMyFeeds();
-
-  /// 피드 작성 (body: fittingTaskId, feedTitle, feedContent)
-  @POST('/api/v1/feeds')
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<void>> createFeed(@Body() Map<String, dynamic> body);
-
-  /// 피드 수정 (제목·내용만)
-  @PATCH('/api/v1/feeds/{feedId}')
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<void>> updateFeed(
+  Future<ApiResponse<FeedDetailResponseDto>> getDetail(
     @Path('feedId') int feedId,
-    @Body() Map<String, dynamic> body,
   );
 
   /// 피드 삭제 (소프트 삭제)
   @DELETE('/api/v1/feeds/{feedId}')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<void>> deleteFeed(@Path('feedId') int feedId);
+  Future<ApiResponse<void>> delete(@Path('feedId') int feedId);
+
+  /// 피드 수정 (제목·내용만)
+  @PATCH('/api/v1/feeds/{feedId}')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<void>> update(
+    @Path('feedId') int feedId,
+    @Body() Map<String, dynamic> body,
+  );
+
+  /// 피드 게시 전 미리보기 (가상 피팅 task 기준)
+  @GET('/api/v1/feeds/preview/{fittingTaskId}')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<FeedPreviewResponseDto>> getPreview(
+    @Path('fittingTaskId') int fittingTaskId,
+  );
+
+  /// 내 피드 목록 (페이지네이션)
+  @GET('/api/v1/feeds/me')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<PageFeedListResponseDto>> listMy(
+    @Query('page') int page,
+    @Query('size') int size,
+  );
 }
 
 /// POST /api/v1/feeds 요청 body

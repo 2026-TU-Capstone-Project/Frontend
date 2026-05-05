@@ -12,7 +12,7 @@ part of 'recommend_repository.dart';
 
 class _RecommendRepository implements RecommendRepository {
   _RecommendRepository(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'https://lookpick.kro.kr';
+    baseUrl ??= 'https://diverba.kro.kr';
   }
 
   final Dio _dio;

@@ -14,7 +14,7 @@ class SingleFeedModel {
   });
 }
 
-const ip = 'lookpick.kro.kr';
+const ip = 'diverba.kro.kr';
 
 const baseUrl = 'https://$ip';
 

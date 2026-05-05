@@ -97,7 +97,7 @@ class FeedDetailScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       final repo = ref.read(feedRepositoryProvider);
-      final resp = await repo.deleteFeed(feedId);
+      final resp = await repo.delete(feedId);
       if (!context.mounted) return;
       if (resp.success) {
         ref.invalidate(feedListProvider);
@@ -118,7 +118,7 @@ class FeedDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _editFeed(
-      BuildContext context, WidgetRef ref, FeedDetailData? detail) async {
+      BuildContext context, WidgetRef ref, FeedDetailResponseDto? detail) async {
     if (detail == null) return;
     final result = await Navigator.push<bool>(
       context,
@@ -141,7 +141,7 @@ class FeedDetailScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────
 
 class _DetailBody extends StatelessWidget {
-  final FeedDetailData d;
+  final FeedDetailResponseDto d;
   const _DetailBody({required this.d});
 
   @override
@@ -376,7 +376,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
     }
     setState(() => _saving = true);
     try {
-      final resp = await ref.read(feedRepositoryProvider).updateFeed(
+      final resp = await ref.read(feedRepositoryProvider).update(
             widget.feedId,
             UpdateFeedBody(
               feedTitle: title,

@@ -2,29 +2,110 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'feed_model.g.dart';
 
-// --- API 응답 모델 (GET /api/v1/feeds, GET /api/v1/feeds/me) ---
+// --- 피드 목록 항목 (GET /api/v1/feeds, GET /api/v1/feeds/me) ---
 @JsonSerializable()
-class FeedListItem {
+class FeedListResponseDto {
   final int feedId;
   final String feedTitle;
   final String styleImageUrl;
+  final String? authorNickname;
+  final String? authorProfileImageUrl;
+  final int? likeCount;
+  final String? visibility;
+  final bool? liked;
 
-  FeedListItem({
+  FeedListResponseDto({
     required this.feedId,
     required this.feedTitle,
     required this.styleImageUrl,
+    this.authorNickname,
+    this.authorProfileImageUrl,
+    this.likeCount,
+    this.visibility,
+    this.liked,
   });
 
-  factory FeedListItem.fromJson(Map<String, dynamic> json) =>
-      _$FeedListItemFromJson(json);
-  Map<String, dynamic> toJson() => _$FeedListItemToJson(this);
+  factory FeedListResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$FeedListResponseDtoFromJson(json);
+  Map<String, dynamic> toJson() => _$FeedListResponseDtoToJson(this);
+}
+
+// --- 페이지네이션 응답 ---
+@JsonSerializable()
+class PageFeedListResponseDto {
+  final List<FeedListResponseDto> content;
+  final int totalPages;
+  final int totalElements;
+  final int size;
+  final int number;
+  final int numberOfElements;
+  final bool first;
+  final bool last;
+  final bool empty;
+  final PageableObject? pageable;
+  final SortObject? sort;
+
+  PageFeedListResponseDto({
+    required this.content,
+    required this.totalPages,
+    required this.totalElements,
+    required this.size,
+    required this.number,
+    required this.numberOfElements,
+    required this.first,
+    required this.last,
+    required this.empty,
+    this.pageable,
+    this.sort,
+  });
+
+  factory PageFeedListResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$PageFeedListResponseDtoFromJson(json);
+  Map<String, dynamic> toJson() => _$PageFeedListResponseDtoToJson(this);
+}
+
+@JsonSerializable()
+class PageableObject {
+  final int? offset;
+  final int? pageNumber;
+  final int? pageSize;
+  final bool? paged;
+  final bool? unpaged;
+  final SortObject? sort;
+
+  PageableObject({
+    this.offset,
+    this.pageNumber,
+    this.pageSize,
+    this.paged,
+    this.unpaged,
+    this.sort,
+  });
+
+  factory PageableObject.fromJson(Map<String, dynamic> json) =>
+      _$PageableObjectFromJson(json);
+  Map<String, dynamic> toJson() => _$PageableObjectToJson(this);
+}
+
+@JsonSerializable()
+class SortObject {
+  final bool? empty;
+  final bool? sorted;
+  final bool? unsorted;
+
+  SortObject({this.empty, this.sorted, this.unsorted});
+
+  factory SortObject.fromJson(Map<String, dynamic> json) =>
+      _$SortObjectFromJson(json);
+  Map<String, dynamic> toJson() => _$SortObjectToJson(this);
 }
 
 // --- 피드 상세 (GET /api/v1/feeds/{feedId}) ---
 @JsonSerializable()
-class FeedDetailData {
+class FeedDetailResponseDto {
   final int authorId;
   final String authorNickname;
+  final String? authorProfileImageUrl;
   final String styleImageUrl;
   final int styleImageId;
   final String? topImageUrl;
@@ -35,10 +116,13 @@ class FeedDetailData {
   final int? bottomClothesId;
   final String? feedTitle;
   final String? feedContent;
+  final int? likeCount;
+  final bool? liked;
 
-  FeedDetailData({
+  FeedDetailResponseDto({
     required this.authorId,
     required this.authorNickname,
+    this.authorProfileImageUrl,
     required this.styleImageUrl,
     required this.styleImageId,
     this.topImageUrl,
@@ -49,23 +133,25 @@ class FeedDetailData {
     this.bottomClothesId,
     this.feedTitle,
     this.feedContent,
+    this.likeCount,
+    this.liked,
   });
 
-  factory FeedDetailData.fromJson(Map<String, dynamic> json) =>
-      _$FeedDetailDataFromJson(json);
-  Map<String, dynamic> toJson() => _$FeedDetailDataToJson(this);
+  factory FeedDetailResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$FeedDetailResponseDtoFromJson(json);
+  Map<String, dynamic> toJson() => _$FeedDetailResponseDtoToJson(this);
 }
 
 // --- 피드 게시 전 미리보기 (GET /api/v1/feeds/preview/{fittingTaskId}) ---
 @JsonSerializable()
-class FeedPreviewData {
+class FeedPreviewResponseDto {
   final String styleImageUrl;
   final String? topImageUrl;
   final String? topName;
   final String? bottomImageUrl;
   final String? bottomName;
 
-  FeedPreviewData({
+  FeedPreviewResponseDto({
     required this.styleImageUrl,
     this.topImageUrl,
     this.topName,
@@ -73,9 +159,9 @@ class FeedPreviewData {
     this.bottomName,
   });
 
-  factory FeedPreviewData.fromJson(Map<String, dynamic> json) =>
-      _$FeedPreviewDataFromJson(json);
-  Map<String, dynamic> toJson() => _$FeedPreviewDataToJson(this);
+  factory FeedPreviewResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$FeedPreviewResponseDtoFromJson(json);
+  Map<String, dynamic> toJson() => _$FeedPreviewResponseDtoToJson(this);
 }
 
 // --- 기존 더미용 (추후 제거 가능) ---

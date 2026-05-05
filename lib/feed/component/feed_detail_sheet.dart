@@ -48,7 +48,7 @@ class FeedDetailSheet extends ConsumerWidget {
 }
 
 class _SheetBody extends StatelessWidget {
-  final FeedDetailData d;
+  final FeedDetailResponseDto d;
   const _SheetBody({required this.d});
 
   @override

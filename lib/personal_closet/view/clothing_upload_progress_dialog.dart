@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:capstone_fe/common/component/loading_indicator.dart';
+import 'package:lottie/lottie.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
@@ -306,10 +306,15 @@ class _ClothingUploadProgressDialogState
         ),
       );
     }
-    return const SizedBox(
+    return SizedBox(
       width: 150,
       height: 150,
-      child: LoadingIndicator(size: 130),
+      child: Lottie.asset(
+        'asset/json/search.json',
+        width: 130,
+        height: 130,
+        fit: BoxFit.contain,
+      ),
     );
   }
 
@@ -527,10 +532,15 @@ class _ClothingDeleteProgressDialogState
         ),
       );
     }
-    return const SizedBox(
+    return SizedBox(
       width: 150,
       height: 150,
-      child: LoadingIndicator(size: 130),
+      child: Lottie.asset(
+        'asset/json/search.json',
+        width: 130,
+        height: 130,
+        fit: BoxFit.contain,
+      ),
     );
   }
 

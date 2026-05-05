@@ -19,7 +19,7 @@ class FeedWriteScreen extends ConsumerStatefulWidget {
 class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   // 로컬 UI 상태만 관리 (서버 데이터는 myClosetProvider가 담당)
   SavedFittingData? _selected;
-  FeedPreviewData? _preview;
+  FeedPreviewResponseDto? _preview;
   bool _loadingPreview = false;
 
   final TextEditingController _titleController = TextEditingController();
@@ -43,7 +43,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     });
     try {
       final resp =
-          await ref.read(feedRepositoryProvider).getFeedPreview(taskId);
+          await ref.read(feedRepositoryProvider).getPreview(taskId);
       if (!mounted) return;
       setState(() {
         _preview = resp.data;
@@ -71,7 +71,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     }
     setState(() => _posting = true);
     try {
-      final resp = await ref.read(feedRepositoryProvider).createFeed(
+      final resp = await ref.read(feedRepositoryProvider).create(
             CreateFeedBody(
               fittingTaskId: taskId,
               feedTitle: title,
@@ -182,7 +182,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
 class _WriteBody extends StatelessWidget {
   final List<SavedFittingData> savedList;
   final SavedFittingData? selected;
-  final FeedPreviewData? preview;
+  final FeedPreviewResponseDto? preview;
   final bool loadingPreview;
   final bool posting;
   final TextEditingController titleController;

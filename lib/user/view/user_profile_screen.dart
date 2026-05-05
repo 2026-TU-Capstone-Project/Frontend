@@ -26,7 +26,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   UserMe? _me;
   String? _nicknameFromStorage;
   bool _loading = true;
-  List<FeedListItem> _myFeeds = [];
+  List<FeedListResponseDto> _myFeeds = [];
 
   final FeedRepository _feedRepo = FeedRepository(
     createAuthDio(),
@@ -45,10 +45,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final repo = AuthRepository(Dio(), baseUrl: baseUrl);
     final me = await repo.getMe(authDio);
     final stored = await const FlutterSecureStorage().read(key: 'NICKNAME');
-    List<FeedListItem> myFeeds = [];
+    List<FeedListResponseDto> myFeeds = [];
     try {
-      final feedResp = await _feedRepo.getMyFeeds();
-      if (feedResp.success && feedResp.data != null) myFeeds = feedResp.data!;
+      final feedResp = await _feedRepo.listMy(0, 20);
+      if (feedResp.success && feedResp.data != null) {
+        myFeeds = feedResp.data!.content;
+      }
     } catch (_) {}
     if (mounted) {
       setState(() {
