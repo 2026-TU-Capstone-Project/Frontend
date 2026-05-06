@@ -6,7 +6,6 @@ import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/chat/model/chat_model.dart';
 import 'package:capstone_fe/chat/provider/chat_provider.dart';
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/fitting/util/weather_util.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
 
 // =============================================================================
@@ -28,7 +27,6 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   // 디자인 상수
   static const Color _bgColor = Color(0xFFF5F5F7);
   static const Color _textPrimary = Color(0xFF1D1D1F);
-  static const Color _textSecondary = Color(0xFF6E6E73);
 
   // Quick-reply 추천 칩
   static const List<String> _quickReplies = [
@@ -65,7 +63,6 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
-    final weather = ref.watch(cachedWeatherProvider);
 
     return Scaffold(
       backgroundColor: _bgColor,
@@ -75,9 +72,6 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         behavior: HitTestBehavior.translucent,
         child: Column(
           children: [
-            // 4. Floating Context Header
-            if (weather != null) _ContextHeader(weather: weather),
-
             // 메시지 영역
             Expanded(
               child: chatState.messages.isEmpty
@@ -120,64 +114,26 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: _bgColor,
       elevation: 0,
-      surfaceTintColor: Colors.white,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: _textPrimary,
-          size: 20,
+      surfaceTintColor: _bgColor,
+      centerTitle: true,
+      leadingWidth: 64,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: _CircleIconButton(
+          icon: Icons.arrow_back_ios_new_rounded,
+          onTap: () => Navigator.pop(context),
         ),
-        onPressed: () => Navigator.pop(context),
       ),
-      title: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.ACCENT_PURPLE, AppColors.ACCENT_BLUE],
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              size: 16,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AI 스타일리스트',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              Text(
-                'LookPick Assistant',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: _textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFE5E5EA)),
+      title: const Text(
+        'AI 스타일리스트',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: _textPrimary,
+          letterSpacing: -0.3,
+        ),
       ),
     );
   }
@@ -187,75 +143,60 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     if (message.errorMessage != null) {
       return _ErrorBubble(message: message.errorMessage!);
     }
-    if (message.isUser) return _UserBubble(text: message.text ?? '');
+    if (message.isUser) {
+      return _UserBubble(text: message.text ?? '', sentAt: message.sentAt);
+    }
     return _BotBubble(message: message);
   }
 }
 
 // =============================================================================
-// 4. Floating Context Header — 날씨 / 컨텍스트 바
+// 공용 — 원형 아이콘 버튼 (AppBar 좌/우)
 // =============================================================================
 
-class _ContextHeader extends StatelessWidget {
-  final WeatherInfo weather;
+class _CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
 
-  const _ContextHeader({required this.weather});
+  const _CircleIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final label = weatherLabel(weather.conditionCode);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        border: const Border(
-          bottom: BorderSide(color: Color(0xFFE5E5EA), width: 0.5),
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 18, color: const Color(0xFF1D1D1F)),
         ),
-      ),
-      child: Row(
-        children: [
-          Text(label.emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 6),
-          Text(
-            '${weather.temp.round()}°C · ${label.description}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1D1D1F),
-            ),
-          ),
-          if (weather.cityName.isNotEmpty) ...[
-            const SizedBox(width: 4),
-            Text(
-              '· ${weather.cityName}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6E6E73),
-              ),
-            ),
-          ],
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '날씨 반영 중',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: AppColors.ACCENT_PURPLE,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
+}
+
+String _formatChatTime(DateTime dt) {
+  final h = dt.hour;
+  final m = dt.minute.toString().padLeft(2, '0');
+  final period = h < 12 ? 'AM' : 'PM';
+  final hour12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+  return '$hour12:$m $period';
 }
 
 // =============================================================================
@@ -284,18 +225,18 @@ class _QuickReplyChips extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.08),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.25),
+                color: const Color(0xFFE5E5EA),
               ),
             ),
             child: Text(
               chips[i],
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.ACCENT_PURPLE,
+                color: Color(0xFF1D1D1F),
               ),
             ),
           ),
@@ -529,56 +470,78 @@ class _SuggestionCard extends StatelessWidget {
 }
 
 // =============================================================================
-// 1. Premium User Bubble (오른쪽, 그라데이션)
+// User Bubble — 라이트 시안, 검정 텍스트, 타임스탬프 + 그린 닷
 // =============================================================================
+
+const Color _userBubbleColor = Color(0xFFD6EDF6);
+const Color _botBubbleColor = Color(0xFFF1EFE7);
+const Color _onlineDotColor = Color(0xFF34C759);
 
 class _UserBubble extends StatelessWidget {
   final String text;
+  final DateTime? sentAt;
 
-  const _UserBubble({required this.text});
+  const _UserBubble({required this.text, this.sentAt});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const SizedBox(width: 60),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.ACCENT_PURPLE, AppColors.ACCENT_BLUE],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const SizedBox(width: 56),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _userBubbleColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      color: Color(0xFF1D1D1F),
+                      fontSize: 15,
+                      height: 1.45,
+                    ),
+                  ),
                 ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                  bottomRight: Radius.circular(4),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          if (sentAt != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, right: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatChatTime(sentAt!),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF8E8E93),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: _onlineDotColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ],
               ),
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  height: 1.45,
-                ),
-              ),
             ),
-          ),
         ],
       ),
     );
@@ -586,8 +549,39 @@ class _UserBubble extends StatelessWidget {
 }
 
 // =============================================================================
-// 1. Premium Bot Bubble (왼쪽, 소프트 네이비 그라데이션 + 스타일리스트 아이콘)
+// Bot Bubble — 크림 배경, 검정 텍스트, 아바타 + 타임스탬프 (위)
 // =============================================================================
+
+class _BotAvatar extends StatelessWidget {
+  const _BotAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFE5E5EA), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(1.5),
+      child: ClipOval(
+        child: Image.asset(
+          'asset/img/diverva_logo.jpg',
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+}
 
 class _BotBubble extends StatelessWidget {
   final ChatMessage message;
@@ -616,76 +610,46 @@ class _BotBubble extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // AI 스타일리스트 아이콘
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          if (message.text != null && message.text!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 56),
+              child: _BotTextBubble(text: message.text!),
             ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              size: 17,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 2),
+            child: Row(
               children: [
-                // 스타일리스트 이름 태그
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 4),
-                  child: Text(
-                    'AI Stylist',
-                    style: TextStyle(
+                const _BotAvatar(),
+                const SizedBox(width: 8),
+                if (message.sentAt != null)
+                  Text(
+                    _formatChatTime(message.sentAt!),
+                    style: const TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.ACCENT_PURPLE,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF8E8E93),
                     ),
                   ),
-                ),
-
-                // 텍스트 말풍선 (소프트 그라데이션)
-                if (message.text != null && message.text!.isNotEmpty)
-                  _BotTextBubble(text: message.text!),
-
-                // 코디 추천 (전신 이미지 카드)
-                if (outfits.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _OutfitRecommendationSection(items: outfits),
-                ],
-
-                // 상의 추천
-                if (tops.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _ClothesSection(title: '추천 상의', items: tops),
-                ],
-
-                // 하의 추천
-                if (bottoms.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _ClothesSection(title: '추천 하의', items: bottoms),
-                ],
               ],
             ),
           ),
+
+          if (outfits.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _OutfitRecommendationSection(items: outfits),
+          ],
+          if (tops.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _ClothesSection(title: '추천 상의', items: tops),
+          ],
+          if (bottoms.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _ClothesSection(title: '추천 하의', items: bottoms),
+          ],
         ],
       ),
     );
@@ -700,41 +664,17 @@ class _BotTextBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
-        // 소프트 네이비 그라데이션
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            const Color(0xFFF0EEFF), // 아주 연한 퍼플
-          ],
-        ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(4),
-          topRight: Radius.circular(18),
-          bottomLeft: Radius.circular(18),
-          bottomRight: Radius.circular(18),
-        ),
-        border: Border.all(
-          color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.15),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.07),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: _botBubbleColor,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
         style: const TextStyle(
           color: Color(0xFF1D1D1F),
           fontSize: 15,
-          height: 1.55,
+          height: 1.5,
         ),
       ),
     );
@@ -742,7 +682,7 @@ class _BotTextBubble extends StatelessWidget {
 }
 
 // =============================================================================
-// 3. Dynamic Typing Indicator — "AI 스타일리스트가 코디를 고르고 있어요..."
+// Typing Indicator — 작은 크림 버블 + 검정 점 3개, 아바타는 아래
 // =============================================================================
 
 class _LoadingBubble extends StatelessWidget {
@@ -752,91 +692,22 @@ class _LoadingBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 아이콘 (애니메이션 포함)
-          const _PulsingAiIcon(),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 4),
-                child: Text(
-                  'AI Stylist',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ACCENT_PURPLE,
-                  ),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white,
-                      const Color(0xFFF0EEFF),
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(18),
-                    bottomLeft: Radius.circular(18),
-                    bottomRight: Radius.circular(18),
-                  ),
-                  border: Border.all(
-                    color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.15),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const _TypingDots(),
-                    const SizedBox(width: 10),
-                    Text(
-                      '코디를 고르고 있어요...',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _botBubbleColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const _TypingDots(),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 8, left: 2),
+            child: _BotAvatar(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 로딩 중 AI 아이콘 애니메이션
-class _PulsingAiIcon extends StatelessWidget {
-  const _PulsingAiIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: Lottie.asset(
-        'asset/json/ai_animation.json',
-        fit: BoxFit.contain,
       ),
     );
   }
@@ -900,7 +771,7 @@ class _TypingDotsState extends State<_TypingDots>
                 width: 7,
                 height: 7,
                 decoration: BoxDecoration(
-                  color: AppColors.ACCENT_PURPLE.withValues(
+                  color: const Color(0xFF1D1D1F).withValues(
                     alpha: 0.4 + 0.4 * _anims[i].value,
                   ),
                   shape: BoxShape.circle,
@@ -1241,14 +1112,14 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: AppColors.ACCENT_PURPLE),
+        Icon(icon, size: 14, color: const Color(0xFF1D1D1F)),
         const SizedBox(width: 5),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.ACCENT_PURPLE,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1D1D1F),
           ),
         ),
       ],
@@ -1350,9 +1221,7 @@ class _InputBar extends StatelessWidget {
                 color: const Color(0xFFF5F5F7),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isSending
-                      ? const Color(0xFFE5E5EA)
-                      : AppColors.ACCENT_PURPLE.withValues(alpha: 0.2),
+                  color: const Color(0xFFE5E5EA),
                 ),
               ),
               child: TextField(
@@ -1455,17 +1324,20 @@ class _SendButtonState extends State<_SendButton>
                 : const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [AppColors.ACCENT_PURPLE, AppColors.ACCENT_BLUE],
+                    colors: [
+                      Color(0xFF7CB5D0),
+                      Color(0xFF5891B0),
+                    ],
                   ),
             color: widget.isSending
-                ? AppColors.ACCENT_PURPLE.withValues(alpha: 0.4)
+                ? const Color(0xFF5891B0).withValues(alpha: 0.4)
                 : null,
             shape: BoxShape.circle,
             boxShadow: widget.isSending
                 ? null
                 : [
                     BoxShadow(
-                      color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.35),
+                      color: const Color(0xFF5891B0).withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),

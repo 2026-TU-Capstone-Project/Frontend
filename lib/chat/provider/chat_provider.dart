@@ -44,6 +44,7 @@ class ChatMessage {
   final ChatResponseData? responseData;
   final bool isLoading;
   final String? errorMessage;
+  final DateTime? sentAt;
 
   const ChatMessage({
     required this.isUser,
@@ -51,6 +52,7 @@ class ChatMessage {
     this.responseData,
     this.isLoading = false,
     this.errorMessage,
+    this.sentAt,
   });
 }
 
@@ -155,7 +157,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(
       messages: [
         ...state.messages,
-        ChatMessage(isUser: true, text: trimmed),
+        ChatMessage(isUser: true, text: trimmed, sentAt: DateTime.now()),
         const ChatMessage(isUser: false, isLoading: true),
       ],
       isSending: true,
@@ -173,6 +175,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
           isUser: false,
           text: response.data?.message,
           responseData: response.data,
+          sentAt: DateTime.now(),
         ));
 
       state = state.copyWith(messages: updated, isSending: false);
