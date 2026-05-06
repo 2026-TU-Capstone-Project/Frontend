@@ -1215,7 +1215,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     (context, index) => ProductGridCard(
                       item: value.items[index],
                       onTap: () => showFeedDetailSheet(
-                          context, value.items[index].feedId),
+                        context,
+                        value.items[index].feedId,
+                      ),
                     ),
                     childCount: value.items.length,
                   ),
