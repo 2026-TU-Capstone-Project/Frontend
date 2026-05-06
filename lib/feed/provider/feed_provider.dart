@@ -104,17 +104,19 @@ class FeedListNotifier extends AsyncNotifier<FeedListState> {
     final idx = current.items.indexWhere((f) => f.feedId == feedId);
     if (idx == -1) return;
     final original = current.items[idx];
-    final wasLiked = original.liked ?? false;
+    final wasLiked = original.liked == true;
     final originalCount = original.likeCount ?? 0;
+    final newLiked = !wasLiked;
+    final newCount = wasLiked ? (originalCount - 1) : (originalCount + 1);
     final optimistic = FeedListResponseDto(
       feedId: original.feedId,
       feedTitle: original.feedTitle,
       styleImageUrl: original.styleImageUrl,
       authorNickname: original.authorNickname,
       authorProfileImageUrl: original.authorProfileImageUrl,
-      likeCount: wasLiked ? originalCount - 1 : originalCount + 1,
+      likeCount: newCount,
       visibility: original.visibility,
-      liked: !wasLiked,
+      liked: newLiked,
     );
     final newItems = [...current.items];
     newItems[idx] = optimistic;
@@ -125,10 +127,37 @@ class FeedListNotifier extends AsyncNotifier<FeedListState> {
       final resp = await repo.toggleLike(feedId);
       if (!resp.success) {
         _revert(idx, original);
+        return;
+      }
+      if (ref.exists(feedDetailProvider(feedId))) {
+        ref
+            .read(feedDetailProvider(feedId).notifier)
+            .applyLike(newLiked, newCount);
       }
     } catch (_) {
       _revert(idx, original);
     }
+  }
+
+  void applyLike(int feedId, bool liked, int count) {
+    final cur = state.valueOrNull;
+    if (cur == null) return;
+    final idx = cur.items.indexWhere((f) => f.feedId == feedId);
+    if (idx == -1) return;
+    final orig = cur.items[idx];
+    final updated = FeedListResponseDto(
+      feedId: orig.feedId,
+      feedTitle: orig.feedTitle,
+      styleImageUrl: orig.styleImageUrl,
+      authorNickname: orig.authorNickname,
+      authorProfileImageUrl: orig.authorProfileImageUrl,
+      likeCount: count,
+      visibility: orig.visibility,
+      liked: liked,
+    );
+    final newItems = [...cur.items];
+    newItems[idx] = updated;
+    state = AsyncData(cur.copyWith(items: newItems));
   }
 
   void _revert(int idx, FeedListResponseDto original) {
@@ -182,6 +211,67 @@ class FeedDetailNotifier
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => _fetch(arg));
+  }
+
+  Future<void> toggleLike() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final wasLiked = current.liked == true;
+    final originalCount = current.likeCount ?? 0;
+    final newLiked = !wasLiked;
+    final newCount = wasLiked ? (originalCount - 1) : (originalCount + 1);
+    final optimistic = FeedDetailResponseDto(
+      authorId: current.authorId,
+      authorNickname: current.authorNickname,
+      authorProfileImageUrl: current.authorProfileImageUrl,
+      styleImageUrl: current.styleImageUrl,
+      styleImageId: current.styleImageId,
+      topImageUrl: current.topImageUrl,
+      topName: current.topName,
+      topClothesId: current.topClothesId,
+      bottomImageUrl: current.bottomImageUrl,
+      bottomName: current.bottomName,
+      bottomClothesId: current.bottomClothesId,
+      feedTitle: current.feedTitle,
+      feedContent: current.feedContent,
+      likeCount: newCount,
+      liked: newLiked,
+    );
+    state = AsyncData(optimistic);
+
+    try {
+      final repo = ref.read(feedRepositoryProvider);
+      final resp = await repo.toggleLike(arg);
+      if (!resp.success) {
+        state = AsyncData(current);
+        return;
+      }
+      ref.read(feedListProvider.notifier).applyLike(arg, newLiked, newCount);
+    } catch (_) {
+      state = AsyncData(current);
+    }
+  }
+
+  void applyLike(bool liked, int count) {
+    final cur = state.valueOrNull;
+    if (cur == null) return;
+    state = AsyncData(FeedDetailResponseDto(
+      authorId: cur.authorId,
+      authorNickname: cur.authorNickname,
+      authorProfileImageUrl: cur.authorProfileImageUrl,
+      styleImageUrl: cur.styleImageUrl,
+      styleImageId: cur.styleImageId,
+      topImageUrl: cur.topImageUrl,
+      topName: cur.topName,
+      topClothesId: cur.topClothesId,
+      bottomImageUrl: cur.bottomImageUrl,
+      bottomName: cur.bottomName,
+      bottomClothesId: cur.bottomClothesId,
+      feedTitle: cur.feedTitle,
+      feedContent: cur.feedContent,
+      likeCount: count,
+      liked: liked,
+    ));
   }
 }
 

@@ -82,7 +82,7 @@ class FeedDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
-        data: (d) => _DetailBody(d: d),
+        data: (d) => _DetailBody(d: d, feedId: feedId),
       ),
     );
   }
@@ -140,25 +140,54 @@ class FeedDetailScreen extends ConsumerWidget {
 // 상세 본문 (순수 UI, StatelessWidget)
 // ─────────────────────────────────────────────
 
-class _DetailBody extends StatelessWidget {
+class _DetailBody extends ConsumerWidget {
   final FeedDetailResponseDto d;
-  const _DetailBody({required this.d});
+  final int feedId;
+  const _DetailBody({required this.d, required this.feedId});
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('준비 중인 기능이에요.')),
+    );
+  }
+
+  void _openImageViewer(BuildContext context) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (_, __, ___) => _FullScreenImageViewer(url: d.styleImageUrl),
+      ),
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liked = d.liked ?? false;
+    final likeCount = d.likeCount ?? 0;
+    final hasProfileImg = d.authorProfileImageUrl != null &&
+        d.authorProfileImageUrl!.isNotEmpty;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AspectRatio(
-            aspectRatio: 3 / 4,
-            child: Image.network(
-              d.styleImageUrl,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.BORDER_COLOR,
-                child: const Icon(Icons.broken_image_outlined, size: 48),
+          GestureDetector(
+            onTap: () => _openImageViewer(context),
+            child: Hero(
+              tag: 'feed-image-$feedId',
+              child: AspectRatio(
+                aspectRatio: 3 / 4,
+                child: Image.network(
+                  d.styleImageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: AppColors.BORDER_COLOR,
+                    child: const Icon(Icons.broken_image_outlined, size: 48),
+                  ),
+                ),
               ),
             ),
           ),
@@ -167,34 +196,45 @@ class _DetailBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.BORDER_COLOR,
-                      child: const Icon(Icons.person,
-                          color: AppColors.MEDIUM_GREY),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          d.authorNickname,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: AppColors.BLACK,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showComingSoon(context),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.BORDER_COLOR,
+                        backgroundImage: hasProfileImg
+                            ? NetworkImage(d.authorProfileImageUrl!)
+                            : null,
+                        onBackgroundImageError:
+                            hasProfileImg ? (_, __) {} : null,
+                        child: hasProfileImg
+                            ? null
+                            : const Icon(Icons.person,
+                                color: AppColors.MEDIUM_GREY),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            d.authorNickname,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: AppColors.BLACK,
+                            ),
                           ),
-                        ),
-                        const Text(
-                          '온더룩',
-                          style: TextStyle(
-                              color: AppColors.MEDIUM_GREY, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const Text(
+                            '온더룩',
+                            style: TextStyle(
+                                color: AppColors.MEDIUM_GREY, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -217,6 +257,14 @@ class _DetailBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+                _LikeButton(
+                  liked: liked,
+                  count: likeCount,
+                  onTap: () => ref
+                      .read(feedDetailProvider(feedId).notifier)
+                      .toggleLike(),
+                ),
+                const SizedBox(height: 24),
                 const Text(
                   '착용 제품',
                   style: TextStyle(
@@ -230,6 +278,9 @@ class _DetailBody extends StatelessWidget {
                   _WornProductCard(
                     imageUrl: d.topImageUrl,
                     productName: d.topName ?? '-',
+                    onTap: d.topClothesId != null
+                        ? () => _showComingSoon(context)
+                        : null,
                   ),
                 if (d.topImageUrl != null || d.topName != null)
                   const SizedBox(height: 10),
@@ -237,6 +288,9 @@ class _DetailBody extends StatelessWidget {
                   _WornProductCard(
                     imageUrl: d.bottomImageUrl,
                     productName: d.bottomName ?? '-',
+                    onTap: d.bottomClothesId != null
+                        ? () => _showComingSoon(context)
+                        : null,
                   ),
                 if ((d.topImageUrl == null && d.topName == null) &&
                     (d.bottomImageUrl == null && d.bottomName == null))
@@ -254,6 +308,100 @@ class _DetailBody extends StatelessWidget {
   }
 }
 
+class _LikeButton extends StatelessWidget {
+  final bool liked;
+  final int count;
+  final VoidCallback onTap;
+  const _LikeButton({
+    required this.liked,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(28),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+        decoration: BoxDecoration(
+          color: liked
+              ? AppColors.ERROR_COLOR.withValues(alpha: 0.10)
+              : AppColors.INPUT_BG_COLOR,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color:
+                liked ? AppColors.ERROR_COLOR : AppColors.BORDER_COLOR,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              liked ? Icons.favorite : Icons.favorite_border,
+              color: liked ? AppColors.ERROR_COLOR : AppColors.BODY_COLOR,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '좋아요 $count',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: liked ? AppColors.ERROR_COLOR : AppColors.BLACK,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenImageViewer extends StatelessWidget {
+  final String url;
+  const _FullScreenImageViewer({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image_outlined,
+                    size: 64,
+                    color: AppColors.MEDIUM_GREY,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: AppColors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────
 // 착용 제품 카드
 // ─────────────────────────────────────────────
@@ -261,12 +409,17 @@ class _DetailBody extends StatelessWidget {
 class _WornProductCard extends StatelessWidget {
   final String? imageUrl;
   final String productName;
+  final VoidCallback? onTap;
 
-  const _WornProductCard({this.imageUrl, required this.productName});
+  const _WornProductCard({
+    this.imageUrl,
+    required this.productName,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -309,15 +462,21 @@ class _WornProductCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.bookmark_border_rounded),
-            style: IconButton.styleFrom(
-                foregroundColor: AppColors.MEDIUM_GREY,
-                minimumSize: const Size(40, 40)),
+          Icon(
+            onTap != null
+                ? Icons.chevron_right_rounded
+                : Icons.bookmark_border_rounded,
+            color: AppColors.MEDIUM_GREY,
           ),
         ],
       ),
+    );
+
+    if (onTap == null) return card;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: card,
     );
   }
 

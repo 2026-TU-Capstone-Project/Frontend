@@ -1,11 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/chat/model/chat_model.dart';
 import 'package:capstone_fe/chat/provider/chat_provider.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/util/weather_util.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 
 // =============================================================================
 // AI 스타일리스트 채팅 화면 — Premium Redesign
@@ -307,85 +309,63 @@ class _QuickReplyChips extends StatelessWidget {
 // 빈 화면 — 첫 진입 시 빠른 질문 제안 칩
 // =============================================================================
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends ConsumerWidget {
   final void Function(String) onSuggestionTap;
 
   const _EmptyState({required this.onSuggestionTap});
 
-  static const _suggestions = [
-    '오늘 날씨에 맞는 코디 추천해줘',
-    '데이트 코디 추천해줘',
-    '캐주얼한 오피스룩 알려줘',
-    '미니멀한 스타일 보여줘',
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nickname = ref.watch(userMeProvider).valueOrNull?.nickname;
+
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 프리미엄 AI 아이콘
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.ACCENT_PURPLE, AppColors.ACCENT_BLUE],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.35),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                size: 42,
-                color: Colors.white,
+            SizedBox(
+              width: 160,
+              height: 160,
+              child: Lottie.asset(
+                'asset/json/ai_animation.json',
+                fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [
+                  AppColors.ACCENT_PURPLE,
+                  Color(0xFFB8A8FF),
+                ],
+              ).createShader(bounds),
+              child: Text(
+                nickname != null && nickname.isNotEmpty
+                    ? '안녕하세요, $nickname 님'
+                    : '안녕하세요',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
             const Text(
-              'AI 스타일리스트',
+              '오늘 무엇을 도와드릴까요?',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 26,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF1D1D1F),
                 letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '원하는 스타일, 날씨, 상황을 알려주세요.\n맞춤 코디를 추천해드릴게요!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF6E6E73),
-                height: 1.6,
+                height: 1.3,
               ),
             ),
             const SizedBox(height: 32),
-            Wrap(
-              spacing: 8,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              children: _suggestions
-                  .map(
-                    (s) => _SuggestionChip(
-                      text: s,
-                      onTap: () => onSuggestionTap(s),
-                    ),
-                  )
-                  .toList(),
-            ),
+            _SuggestionGrid(onTap: onSuggestionTap),
           ],
         ),
       ),
@@ -393,50 +373,155 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _SuggestionChip extends StatelessWidget {
-  final String text;
-  final VoidCallback onTap;
+// =============================================================================
+// 추천 카드 그리드 — 2×2, 카테고리 아이콘 + 타이틀 + 설명
+// =============================================================================
 
-  const _SuggestionChip({required this.text, required this.onTap});
+class _SuggestionItem {
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String subtitle;
+  final String prompt;
+
+  const _SuggestionItem({
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.subtitle,
+    required this.prompt,
+  });
+}
+
+class _SuggestionGrid extends StatelessWidget {
+  final void Function(String) onTap;
+
+  const _SuggestionGrid({required this.onTap});
+
+  static const List<_SuggestionItem> _items = [
+    _SuggestionItem(
+      icon: Icons.wb_sunny_rounded,
+      tint: Color(0xFFFFA726),
+      title: '오늘 날씨 코디',
+      subtitle: '날씨에 딱 맞는 추천',
+      prompt: '오늘 날씨에 맞는 코디 추천해줘',
+    ),
+    _SuggestionItem(
+      icon: Icons.favorite_rounded,
+      tint: Color(0xFFFF6B9D),
+      title: '데이트 룩',
+      subtitle: '데이트·소개팅 코디',
+      prompt: '데이트 코디 추천해줘',
+    ),
+    _SuggestionItem(
+      icon: Icons.work_outline_rounded,
+      tint: Color(0xFF5B8DEF),
+      title: '오피스 룩',
+      subtitle: '캐주얼한 오피스 스타일',
+      prompt: '캐주얼한 오피스룩 알려줘',
+    ),
+    _SuggestionItem(
+      icon: Icons.auto_awesome_rounded,
+      tint: AppColors.ACCENT_PURPLE,
+      title: '미니멀 룩',
+      subtitle: '심플한 데일리 룩',
+      prompt: '미니멀한 스타일 보여줘',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.3),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome_rounded,
-              size: 14,
-              color: AppColors.ACCENT_PURPLE.withValues(alpha: 0.6),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.ACCENT_PURPLE,
+    final width = (MediaQuery.of(context).size.width - 24 * 2 - 10) / 2;
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: _items
+          .map(
+            (item) => SizedBox(
+              width: width,
+              child: _SuggestionCard(
+                item: item,
+                onTap: () => onTap(item.prompt),
               ),
             ),
-          ],
+          )
+          .toList(),
+    );
+  }
+}
+
+class _SuggestionCard extends StatelessWidget {
+  final _SuggestionItem item;
+  final VoidCallback onTap;
+
+  const _SuggestionCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: item.tint.withValues(alpha: 0.08),
+        highlightColor: item.tint.withValues(alpha: 0.04),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFE5E5EA),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: item.tint.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(item.icon, color: item.tint, size: 18),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                item.title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D1D1F),
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                item.subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF6E6E73),
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -670,7 +755,7 @@ class _LoadingBubble extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 아이콘 (펄스 애니메이션 포함)
+          // 아이콘 (애니메이션 포함)
           const _PulsingAiIcon(),
           const SizedBox(width: 8),
           Column(
@@ -740,64 +825,18 @@ class _LoadingBubble extends StatelessWidget {
   }
 }
 
-/// 로딩 중 AI 아이콘에 펄스 효과
-class _PulsingAiIcon extends StatefulWidget {
+/// 로딩 중 AI 아이콘 애니메이션
+class _PulsingAiIcon extends StatelessWidget {
   const _PulsingAiIcon();
 
   @override
-  State<_PulsingAiIcon> createState() => _PulsingAiIconState();
-}
-
-class _PulsingAiIconState extends State<_PulsingAiIcon>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-    _scaleAnim = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scaleAnim,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.4),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.auto_awesome_rounded,
-          size: 17,
-          color: Colors.white,
-        ),
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: Lottie.asset(
+        'asset/json/ai_animation.json',
+        fit: BoxFit.contain,
       ),
     );
   }
