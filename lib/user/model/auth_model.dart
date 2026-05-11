@@ -101,6 +101,7 @@ class LogoutBody {
 class UserMe {
   final int? userId;
   final String? email;
+  final String? username;
   final String? nickname;
   final String? profileImageUrl;
   final double? height;
@@ -110,6 +111,7 @@ class UserMe {
   UserMe({
     this.userId,
     this.email,
+    this.username,
     this.nickname,
     this.profileImageUrl,
     this.height,
@@ -119,4 +121,52 @@ class UserMe {
 
   factory UserMe.fromJson(Map<String, dynamic> json) => _$UserMeFromJson(json);
   Map<String, dynamic> toJson() => _$UserMeToJson(this);
+}
+
+// 10. 공개 프로필 조회 응답 (GET /api/v1/users/{userId})
+@JsonSerializable()
+class UserPublicProfile {
+  final int? userId;
+  final String? username;
+  final String? nickname;
+  final String? profileImageUrl;
+  final int? followerCount;
+  final int? followingCount;
+  final bool? isFollowing;
+  final bool? isRequested;
+
+  UserPublicProfile({
+    this.userId,
+    this.username,
+    this.nickname,
+    this.profileImageUrl,
+    this.followerCount,
+    this.followingCount,
+    this.isFollowing,
+    this.isRequested,
+  });
+
+  factory UserPublicProfile.fromJson(Map<String, dynamic> json) =>
+      _$UserPublicProfileFromJson(json);
+  Map<String, dynamic> toJson() => _$UserPublicProfileToJson(this);
+}
+
+// 11. 유저 검색 응답 item (GET /api/v1/users/search)
+@JsonSerializable()
+class UserSearchItem {
+  final int? userId;
+  final String? username;
+  final String? nickname;
+  final String? profileImageUrl;
+
+  UserSearchItem({
+    this.userId,
+    this.username,
+    this.nickname,
+    this.profileImageUrl,
+  });
+
+  factory UserSearchItem.fromJson(Map<String, dynamic> json) =>
+      _$UserSearchItemFromJson(json);
+  Map<String, dynamic> toJson() => _$UserSearchItemToJson(this);
 }

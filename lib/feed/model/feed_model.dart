@@ -11,6 +11,7 @@ class FeedListResponseDto {
   final String? authorNickname;
   final String? authorProfileImageUrl;
   final int? likeCount;
+  // PUBLIC | FOLLOWERS_ONLY
   final String? visibility;
   final bool? liked;
 

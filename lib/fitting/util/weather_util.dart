@@ -34,21 +34,25 @@ class WeatherInfo {
 // conditionCode → 이모지 + 한국어 설명
 // ─────────────────────────────────────────────────────────
 ({String emoji, String description}) weatherLabel(int code) {
-  if (code >= 200 && code < 300) return (emoji: '⛈', description: '천둥번개');
-  if (code >= 300 && code < 400) return (emoji: '🌦', description: '이슬비');
-  if (code >= 500 && code < 600) return (emoji: '🌧', description: '비');
-  if (code >= 600 && code < 700) return (emoji: '❄️', description: '눈');
-  if (code == 701) return (emoji: '🌫', description: '안개');
-  if (code == 711) return (emoji: '🌫', description: '연기');
-  if (code == 721) return (emoji: '☁️', description: '실안개');
-  if (code == 741) return (emoji: '🌫', description: '짙은 안개');
+  if (code >= 200 && code < 230) return (emoji: '🌩️', description: '천둥번개');
+  if (code >= 230 && code < 300) return (emoji: '⛈️', description: '천둥과 비');
+  if (code >= 300 && code < 400) return (emoji: '🌦️', description: '이슬비');
+  if (code >= 500 && code < 502) return (emoji: '🌦️', description: '약한 비');
+  if (code >= 502 && code < 600) return (emoji: '🌧️', description: '비');
+  if (code >= 600 && code < 612) return (emoji: '🌨️', description: '눈');
+  if (code >= 612 && code < 700) return (emoji: '🌨️', description: '진눈깨비');
+  if (code == 701) return (emoji: '🌫️', description: '안개');
+  if (code == 711) return (emoji: '💨', description: '연기');
+  if (code == 721) return (emoji: '🌁', description: '실안개');
+  if (code == 741) return (emoji: '🌫️', description: '짙은 안개');
   if (code >= 751 && code <= 762) return (emoji: '😷', description: '먼지');
-  if (code == 771) return (emoji: '💨', description: '돌풍');
-  if (code == 781) return (emoji: '🌪', description: '토네이도');
+  if (code == 771) return (emoji: '🌬️', description: '돌풍');
+  if (code == 781) return (emoji: '🌪️', description: '토네이도');
   if (code == 800) return (emoji: '☀️', description: '맑음');
-  if (code == 801) return (emoji: '🌤', description: '구름 조금');
+  if (code == 801) return (emoji: '🌤️', description: '구름 조금');
   if (code == 802) return (emoji: '⛅', description: '구름 낀');
-  if (code >= 803) return (emoji: '☁️', description: '흐림');
+  if (code == 803) return (emoji: '🌥️', description: '구름 많음');
+  if (code >= 804) return (emoji: '☁️', description: '흐림');
   return (emoji: '☀️', description: '맑음');
 }
 

@@ -192,6 +192,7 @@ class AuthRepository {
   /// (서버가 쿼리가 아닌 본문 필드만 읽는 경우가 많아, 모두 form 필드로 전송)
   Future<UserMe?> patchMe(
     Dio authDio, {
+    String? username,
     String? nickname,
     double? height,
     double? weight,
@@ -201,6 +202,9 @@ class AuthRepository {
     try {
       final formData = FormData();
 
+      if (username != null && username.isNotEmpty) {
+        formData.fields.add(MapEntry('username', username));
+      }
       if (nickname != null && nickname.isNotEmpty) {
         formData.fields.add(MapEntry('nickname', nickname));
       }

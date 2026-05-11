@@ -288,7 +288,6 @@ class WeatherRecommendationScreen extends StatelessWidget {
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => _EnhancedRecommendationCard(
                     item: data.recommendations[i],
-                    rank: i + 1,
                     weather: weather,
                   ),
                   childCount: data.recommendations.length,
@@ -683,12 +682,10 @@ class _HourlyForecastStrip extends StatelessWidget {
 // ───────────────────────────────────────────────────────────
 class _EnhancedRecommendationCard extends StatelessWidget {
   final WeatherRecommendationItem item;
-  final int rank;
   final WeatherInfo weather;
 
   const _EnhancedRecommendationCard({
     required this.item,
-    required this.rank,
     required this.weather,
   });
 
@@ -716,11 +713,10 @@ class _EnhancedRecommendationCard extends StatelessWidget {
           if (item.resultImgUrl != null && item.resultImgUrl!.isNotEmpty)
             _ImageSection(
               imageUrl: item.resultImgUrl!,
-              rank: rank,
               matchPct: matchPct,
             )
           else
-            _PlaceholderImage(rank: rank, matchPct: matchPct),
+            const _PlaceholderImage(),
 
           // 정보 영역
           Padding(
@@ -751,12 +747,10 @@ class _EnhancedRecommendationCard extends StatelessWidget {
 // 이미지 섹션 (뱃지 오버레이 포함)
 class _ImageSection extends StatelessWidget {
   final String imageUrl;
-  final int rank;
   final int matchPct;
 
   const _ImageSection({
     required this.imageUrl,
-    required this.rank,
     required this.matchPct,
   });
 
@@ -788,35 +782,6 @@ class _ImageSection extends StatelessWidget {
                   child: const LoadingIndicator(size: 80),
                 );
               },
-            ),
-          ),
-          // 순위 뱃지 (좌상단)
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.ACCENT_BLUE, AppColors.ACCENT_PURPLE],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.ACCENT_BLUE.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Text(
-                '#$rank 추천',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
             ),
           ),
           // 매치 점수 뱃지 (우상단)
@@ -858,51 +823,23 @@ class _ImageSection extends StatelessWidget {
 
 // 이미지 없을 때 플레이스홀더
 class _PlaceholderImage extends StatelessWidget {
-  final int rank;
-  final int matchPct;
-
-  const _PlaceholderImage({required this.rank, required this.matchPct});
+  const _PlaceholderImage();
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Stack(
-        children: [
-          Container(
-            height: 200,
-            width: double.infinity,
-            color: AppColors.INPUT_BG_COLOR,
-            child: const Center(
-              child: Icon(
-                Icons.checkroom_outlined,
-                size: 64,
-                color: AppColors.MEDIUM_GREY,
-              ),
-            ),
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        color: AppColors.INPUT_BG_COLOR,
+        child: const Center(
+          child: Icon(
+            Icons.checkroom_outlined,
+            size: 64,
+            color: AppColors.MEDIUM_GREY,
           ),
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.ACCENT_BLUE, AppColors.ACCENT_PURPLE],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '#$rank 추천',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -976,16 +913,30 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 96,
+            height: 96,
             decoration: BoxDecoration(
-              color: AppColors.ACCENT_BLUE.withValues(alpha: 0.08),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.ACCENT_BLUE.withValues(alpha: 0.15),
+                  AppColors.ACCENT_PURPLE.withValues(alpha: 0.15),
+                ],
+              ),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ACCENT_BLUE.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: const Icon(
-              Icons.wb_cloudy_outlined,
-              size: 40,
-              color: AppColors.ACCENT_BLUE,
+              Icons.checkroom_rounded,
+              size: 44,
+              color: AppColors.ACCENT_PURPLE,
             ),
           ),
           const SizedBox(height: 20),

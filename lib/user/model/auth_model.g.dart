@@ -74,6 +74,7 @@ Map<String, dynamic> _$LogoutBodyToJson(LogoutBody instance) =>
 UserMe _$UserMeFromJson(Map<String, dynamic> json) => UserMe(
   userId: (json['userId'] as num?)?.toInt(),
   email: json['email'] as String?,
+  username: json['username'] as String?,
   nickname: json['nickname'] as String?,
   profileImageUrl: json['profileImageUrl'] as String?,
   height: (json['height'] as num?)?.toDouble(),
@@ -84,9 +85,50 @@ UserMe _$UserMeFromJson(Map<String, dynamic> json) => UserMe(
 Map<String, dynamic> _$UserMeToJson(UserMe instance) => <String, dynamic>{
   'userId': instance.userId,
   'email': instance.email,
+  'username': instance.username,
   'nickname': instance.nickname,
   'profileImageUrl': instance.profileImageUrl,
   'height': instance.height,
   'weight': instance.weight,
   'gender': instance.gender,
 };
+
+UserPublicProfile _$UserPublicProfileFromJson(Map<String, dynamic> json) =>
+    UserPublicProfile(
+      userId: (json['userId'] as num?)?.toInt(),
+      username: json['username'] as String?,
+      nickname: json['nickname'] as String?,
+      profileImageUrl: json['profileImageUrl'] as String?,
+      followerCount: (json['followerCount'] as num?)?.toInt(),
+      followingCount: (json['followingCount'] as num?)?.toInt(),
+      isFollowing: json['isFollowing'] as bool?,
+      isRequested: json['isRequested'] as bool?,
+    );
+
+Map<String, dynamic> _$UserPublicProfileToJson(UserPublicProfile instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'username': instance.username,
+      'nickname': instance.nickname,
+      'profileImageUrl': instance.profileImageUrl,
+      'followerCount': instance.followerCount,
+      'followingCount': instance.followingCount,
+      'isFollowing': instance.isFollowing,
+      'isRequested': instance.isRequested,
+    };
+
+UserSearchItem _$UserSearchItemFromJson(Map<String, dynamic> json) =>
+    UserSearchItem(
+      userId: (json['userId'] as num?)?.toInt(),
+      username: json['username'] as String?,
+      nickname: json['nickname'] as String?,
+      profileImageUrl: json['profileImageUrl'] as String?,
+    );
+
+Map<String, dynamic> _$UserSearchItemToJson(UserSearchItem instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'username': instance.username,
+      'nickname': instance.nickname,
+      'profileImageUrl': instance.profileImageUrl,
+    };

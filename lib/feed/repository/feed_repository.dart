@@ -68,17 +68,21 @@ class CreateFeedBody {
   final int fittingTaskId;
   final String feedTitle;
   final String feedContent;
+  // PUBLIC | FOLLOWERS_ONLY
+  final String visibility;
 
   CreateFeedBody({
     required this.fittingTaskId,
     required this.feedTitle,
     required this.feedContent,
+    this.visibility = 'PUBLIC',
   });
 
   Map<String, dynamic> toJson() => {
         'fittingTaskId': fittingTaskId,
         'feedTitle': feedTitle,
         'feedContent': feedContent,
+        'visibility': visibility,
       };
 }
 

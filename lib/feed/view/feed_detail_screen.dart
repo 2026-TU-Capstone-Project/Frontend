@@ -4,6 +4,7 @@ import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
+import 'package:capstone_fe/user/view/user_public_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -196,44 +197,53 @@ class _DetailBody extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showComingSoon(context),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.BORDER_COLOR,
-                        backgroundImage: hasProfileImg
-                            ? NetworkImage(d.authorProfileImageUrl!)
-                            : null,
-                        onBackgroundImageError:
-                            hasProfileImg ? (_, __) {} : null,
-                        child: hasProfileImg
-                            ? null
-                            : const Icon(Icons.person,
-                                color: AppColors.MEDIUM_GREY),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            d.authorNickname,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: AppColors.BLACK,
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          UserPublicProfileScreen(userId: d.authorId),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: AppColors.BORDER_COLOR,
+                          backgroundImage: hasProfileImg
+                              ? NetworkImage(d.authorProfileImageUrl!)
+                              : null,
+                          onBackgroundImageError:
+                              hasProfileImg ? (_, __) {} : null,
+                          child: hasProfileImg
+                              ? null
+                              : const Icon(Icons.person,
+                                  color: AppColors.MEDIUM_GREY),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d.authorNickname,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: AppColors.BLACK,
+                              ),
                             ),
-                          ),
-                          const Text(
-                            '온더룩',
-                            style: TextStyle(
-                                color: AppColors.MEDIUM_GREY, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const Text(
+                              '온더룩',
+                              style: TextStyle(
+                                  color: AppColors.MEDIUM_GREY, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

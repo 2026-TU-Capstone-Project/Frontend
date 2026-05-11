@@ -16,6 +16,7 @@ import 'package:capstone_fe/fitting/component/ai_stylist_input.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/chat/view/ai_chat_screen.dart';
+import 'package:capstone_fe/follow/component/notification_bell_icon.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -1162,10 +1163,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: const [NotificationBellIcon()],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                 child: AiStylistInput(nickname: _nickname),
               ),
             ),

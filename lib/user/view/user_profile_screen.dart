@@ -1,5 +1,6 @@
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
@@ -7,6 +8,8 @@ import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
+import 'package:capstone_fe/follow/provider/follow_provider.dart';
+import 'package:capstone_fe/follow/view/follow_list_screen.dart';
 import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
@@ -15,14 +18,14 @@ import 'package:capstone_fe/user/view/social_login_screen.dart';
 import 'package:dio/dio.dart';
 
 /// RootTab 유저 탭: 마이페이지(서버 GET/PATCH /users/me)
-class UserProfileScreen extends StatefulWidget {
+class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
 
   @override
-  State<UserProfileScreen> createState() => _UserProfileScreenState();
+  ConsumerState<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> {
+class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   UserMe? _me;
   String? _nicknameFromStorage;
   bool _loading = true;
@@ -41,6 +44,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    
+    // 팔로워/팔로잉 목록 강제 새로고침
+    await Future.wait([
+      ref.read(myFollowersProvider.notifier).refresh(),
+      ref.read(myFollowingsProvider.notifier).refresh(),
+    ]).catchError((_) => []);
+
     final authDio = createAuthDio();
     final repo = AuthRepository(Dio(), baseUrl: baseUrl);
     final me = await repo.getMe(authDio);
@@ -90,6 +100,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  void _openFollowList(FollowListType type) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FollowListScreen(initialType: type),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -105,6 +123,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ? nickname
         : '내 프로필';
     final gender = me?.gender?.trim();
+
+    final followersAsync = ref.watch(myFollowersProvider);
+    final followingsAsync = ref.watch(myFollowingsProvider);
+    
+    // valueOrNull을 사용하여 백그라운드 새로고침 중에도 이전 데이터를 유지
+    final followersCount = followersAsync.valueOrNull?.length ?? 0;
+    final followingsCount = followingsAsync.valueOrNull?.length ?? 0;
 
     return SafeArea(
       child: CustomScrollView(
@@ -204,8 +229,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildStatItem('${_myFeeds.length}', '게시물'),
-                      _buildStatItem('0', '팔로워'),
-                      _buildStatItem('0', '팔로잉'),
+                      _buildStatItem(
+                        '$followersCount',
+                        '팔로워',
+                        onTap: () => _openFollowList(FollowListType.followers),
+                      ),
+                      _buildStatItem(
+                        '$followingsCount',
+                        '팔로잉',
+                        onTap: () => _openFollowList(FollowListType.followings),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -404,8 +437,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   /// 인스타 스타일 통계 한 칸 (게시물 / 팔로워 / 팔로잉)
-  Widget _buildStatItem(String count, String label) {
-    return Column(
+  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) {
+    final column = Column(
       children: [
         Text(
           count,
@@ -421,6 +454,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           style: const TextStyle(fontSize: 13, color: AppColors.BODY_COLOR),
         ),
       ],
+    );
+    if (onTap == null) return column;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: column,
+      ),
     );
   }
 

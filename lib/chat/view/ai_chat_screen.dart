@@ -269,7 +269,7 @@ class _EmptyState extends ConsumerWidget {
               width: 160,
               height: 160,
               child: Lottie.asset(
-                'asset/json/ai_animation.json',
+                'asset/json/animation.json',
                 fit: BoxFit.contain,
               ),
             ),
