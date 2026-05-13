@@ -44,16 +44,4 @@ abstract class FollowRepository {
   @GET('/api/v1/follows/followers')
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<List<FollowResponse>>> getFollowers();
-
-  @GET('/api/v1/follows/{userId}/followings')
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<FollowResponse>>> getUserFollowings(
-    @Path('userId') int userId,
-  );
-
-  @GET('/api/v1/follows/{userId}/followers')
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<FollowResponse>>> getUserFollowers(
-    @Path('userId') int userId,
-  );
 }

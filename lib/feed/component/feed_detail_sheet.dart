@@ -1,6 +1,8 @@
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
+import 'package:capstone_fe/feed/component/worn_product_card.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,23 +43,58 @@ class FeedDetailSheet extends ConsumerWidget {
           height: 200,
           child: Center(child: Text('불러오기 실패')),
         ),
-        data: (d) => _SheetBody(d: d),
+        data: (d) => _SheetBody(d: d, feedId: feedId),
       ),
     );
   }
 }
 
-class _SheetBody extends StatelessWidget {
+class _SheetBody extends ConsumerWidget {
   final FeedDetailResponseDto d;
-  const _SheetBody({required this.d});
+  final int feedId;
+  const _SheetBody({required this.d, required this.feedId});
+
+  Future<void> _handleBookmarkTap(
+    BuildContext context,
+    WidgetRef ref,
+    String position,
+  ) async {
+    final ok = await ref
+        .read(clothesBookmarkListProvider.notifier)
+        .toggleBookmark(feedId, position);
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('북마크 처리에 실패했어요.')),
+      );
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final products = [
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookmarks =
+        ref.watch(clothesBookmarkListProvider).valueOrNull ??
+            const <ClothesBookmarkDto>[];
+    bool isBookmarked(String position) =>
+        bookmarks.any((b) => b.feedId == feedId && b.position == position);
+
+    final cards = <Widget>[
       if (d.topImageUrl != null || d.topName != null)
-        _ProductChip(imageUrl: d.topImageUrl, name: d.topName ?? '-'),
+        WornProductCard(
+          label: '상의',
+          imageUrl: d.topImageUrl,
+          productName: d.topName ?? '-',
+          isBookmarked: isBookmarked('TOP'),
+          onBookmarkTap: () => _handleBookmarkTap(context, ref, 'TOP'),
+        ),
       if (d.bottomImageUrl != null || d.bottomName != null)
-        _ProductChip(imageUrl: d.bottomImageUrl, name: d.bottomName ?? '-'),
+        WornProductCard(
+          label: '하의',
+          imageUrl: d.bottomImageUrl,
+          productName: d.bottomName ?? '-',
+          isBookmarked: isBookmarked('BOTTOM'),
+          onBookmarkTap: () => _handleBookmarkTap(context, ref, 'BOTTOM'),
+        ),
     ];
 
     return Column(
@@ -142,7 +179,7 @@ class _SheetBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        if (products.isEmpty)
+        if (cards.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
@@ -151,66 +188,18 @@ class _SheetBody extends StatelessWidget {
             ),
           )
         else
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: products.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => products[i],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                for (var i = 0; i < cards.length; i++) ...[
+                  cards[i],
+                  if (i != cards.length - 1) const SizedBox(height: 10),
+                ],
+              ],
             ),
           ),
       ],
     );
   }
-}
-
-class _ProductChip extends StatelessWidget {
-  final String? imageUrl;
-  final String name;
-  const _ProductChip({this.imageUrl, required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 90,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 90,
-              height: 90,
-              child: imageUrl != null && imageUrl!.isNotEmpty
-                  ? Image.network(
-                      imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
-                  : _placeholder(),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            name,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: AppColors.BLACK,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _placeholder() => Container(
-        color: AppColors.BORDER_COLOR,
-        child: const Icon(Icons.checkroom_rounded,
-            size: 32, color: AppColors.MEDIUM_GREY),
-      );
 }

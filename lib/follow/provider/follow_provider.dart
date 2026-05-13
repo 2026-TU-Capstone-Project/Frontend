@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/follow/model/follow_model.dart';
 import 'package:capstone_fe/follow/repository/follow_repository.dart';
-import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final followRepositoryProvider = Provider<FollowRepository>((ref) {
@@ -11,8 +12,18 @@ final followRepositoryProvider = Provider<FollowRepository>((ref) {
 
 class FollowRequestsNotifier
     extends AsyncNotifier<List<FollowRequestResponse>> {
+  Timer? _timer;
+
   @override
-  Future<List<FollowRequestResponse>> build() => _fetch();
+  Future<List<FollowRequestResponse>> build() {
+    _timer?.cancel();
+    _timer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => refresh(),
+    );
+    ref.onDispose(() => _timer?.cancel());
+    return _fetch();
+  }
 
   Future<List<FollowRequestResponse>> _fetch() async {
     final repo = ref.read(followRepositoryProvider);
@@ -21,8 +32,8 @@ class FollowRequestsNotifier
     return resp.data ?? const [];
   }
 
+  /// 백그라운드 폴링/사용자 새로고침 공용 — UI 깜빡임 방지 위해 AsyncLoading 미사용.
   Future<void> refresh() async {
-    state = const AsyncLoading();
     state = await AsyncValue.guard(_fetch);
   }
 
@@ -119,86 +130,27 @@ final myFollowingsProvider =
   MyFollowingsNotifier.new,
 );
 
-class UserFollowersNotifier
-    extends FamilyAsyncNotifier<List<FollowResponse>, int> {
+/// 액션 트리거 전용 — state 머신 불필요. follow/unfollow 후 변경된 캐시만 invalidate.
+class FollowActionNotifier extends FamilyNotifier<void, int> {
   @override
-  Future<List<FollowResponse>> build(int arg) => _fetch(arg);
-
-  Future<List<FollowResponse>> _fetch(int userId) async {
-    final repo = ref.read(followRepositoryProvider);
-    final resp = await repo.getUserFollowers(userId);
-    if (!resp.success) throw Exception(resp.message);
-    return resp.data ?? const [];
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetch(arg));
-  }
-}
-
-final userFollowersProvider = AsyncNotifierProviderFamily<UserFollowersNotifier,
-    List<FollowResponse>, int>(UserFollowersNotifier.new);
-
-class UserFollowingsNotifier
-    extends FamilyAsyncNotifier<List<FollowResponse>, int> {
-  @override
-  Future<List<FollowResponse>> build(int arg) => _fetch(arg);
-
-  Future<List<FollowResponse>> _fetch(int userId) async {
-    final repo = ref.read(followRepositoryProvider);
-    final resp = await repo.getUserFollowings(userId);
-    if (!resp.success) throw Exception(resp.message);
-    return resp.data ?? const [];
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetch(arg));
-  }
-}
-
-final userFollowingsProvider = AsyncNotifierProviderFamily<
-    UserFollowingsNotifier,
-    List<FollowResponse>,
-    int>(UserFollowingsNotifier.new);
-
-class FollowActionNotifier extends FamilyAsyncNotifier<bool, int> {
-  @override
-  Future<bool> build(int arg) async => false;
+  void build(int arg) {}
 
   Future<void> follow() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final repo = ref.read(followRepositoryProvider);
-      final resp = await repo.sendFollowRequest(arg);
-      if (!resp.success) throw Exception(resp.message);
-      ref.invalidate(myFollowingsProvider);
-      ref.invalidate(myFollowersProvider);
-      ref.invalidate(userPublicProfileProvider(arg));
-      ref.invalidate(userFollowersProvider(arg));
-      ref.invalidate(userFollowingsProvider(arg));
-      return true;
-    });
+    final repo = ref.read(followRepositoryProvider);
+    final resp = await repo.sendFollowRequest(arg);
+    if (!resp.success) throw Exception(resp.message);
+    ref.invalidate(myFollowingsProvider);
   }
 
   Future<void> unfollow() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final repo = ref.read(followRepositoryProvider);
-      final resp = await repo.cancelOrUnfollow(arg);
-      if (!resp.success) throw Exception(resp.message);
-      ref.invalidate(myFollowingsProvider);
-      ref.invalidate(myFollowersProvider);
-      ref.invalidate(userPublicProfileProvider(arg));
-      ref.invalidate(userFollowersProvider(arg));
-      ref.invalidate(userFollowingsProvider(arg));
-      return false;
-    });
+    final repo = ref.read(followRepositoryProvider);
+    final resp = await repo.cancelOrUnfollow(arg);
+    if (!resp.success) throw Exception(resp.message);
+    ref.invalidate(myFollowingsProvider);
   }
 }
 
 final followActionProvider =
-    AsyncNotifierProviderFamily<FollowActionNotifier, bool, int>(
+    NotifierProviderFamily<FollowActionNotifier, void, int>(
   FollowActionNotifier.new,
 );

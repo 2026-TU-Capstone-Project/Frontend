@@ -12,6 +12,7 @@ import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/util/clothes_category_util.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
+import 'package:capstone_fe/feed/view/clothes_bookmark_screen.dart';
 import 'package:capstone_fe/personal_closet/view/clothing_upload_progress_dialog.dart';
 
 const _kBg = Color(0xFFF5F5F7);
@@ -419,11 +420,16 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // Search button
+          // Bookmark button
           _PillButton(
-            icon: Icons.search_rounded,
-            label: '검색',
-            onTap: () {}, // 향후 검색 기능
+            icon: Icons.bookmark_border_rounded,
+            label: '북마크',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ClothesBookmarkScreen(),
+              ),
+            ),
           ),
           // Title
           const Expanded(

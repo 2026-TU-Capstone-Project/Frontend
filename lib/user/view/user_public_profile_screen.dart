@@ -68,18 +68,23 @@ class _ProfileBody extends ConsumerWidget {
         : (profile.username?.trim() ?? '유저');
     final imageUrl = profile.profileImageUrl?.trim();
 
-    // 실시간 팔로우 수치 구독
-    final followersAsync = ref.watch(userFollowersProvider(userId));
-    final followingsAsync = ref.watch(userFollowingsProvider(userId));
-    
-    final followerCount = followersAsync.maybeWhen(
-      data: (list) => list.length,
-      orElse: () => profile.followerCount ?? 0,
+    // 카운트는 프로필 응답값 그대로 사용 (리스트 페치 불필요)
+    final followerCount = profile.followerCount ?? 0;
+    final followingCount = profile.followingCount ?? 0;
+
+    // 자기 자신 프로필 여부 — 본인이면 팔로우 버튼 숨김
+    final myUserId = ref.watch(userMeProvider).valueOrNull?.userId;
+    final isSelf = myUserId != null && myUserId == userId;
+
+    // 맞팔 판정에만 내 팔로워 리스트가 필요
+    final myFollowersAsync = ref.watch(myFollowersProvider);
+    final iFollowThem = profile.isFollowing ?? false;
+    final theyFollowMe = myFollowersAsync.maybeWhen(
+      data: (list) => list.any((f) => f.userId == userId),
+      orElse: () => false,
     );
-    final followingCount = followingsAsync.maybeWhen(
-      data: (list) => list.length,
-      orElse: () => profile.followingCount ?? 0,
-    );
+    final isMutual = iFollowThem && theyFollowMe;
+    final hideFollowButton = isSelf || isMutual;
 
     final feedsAsync = ref.watch(userFeedsProvider(
       (userId: userId, nickname: profile.nickname),
@@ -88,8 +93,7 @@ class _ProfileBody extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(userPublicProfileProvider(userId));
-        ref.invalidate(userFollowersProvider(userId));
-        ref.invalidate(userFollowingsProvider(userId));
+        ref.invalidate(myFollowersProvider);
         ref.invalidate(feedListProvider);
       },
       child: CustomScrollView(
@@ -174,12 +178,14 @@ class _ProfileBody extends ConsumerWidget {
                       _StatItem(count: '$followingCount', label: '팔로잉'),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  _FollowToggleButton(
-                    userId: userId,
-                    isFollowing: profile.isFollowing ?? false,
-                    isRequested: profile.isRequested ?? false,
-                  ),
+                  if (!hideFollowButton) ...[
+                    const SizedBox(height: 20),
+                    _FollowToggleButton(
+                      userId: userId,
+                      isFollowing: profile.isFollowing ?? false,
+                      isRequested: profile.isRequested ?? false,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -350,11 +356,6 @@ class _FollowToggleButtonState extends ConsumerState<_FollowToggleButton> {
         if (!mounted) return;
         setState(() => _isFollowing = true);
       }
-      
-      // 관련 상태들 즉시 무효화 -> 부모 위젯인 _ProfileBody 가 다시 빌드됨
-      ref.invalidate(userPublicProfileProvider(widget.userId));
-      ref.invalidate(userFollowersProvider(widget.userId));
-      ref.invalidate(myFollowingsProvider);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -370,16 +371,23 @@ class _FollowToggleButtonState extends ConsumerState<_FollowToggleButton> {
     final following = _isFollowing;
     final requested = _isRequested;
 
-    final label = following
-        ? '팔로잉'
-        : (requested ? '요청됨' : '팔로우');
+    final String label;
+    if (following) {
+      label = '팔로잉';
+    } else if (requested) {
+      label = '요청됨';
+    } else {
+      label = '팔로우';
+    }
     final isOutlined = following || requested;
+
+    final VoidCallback? handler = _busy ? null : _onPressed;
 
     return SizedBox(
       width: double.infinity,
       child: isOutlined
           ? OutlinedButton(
-              onPressed: _busy ? null : _onPressed,
+              onPressed: handler,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.BLACK,
                 side: const BorderSide(color: AppColors.BORDER_COLOR),
@@ -403,7 +411,7 @@ class _FollowToggleButtonState extends ConsumerState<_FollowToggleButton> {
                     ),
             )
           : ElevatedButton(
-              onPressed: _busy ? null : _onPressed,
+              onPressed: handler,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.ACCENT_COLOR,
                 foregroundColor: AppColors.white,

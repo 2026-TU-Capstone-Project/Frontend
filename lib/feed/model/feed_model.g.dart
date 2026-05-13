@@ -163,3 +163,27 @@ Map<String, dynamic> _$FeedPreviewResponseDtoToJson(
   'bottomImageUrl': instance.bottomImageUrl,
   'bottomName': instance.bottomName,
 };
+
+ClothesBookmarkDto _$ClothesBookmarkDtoFromJson(Map<String, dynamic> json) =>
+    ClothesBookmarkDto(
+      id: (json['id'] as num).toInt(),
+      feedId: (json['feedId'] as num).toInt(),
+      clothesId: (json['clothesId'] as num).toInt(),
+      position: json['position'] as String,
+      imgUrl: json['imgUrl'] as String?,
+      name: json['name'] as String?,
+      category: json['category'] as String?,
+      savedAt: json['savedAt'] as String?,
+    );
+
+Map<String, dynamic> _$ClothesBookmarkDtoToJson(ClothesBookmarkDto instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'feedId': instance.feedId,
+      'clothesId': instance.clothesId,
+      'position': instance.position,
+      'imgUrl': instance.imgUrl,
+      'name': instance.name,
+      'category': instance.category,
+      'savedAt': instance.savedAt,
+    };

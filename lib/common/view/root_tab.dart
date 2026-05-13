@@ -5,6 +5,7 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/layout/default_layout.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/feed/view/fashion_feed_screen.dart';
+import 'package:capstone_fe/follow/component/notification_bell_icon.dart';
 import 'package:capstone_fe/fitting/component/fitting_onboarding_sheet.dart';
 import 'package:capstone_fe/fitting/view/fitting_room_screen.dart';
 import 'package:capstone_fe/fitting/view/weather_recommendation_screen.dart';
@@ -146,10 +147,7 @@ class _RootTabState extends State<RootTab> with SingleTickerProviderStateMixin {
           : null,
       actions: showAppBar
           ? [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications_outlined),
-              ),
+              const NotificationBellIcon(),
             ]
           : null,
       bottomNavigationBar: _CustomBottomBar(

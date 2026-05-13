@@ -165,6 +165,35 @@ class FeedPreviewResponseDto {
   Map<String, dynamic> toJson() => _$FeedPreviewResponseDtoToJson(this);
 }
 
+// --- 옷 북마크 (GET/POST/DELETE /api/v1/clothes-bookmarks) ---
+@JsonSerializable()
+class ClothesBookmarkDto {
+  final int id;
+  final int feedId;
+  final int clothesId;
+  // TOP | BOTTOM
+  final String position;
+  final String? imgUrl;
+  final String? name;
+  final String? category;
+  final String? savedAt;
+
+  ClothesBookmarkDto({
+    required this.id,
+    required this.feedId,
+    required this.clothesId,
+    required this.position,
+    this.imgUrl,
+    this.name,
+    this.category,
+    this.savedAt,
+  });
+
+  factory ClothesBookmarkDto.fromJson(Map<String, dynamic> json) =>
+      _$ClothesBookmarkDtoFromJson(json);
+  Map<String, dynamic> toJson() => _$ClothesBookmarkDtoToJson(this);
+}
+
 // --- 기존 더미용 (추후 제거 가능) ---
 class SingleFeedModel {
   final String title;

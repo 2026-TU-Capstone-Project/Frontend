@@ -124,7 +124,8 @@ class UserMe {
 }
 
 // 10. 공개 프로필 조회 응답 (GET /api/v1/users/{userId})
-@JsonSerializable()
+// API: followStatus(null | PENDING | ACCEPTED). 구버전 키(isFollowing/isRequested)도 호환.
+@JsonSerializable(createFactory: false)
 class UserPublicProfile {
   final int? userId;
   final String? username;
@@ -146,8 +147,19 @@ class UserPublicProfile {
     this.isRequested,
   });
 
-  factory UserPublicProfile.fromJson(Map<String, dynamic> json) =>
-      _$UserPublicProfileFromJson(json);
+  factory UserPublicProfile.fromJson(Map<String, dynamic> json) {
+    final status = json['followStatus'] as String?;
+    return UserPublicProfile(
+      userId: (json['userId'] as num?)?.toInt(),
+      username: json['username'] as String?,
+      nickname: json['nickname'] as String?,
+      profileImageUrl: json['profileImageUrl'] as String?,
+      followerCount: (json['followerCount'] as num?)?.toInt(),
+      followingCount: (json['followingCount'] as num?)?.toInt(),
+      isFollowing: json['isFollowing'] as bool? ?? (status == 'ACCEPTED'),
+      isRequested: json['isRequested'] as bool? ?? (status == 'PENDING'),
+    );
+  }
   Map<String, dynamic> toJson() => _$UserPublicProfileToJson(this);
 }
 

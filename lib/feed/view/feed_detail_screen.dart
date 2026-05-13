@@ -1,7 +1,9 @@
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
+import 'package:capstone_fe/feed/component/worn_product_card.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:capstone_fe/user/view/user_public_profile_screen.dart';
@@ -163,12 +165,34 @@ class _DetailBody extends ConsumerWidget {
     );
   }
 
+  Future<void> _handleBookmarkTap(
+    BuildContext context,
+    WidgetRef ref,
+    String position,
+  ) async {
+    final ok = await ref
+        .read(clothesBookmarkListProvider.notifier)
+        .toggleBookmark(feedId, position);
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('북마크 처리에 실패했어요.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final liked = d.liked ?? false;
     final likeCount = d.likeCount ?? 0;
     final hasProfileImg = d.authorProfileImageUrl != null &&
         d.authorProfileImageUrl!.isNotEmpty;
+
+    final bookmarks =
+        ref.watch(clothesBookmarkListProvider).valueOrNull ??
+            const <ClothesBookmarkDto>[];
+    bool isBookmarked(String position) =>
+        bookmarks.any((b) => b.feedId == feedId && b.position == position);
 
     return SingleChildScrollView(
       child: Column(
@@ -285,22 +309,30 @@ class _DetailBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 if (d.topImageUrl != null || d.topName != null)
-                  _WornProductCard(
+                  WornProductCard(
+                    label: '상의',
                     imageUrl: d.topImageUrl,
                     productName: d.topName ?? '-',
                     onTap: d.topClothesId != null
                         ? () => _showComingSoon(context)
                         : null,
+                    isBookmarked: isBookmarked('TOP'),
+                    onBookmarkTap: () =>
+                        _handleBookmarkTap(context, ref, 'TOP'),
                   ),
                 if (d.topImageUrl != null || d.topName != null)
                   const SizedBox(height: 10),
                 if (d.bottomImageUrl != null || d.bottomName != null)
-                  _WornProductCard(
+                  WornProductCard(
+                    label: '하의',
                     imageUrl: d.bottomImageUrl,
                     productName: d.bottomName ?? '-',
                     onTap: d.bottomClothesId != null
                         ? () => _showComingSoon(context)
                         : null,
+                    isBookmarked: isBookmarked('BOTTOM'),
+                    onBookmarkTap: () =>
+                        _handleBookmarkTap(context, ref, 'BOTTOM'),
                   ),
                 if ((d.topImageUrl == null && d.topName == null) &&
                     (d.bottomImageUrl == null && d.bottomName == null))
@@ -410,90 +442,6 @@ class _FullScreenImageViewer extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─────────────────────────────────────────────
-// 착용 제품 카드
-// ─────────────────────────────────────────────
-
-class _WornProductCard extends StatelessWidget {
-  final String? imageUrl;
-  final String productName;
-  final VoidCallback? onTap;
-
-  const _WornProductCard({
-    this.imageUrl,
-    required this.productName,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final card = Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.BORDER_COLOR),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 80,
-              height: 80,
-              child: imageUrl != null && imageUrl!.isNotEmpty
-                  ? Image.network(imageUrl!, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder())
-                  : _placeholder(),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('상품',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.BLACK)),
-                const SizedBox(height: 4),
-                Text(productName,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.BLACK,
-                        height: 1.3),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          Icon(
-            onTap != null
-                ? Icons.chevron_right_rounded
-                : Icons.bookmark_border_rounded,
-            color: AppColors.MEDIUM_GREY,
-          ),
-        ],
-      ),
-    );
-
-    if (onTap == null) return card;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: card,
-    );
-  }
-
-  Widget _placeholder() => Container(
-      color: AppColors.BORDER_COLOR,
-      child: const Icon(Icons.checkroom_rounded,
-          size: 36, color: AppColors.MEDIUM_GREY));
 }
 
 // ─────────────────────────────────────────────

@@ -93,18 +93,6 @@ Map<String, dynamic> _$UserMeToJson(UserMe instance) => <String, dynamic>{
   'gender': instance.gender,
 };
 
-UserPublicProfile _$UserPublicProfileFromJson(Map<String, dynamic> json) =>
-    UserPublicProfile(
-      userId: (json['userId'] as num?)?.toInt(),
-      username: json['username'] as String?,
-      nickname: json['nickname'] as String?,
-      profileImageUrl: json['profileImageUrl'] as String?,
-      followerCount: (json['followerCount'] as num?)?.toInt(),
-      followingCount: (json['followingCount'] as num?)?.toInt(),
-      isFollowing: json['isFollowing'] as bool?,
-      isRequested: json['isRequested'] as bool?,
-    );
-
 Map<String, dynamic> _$UserPublicProfileToJson(UserPublicProfile instance) =>
     <String, dynamic>{
       'userId': instance.userId,
