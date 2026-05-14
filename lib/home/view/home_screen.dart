@@ -1063,6 +1063,40 @@ class ProductGridCard extends StatelessWidget {
                   child: const Icon(Icons.checkroom, size: 40),
                 ),
               ),
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.favorite,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.likeCount ?? 0}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1212,27 +1246,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
             const SliverToBoxAdapter(child: SectionHeader(title: '인기 스타일')),
             switch (ref.watch(feedListProvider)) {
-              AsyncData(:final value) => SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 0.55,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => ProductGridCard(
-                      item: value.items[index],
-                      onTap: () => showFeedDetailSheet(
-                        context,
-                        value.items[index].feedId,
+              AsyncData(:final value) => () {
+                final sortedItems = [...value.items]..sort(
+                  (a, b) => (b.likeCount ?? 0).compareTo(a.likeCount ?? 0),
+                );
+                return SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 0.55,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => ProductGridCard(
+                        item: sortedItems[index],
+                        onTap: () => showFeedDetailSheet(
+                          context,
+                          sortedItems[index].feedId,
+                        ),
                       ),
+                      childCount: sortedItems.length,
                     ),
-                    childCount: value.items.length,
                   ),
-                ),
-              ),
+                );
+              }(),
               AsyncError() => const SliverToBoxAdapter(
                 child: SizedBox(
                   height: 120,
