@@ -1,19 +1,22 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
+import 'package:capstone_fe/fitting/clothes/component/clothes_detail_bottom_sheet.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/util/clothes_category_util.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
+import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repository.dart';
+import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
 import 'package:capstone_fe/feed/view/clothes_bookmark_screen.dart';
 import 'package:capstone_fe/personal_closet/view/clothing_upload_progress_dialog.dart';
+import 'package:capstone_fe/personal_closet/view/clothes_set_detail_screen.dart';
 
 const _kBg = Color(0xFFF5F5F7);
 
@@ -29,10 +32,12 @@ class WardrobeScreen extends StatefulWidget {
 class _WardrobeScreenState extends State<WardrobeScreen> {
   late ClothesRepository _clothesRepository;
   late FittingRepository _fittingRepository;
+  late ClothesSetRepository _clothesSetRepository;
 
   List<ClothesModel> _allClothes = [];
   List<ClothesModel> _filteredClothes = [];
   List<SavedFittingData> _savedFittings = [];
+  List<ClothesSetModel> _clothesSets = [];
 
   String _selectedCategory = "전체";
   final List<String> _categories = ["전체", "상의", "하의", "아우터", "신발", "원피스", "기타"];
@@ -57,6 +62,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     final dio = createAuthDio();
     _clothesRepository = ClothesRepository(dio, baseUrl: baseUrl);
     _fittingRepository = FittingRepository(dio, baseUrl: baseUrl);
+    _clothesSetRepository = ClothesSetRepository(dio, baseUrl: baseUrl);
     _loadWardrobe();
   }
 
@@ -65,11 +71,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     try {
       final clothesResp = await _clothesRepository.getClothesList();
       final savedResp = await _fittingRepository.getMyCloset();
+      final setsResp = await _clothesSetRepository.getClothesSets();
       if (mounted) {
         setState(() {
           if (clothesResp.success) _allClothes = clothesResp.data ?? [];
           _filterClothes();
           if (savedResp.success) _savedFittings = (savedResp.data ?? []).reversed.toList();
+          if (setsResp.success) _clothesSets = (setsResp.data ?? []).reversed.toList();
         });
       }
     } catch (e) {
@@ -552,7 +560,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Widget _buildCollectionsGrid() {
-    if (_savedFittings.isEmpty) {
+    if (_savedFittings.isEmpty && _clothesSets.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 120),
@@ -580,25 +588,110 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         ],
       );
     }
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.60,
-      ),
-      itemCount: _savedFittings.length,
-      itemBuilder: (context, index) {
-        final item = _savedFittings[index];
-        return GestureDetector(
-          onTap: () {
-            final url = item.resultImgUrl;
-            if (url != null && url.isNotEmpty) _showSavedFittingFullScreen(url);
-          },
-          child: _CollectionGridCard(item: item),
-        );
-      },
+
+    const gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 0.60,
+    );
+
+    return CustomScrollView(
+      slivers: [
+        if (_clothesSets.isNotEmpty) ...[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            sliver: SliverToBoxAdapter(
+              child: _buildSectionHeader('폴더', _clothesSets.length),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            sliver: SliverGrid(
+              gridDelegate: gridDelegate,
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final folder = _clothesSets[index];
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => ClothesSetDetailScreen(
+                          folder: folder,
+                          onUpdated: _loadWardrobe,
+                        ),
+                      ),
+                    ),
+                    child: _FolderGridCard(folder: folder),
+                  );
+                },
+                childCount: _clothesSets.length,
+              ),
+            ),
+          ),
+        ],
+        if (_savedFittings.isNotEmpty) ...[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            sliver: SliverToBoxAdapter(
+              child: _buildSectionHeader('최근 피팅', _savedFittings.length),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            sliver: SliverGrid(
+              gridDelegate: gridDelegate,
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = _savedFittings[index];
+                  return GestureDetector(
+                    onTap: () {
+                      final url = item.resultImgUrl;
+                      if (url != null && url.isNotEmpty) {
+                        _showSavedFittingFullScreen(url);
+                      }
+                    },
+                    child: _CollectionGridCard(item: item),
+                  );
+                },
+                childCount: _savedFittings.length,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, int count) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppColors.BLACK,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: AppColors.BORDER_COLOR.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '$count',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.MEDIUM_GREY,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -644,286 +737,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _showClothDetail(BuildContext context, ClothesModel cloth) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.92,
-          minChildSize: 0.5,
-          maxChildSize: 0.98,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: CustomScrollView(
-                controller: scrollController,
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 8, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.BORDER_COLOR,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline_rounded,
-                              color: AppColors.ERROR_COLOR,
-                            ),
-                            onPressed: () => _deleteCloth(cloth.id),
-                            tooltip: '삭제',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(
-                              cloth.imgUrl ?? "",
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: AppColors.INPUT_BG_COLOR,
-                                child: const Icon(
-                                  Icons.broken_image_rounded,
-                                  size: 48,
-                                  color: AppColors.MEDIUM_GREY,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_isNotEmpty(cloth.category))
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _kBg,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  cloth.category!.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: AppColors.MEDIUM_GREY,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          Text(
-                            cloth.name ?? "이름 없는 옷",
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.BLACK,
-                              height: 1.3,
-                            ),
-                          ),
-                          if (_isNotEmpty(cloth.brand)) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              cloth.brand!,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: AppColors.BODY_COLOR,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                          if (cloth.price != null && cloth.price! > 0) ...[
-                            const SizedBox(height: 14),
-                            Text(
-                              _formatPrice(cloth.price!),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.BLACK,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 20),
-                          if (_isNotEmpty(cloth.buyUrl))
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                onPressed: () => _launchUrl(cloth.buyUrl!),
-                                icon: const Icon(Icons.shopping_bag_outlined, size: 20),
-                                label: const Text("구매 링크로 이동"),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.PRIMARYCOLOR,
-                                  foregroundColor: AppColors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (_isNotEmpty(cloth.buyUrl)) const SizedBox(height: 24),
-                          const Divider(height: 32, color: AppColors.BORDER_COLOR),
-                          ..._buildDetailSection("기본 정보", [
-                            _row("색상", cloth.color),
-                            _row("계절", cloth.season),
-                            _row("소재", cloth.material),
-                            _row("두께감", cloth.thickness),
-                          ]),
-                          ..._buildDetailSection("스타일 · 착용", [
-                            _row("스타일", cloth.style),
-                            _row("핏", cloth.fit),
-                            _row("기장", cloth.length),
-                            _row("착용 상황", cloth.occasion),
-                          ]),
-                          ..._buildDetailSection("디테일", [
-                            _row("넥라인", cloth.neckLine),
-                            _row("소매", cloth.sleeveType),
-                            _row("패턴", cloth.pattern),
-                            _row("단추/잠금", cloth.closure),
-                            _row("질감", cloth.texture),
-                          ]),
-                          if (_isNotEmpty(cloth.detail)) ...[
-                            const SizedBox(height: 8),
-                            const Text(
-                              "상세 설명",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.BLACK,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              cloth.detail!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.BODY_COLOR,
-                                height: 1.5,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 40),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  bool _isNotEmpty(String? v) => v != null && v.trim().isNotEmpty;
-
-  String _formatPrice(int price) {
-    if (price >= 10000) {
-      return "${(price / 10000).toStringAsFixed(price % 10000 == 0 ? 0 : 1)}만 원";
-    }
-    return "$price 원";
-  }
-
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {}
-  }
-
-  List<Widget> _buildDetailSection(String title, List<Widget?> rows) {
-    final valid = rows.whereType<Widget>().toList();
-    if (valid.isEmpty) return [];
-    return [
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: AppColors.BLACK,
-        ),
-      ),
-      const SizedBox(height: 10),
-      ...valid,
-      const SizedBox(height: 20),
-    ];
-  }
-
-  Widget? _row(String label, String? value) {
-    if (!_isNotEmpty(value)) return null;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.MEDIUM_GREY,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value!,
-              style: const TextStyle(
-                color: AppColors.BLACK,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
+    ClothesDetailBottomSheet.show(
+      context,
+      cloth: cloth,
+      onDelete: () => _deleteCloth(cloth.id),
     );
   }
 }
@@ -1158,6 +975,101 @@ class _CollectionGridCardState extends State<_CollectionGridCard> {
     color: const Color(0xFFF0F0F0),
     child: const Center(
       child: Icon(Icons.person_outline, color: Color(0xFFCCCCCC), size: 40),
+    ),
+  );
+}
+
+// ============================================================
+// Folder Grid Card (코디 폴더)
+// ============================================================
+class _FolderGridCard extends StatelessWidget {
+  final ClothesSetModel folder;
+  const _FolderGridCard({required this.folder});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = folder.representativeImageUrl;
+    final name = folder.setName ?? '이름 없는 폴더';
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (url != null && url.isNotEmpty)
+              Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              )
+            else
+              _placeholder(),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.folder_rounded,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.0),
+                      Colors.black.withValues(alpha: 0.55),
+                    ],
+                  ),
+                ),
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+    color: const Color(0xFFE9E9EC),
+    child: const Center(
+      child: Icon(Icons.folder_outlined, color: Color(0xFFB8B8BE), size: 44),
     ),
   );
 }

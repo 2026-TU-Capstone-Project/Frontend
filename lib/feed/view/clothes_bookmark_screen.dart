@@ -2,6 +2,8 @@ import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
+import 'package:capstone_fe/fitting/clothes/component/clothes_detail_bottom_sheet.dart';
+import 'package:capstone_fe/fitting/clothes/provider/clothes_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -84,6 +86,7 @@ class _ClothesBookmarkScreenState
                     itemBuilder: (_, i) => _BookmarkCard(
                       item: items[i],
                       onRemove: () => _remove(items[i]),
+                      onTap: () => _openDetail(items[i]),
                     ),
                   );
                 },
@@ -93,6 +96,38 @@ class _ClothesBookmarkScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _openDetail(ClothesBookmarkDto item) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: LoadingIndicator(),
+      ),
+    );
+    try {
+      final resp = await ref
+          .read(clothesRepositoryProvider)
+          .getClothDetail(id: item.clothesId);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      if (resp.success && resp.data != null) {
+        await ClothesDetailBottomSheet.show(context, cloth: resp.data!);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(resp.message)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('상세 정보를 불러오지 못했어요: $e')),
+      );
+    }
   }
 
   Future<void> _remove(ClothesBookmarkDto item) async {
@@ -210,13 +245,20 @@ class _ClothesBookmarkScreenState
 class _BookmarkCard extends StatelessWidget {
   final ClothesBookmarkDto item;
   final VoidCallback onRemove;
+  final VoidCallback onTap;
 
-  const _BookmarkCard({required this.item, required this.onRemove});
+  const _BookmarkCard({
+    required this.item,
+    required this.onRemove,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final hasImg = item.imgUrl != null && item.imgUrl!.isNotEmpty;
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8F8F8),
         borderRadius: BorderRadius.circular(20),
@@ -300,6 +342,7 @@ class _BookmarkCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

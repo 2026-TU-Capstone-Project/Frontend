@@ -702,6 +702,13 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
       );
       if (mounted) {
         if (resp.success) {
+          _progress.clearResult();
+          setState(() {
+            _selectedTopFile = null;
+            _selectedTopUrl = null;
+            _selectedBottomFile = null;
+            _selectedBottomUrl = null;
+          });
           ref.invalidate(myClosetProvider);
           ScaffoldMessenger.of(
             context,

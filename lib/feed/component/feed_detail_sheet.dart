@@ -4,6 +4,7 @@ import 'package:capstone_fe/feed/component/worn_product_card.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -72,6 +73,8 @@ class _SheetBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final userMe = ref.watch(userMeProvider).valueOrNull;
+    final isMine = userMe?.userId == d.authorId;
     final bookmarks =
         ref.watch(clothesBookmarkListProvider).valueOrNull ??
             const <ClothesBookmarkDto>[];
@@ -85,7 +88,8 @@ class _SheetBody extends ConsumerWidget {
           imageUrl: d.topImageUrl,
           productName: d.topName ?? '-',
           isBookmarked: isBookmarked('TOP'),
-          onBookmarkTap: () => _handleBookmarkTap(context, ref, 'TOP'),
+          onBookmarkTap:
+              isMine ? null : () => _handleBookmarkTap(context, ref, 'TOP'),
         ),
       if (d.bottomImageUrl != null || d.bottomName != null)
         WornProductCard(
@@ -93,7 +97,8 @@ class _SheetBody extends ConsumerWidget {
           imageUrl: d.bottomImageUrl,
           productName: d.bottomName ?? '-',
           isBookmarked: isBookmarked('BOTTOM'),
-          onBookmarkTap: () => _handleBookmarkTap(context, ref, 'BOTTOM'),
+          onBookmarkTap:
+              isMine ? null : () => _handleBookmarkTap(context, ref, 'BOTTOM'),
         ),
     ];
 

@@ -6,6 +6,7 @@ import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:capstone_fe/user/view/user_public_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -188,6 +189,8 @@ class _DetailBody extends ConsumerWidget {
     final hasProfileImg = d.authorProfileImageUrl != null &&
         d.authorProfileImageUrl!.isNotEmpty;
 
+    final userMe = ref.watch(userMeProvider).valueOrNull;
+    final isMine = userMe?.userId == d.authorId;
     final bookmarks =
         ref.watch(clothesBookmarkListProvider).valueOrNull ??
             const <ClothesBookmarkDto>[];
@@ -317,8 +320,9 @@ class _DetailBody extends ConsumerWidget {
                         ? () => _showComingSoon(context)
                         : null,
                     isBookmarked: isBookmarked('TOP'),
-                    onBookmarkTap: () =>
-                        _handleBookmarkTap(context, ref, 'TOP'),
+                    onBookmarkTap: isMine
+                        ? null
+                        : () => _handleBookmarkTap(context, ref, 'TOP'),
                   ),
                 if (d.topImageUrl != null || d.topName != null)
                   const SizedBox(height: 10),
@@ -331,8 +335,9 @@ class _DetailBody extends ConsumerWidget {
                         ? () => _showComingSoon(context)
                         : null,
                     isBookmarked: isBookmarked('BOTTOM'),
-                    onBookmarkTap: () =>
-                        _handleBookmarkTap(context, ref, 'BOTTOM'),
+                    onBookmarkTap: isMine
+                        ? null
+                        : () => _handleBookmarkTap(context, ref, 'BOTTOM'),
                   ),
                 if ((d.topImageUrl == null && d.topName == null) &&
                     (d.bottomImageUrl == null && d.bottomName == null))

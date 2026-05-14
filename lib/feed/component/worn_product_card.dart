@@ -66,18 +66,19 @@ class WornProductCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: onBookmarkTap,
-            icon: Icon(
-              isBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              color: isBookmarked ? AppColors.BLACK : AppColors.MEDIUM_GREY,
+          if (onBookmarkTap != null)
+            IconButton(
+              onPressed: onBookmarkTap,
+              icon: Icon(
+                isBookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: isBookmarked ? AppColors.BLACK : AppColors.MEDIUM_GREY,
+              ),
+              tooltip: isBookmarked ? '북마크 해제' : '북마크',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
-            tooltip: isBookmarked ? '북마크 해제' : '북마크',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          ),
         ],
       ),
     );
