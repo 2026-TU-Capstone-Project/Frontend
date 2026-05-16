@@ -293,6 +293,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       final taskId = data?['taskId'] as int?;
       if (taskId == null) throw Exception('taskId를 받지 못했습니다.');
 
+      // true: SSE COMPLETED, false: SSE FAILED, null: SSE 연결 유실(결과 불명)
       final success = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -302,9 +303,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       if (!mounted) return;
       if (success == true) {
         _loadWardrobe();
-      } else {
+      } else if (success == false) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('옷 등록에 실패했습니다. 다시 시도해주세요.')),
+        );
+      } else {
+        // 결과 불명 — 목록만 새로고침해 사용자가 직접 확인
+        _loadWardrobe();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('등록 결과를 확인 중입니다. 옷장에서 새로 등록된 항목을 확인해주세요.'),
+          ),
         );
       }
     } catch (e) {

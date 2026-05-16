@@ -2,6 +2,30 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'follow_model.g.dart';
 
+@JsonSerializable(genericArgumentFactories: true)
+class CursorPagination<T> {
+  final List<T> items;
+  final String? nextCursor;
+  final bool hasMore;
+
+  const CursorPagination({
+    required this.items,
+    this.nextCursor,
+    required this.hasMore,
+  });
+
+  static const empty = CursorPagination<Never>(items: [], hasMore: false);
+
+  factory CursorPagination.fromJson(
+    Map<String, dynamic> json,
+    T Function(Object? json) fromJsonT,
+  ) =>
+      _$CursorPaginationFromJson(json, fromJsonT);
+
+  Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
+      _$CursorPaginationToJson(this, toJsonT);
+}
+
 @JsonSerializable()
 class FollowResponse {
   final int? followId;

@@ -59,12 +59,6 @@ KakaoLoginBody _$KakaoLoginBodyFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$KakaoLoginBodyToJson(KakaoLoginBody instance) =>
     <String, dynamic>{'accessToken': instance.accessToken};
 
-ExchangeBody _$ExchangeBodyFromJson(Map<String, dynamic> json) =>
-    ExchangeBody(tempKey: json['tempKey'] as String);
-
-Map<String, dynamic> _$ExchangeBodyToJson(ExchangeBody instance) =>
-    <String, dynamic>{'tempKey': instance.tempKey};
-
 LogoutBody _$LogoutBodyFromJson(Map<String, dynamic> json) =>
     LogoutBody(refreshToken: json['refreshToken'] as String);
 
@@ -93,6 +87,19 @@ Map<String, dynamic> _$UserMeToJson(UserMe instance) => <String, dynamic>{
   'gender': instance.gender,
 };
 
+UserPublicProfile _$UserPublicProfileFromJson(Map<String, dynamic> json) =>
+    UserPublicProfile(
+      userId: (json['userId'] as num?)?.toInt(),
+      username: json['username'] as String?,
+      nickname: json['nickname'] as String?,
+      profileImageUrl: json['profileImageUrl'] as String?,
+      followerCount: (json['followerCount'] as num?)?.toInt(),
+      followingCount: (json['followingCount'] as num?)?.toInt(),
+      followStatus: json['followStatus'] as String?,
+      followsMeBack: json['followsMeBack'] as bool?,
+      me: json['me'] as bool?,
+    );
+
 Map<String, dynamic> _$UserPublicProfileToJson(UserPublicProfile instance) =>
     <String, dynamic>{
       'userId': instance.userId,
@@ -101,8 +108,9 @@ Map<String, dynamic> _$UserPublicProfileToJson(UserPublicProfile instance) =>
       'profileImageUrl': instance.profileImageUrl,
       'followerCount': instance.followerCount,
       'followingCount': instance.followingCount,
-      'isFollowing': instance.isFollowing,
-      'isRequested': instance.isRequested,
+      'followStatus': instance.followStatus,
+      'followsMeBack': instance.followsMeBack,
+      'me': instance.me,
     };
 
 UserSearchItem _$UserSearchItemFromJson(Map<String, dynamic> json) =>
@@ -111,6 +119,7 @@ UserSearchItem _$UserSearchItemFromJson(Map<String, dynamic> json) =>
       username: json['username'] as String?,
       nickname: json['nickname'] as String?,
       profileImageUrl: json['profileImageUrl'] as String?,
+      followStatus: json['followStatus'] as String?,
     );
 
 Map<String, dynamic> _$UserSearchItemToJson(UserSearchItem instance) =>
@@ -119,4 +128,5 @@ Map<String, dynamic> _$UserSearchItemToJson(UserSearchItem instance) =>
       'username': instance.username,
       'nickname': instance.nickname,
       'profileImageUrl': instance.profileImageUrl,
+      'followStatus': instance.followStatus,
     };

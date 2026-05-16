@@ -171,34 +171,41 @@ class _FollowRepository implements FollowRepository {
   }
 
   @override
-  Future<ApiResponse<List<FollowResponse>>> getFollowings() async {
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getFollowings({
+    int? cursor,
+    int? limit,
+  }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'cursor': cursor,
+      r'limit': limit,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'accessToken': 'true'};
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<ApiResponse<List<FollowResponse>>>(
-      Options(method: 'GET', headers: _headers, extra: _extra)
-          .compose(
-            _dio.options,
-            '/api/v1/follows/followings',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
+    final _options =
+        _setStreamType<ApiResponse<CursorPagination<FollowResponse>>>(
+          Options(method: 'GET', headers: _headers, extra: _extra)
+              .compose(
+                _dio.options,
+                '/api/v1/follows/followings',
+                queryParameters: queryParameters,
+                data: _data,
+              )
+              .copyWith(
+                baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl),
+              ),
+        );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late ApiResponse<List<FollowResponse>> _value;
+    late ApiResponse<CursorPagination<FollowResponse>> _value;
     try {
-      _value = ApiResponse<List<FollowResponse>>.fromJson(
+      _value = ApiResponse<CursorPagination<FollowResponse>>.fromJson(
         _result.data!,
-        (json) => json is List<dynamic>
-            ? json
-                  .map<FollowResponse>(
-                    (i) => FollowResponse.fromJson(i as Map<String, dynamic>),
-                  )
-                  .toList()
-            : List.empty(),
+        (json) => CursorPagination<FollowResponse>.fromJson(
+          json as Map<String, dynamic>,
+          (json) => FollowResponse.fromJson(json as Map<String, dynamic>),
+        ),
       );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
@@ -208,34 +215,131 @@ class _FollowRepository implements FollowRepository {
   }
 
   @override
-  Future<ApiResponse<List<FollowResponse>>> getFollowers() async {
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getFollowers({
+    int? cursor,
+    int? limit,
+  }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'cursor': cursor,
+      r'limit': limit,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'accessToken': 'true'};
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<ApiResponse<List<FollowResponse>>>(
-      Options(method: 'GET', headers: _headers, extra: _extra)
-          .compose(
-            _dio.options,
-            '/api/v1/follows/followers',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
+    final _options =
+        _setStreamType<ApiResponse<CursorPagination<FollowResponse>>>(
+          Options(method: 'GET', headers: _headers, extra: _extra)
+              .compose(
+                _dio.options,
+                '/api/v1/follows/followers',
+                queryParameters: queryParameters,
+                data: _data,
+              )
+              .copyWith(
+                baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl),
+              ),
+        );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late ApiResponse<List<FollowResponse>> _value;
+    late ApiResponse<CursorPagination<FollowResponse>> _value;
     try {
-      _value = ApiResponse<List<FollowResponse>>.fromJson(
+      _value = ApiResponse<CursorPagination<FollowResponse>>.fromJson(
         _result.data!,
-        (json) => json is List<dynamic>
-            ? json
-                  .map<FollowResponse>(
-                    (i) => FollowResponse.fromJson(i as Map<String, dynamic>),
-                  )
-                  .toList()
-            : List.empty(),
+        (json) => CursorPagination<FollowResponse>.fromJson(
+          json as Map<String, dynamic>,
+          (json) => FollowResponse.fromJson(json as Map<String, dynamic>),
+        ),
+      );
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getUserFollowings(
+    int userId, {
+    int? cursor,
+    int? limit,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'cursor': cursor,
+      r'limit': limit,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'accessToken': 'true'};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options =
+        _setStreamType<ApiResponse<CursorPagination<FollowResponse>>>(
+          Options(method: 'GET', headers: _headers, extra: _extra)
+              .compose(
+                _dio.options,
+                '/api/v1/follows/${userId}/followings',
+                queryParameters: queryParameters,
+                data: _data,
+              )
+              .copyWith(
+                baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl),
+              ),
+        );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ApiResponse<CursorPagination<FollowResponse>> _value;
+    try {
+      _value = ApiResponse<CursorPagination<FollowResponse>>.fromJson(
+        _result.data!,
+        (json) => CursorPagination<FollowResponse>.fromJson(
+          json as Map<String, dynamic>,
+          (json) => FollowResponse.fromJson(json as Map<String, dynamic>),
+        ),
+      );
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getUserFollowers(
+    int userId, {
+    int? cursor,
+    int? limit,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'cursor': cursor,
+      r'limit': limit,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'accessToken': 'true'};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options =
+        _setStreamType<ApiResponse<CursorPagination<FollowResponse>>>(
+          Options(method: 'GET', headers: _headers, extra: _extra)
+              .compose(
+                _dio.options,
+                '/api/v1/follows/${userId}/followers',
+                queryParameters: queryParameters,
+                data: _data,
+              )
+              .copyWith(
+                baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl),
+              ),
+        );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ApiResponse<CursorPagination<FollowResponse>> _value;
+    try {
+      _value = ApiResponse<CursorPagination<FollowResponse>>.fromJson(
+        _result.data!,
+        (json) => CursorPagination<FollowResponse>.fromJson(
+          json as Map<String, dynamic>,
+          (json) => FollowResponse.fromJson(json as Map<String, dynamic>),
+        ),
       );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);

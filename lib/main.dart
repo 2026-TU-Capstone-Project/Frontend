@@ -39,6 +39,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         platform: Platform.isIOS ? TargetPlatform.iOS : TargetPlatform.android,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.PRIMARYCOLOR,
+          surface: AppColors.white,
+        ),
         textTheme: baseTextTheme.apply(fontFamilyFallback: emojiFallback),
         progressIndicatorTheme: const ProgressIndicatorThemeData(
           color: AppColors.PRIMARYCOLOR,

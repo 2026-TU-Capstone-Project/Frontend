@@ -4,25 +4,89 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/follow/model/follow_model.dart';
 import 'package:capstone_fe/follow/repository/follow_repository.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final followRepositoryProvider = Provider<FollowRepository>((ref) {
   return FollowRepository(ref.watch(authDioProvider), baseUrl: baseUrl);
 });
 
+/// 팔로워/팔로잉 cursor pagination 상태.
+class FollowListState {
+  final List<FollowResponse> items;
+  final String? nextCursor;
+  final bool hasMore;
+  final bool isFetchingMore;
+
+  const FollowListState({
+    required this.items,
+    this.nextCursor,
+    required this.hasMore,
+    this.isFetchingMore = false,
+  });
+
+  static const empty = FollowListState(items: [], hasMore: false);
+
+  FollowListState copyWith({
+    List<FollowResponse>? items,
+    String? nextCursor,
+    bool? hasMore,
+    bool? isFetchingMore,
+  }) {
+    return FollowListState(
+      items: items ?? this.items,
+      nextCursor: nextCursor ?? this.nextCursor,
+      hasMore: hasMore ?? this.hasMore,
+      isFetchingMore: isFetchingMore ?? this.isFetchingMore,
+    );
+  }
+}
+
 class FollowRequestsNotifier
     extends AsyncNotifier<List<FollowRequestResponse>> {
+  static const _pollInterval = Duration(seconds: 30);
+
   Timer? _timer;
+  _FollowPollingLifecycleObserver? _lifecycle;
 
   @override
   Future<List<FollowRequestResponse>> build() {
-    _timer?.cancel();
-    _timer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => refresh(),
+    _stopTimer();
+    _detachLifecycle();
+
+    _lifecycle = _FollowPollingLifecycleObserver(
+      onResumed: () {
+        _startTimer();
+        refresh();
+      },
+      onPaused: _stopTimer,
     );
-    ref.onDispose(() => _timer?.cancel());
+    WidgetsBinding.instance.addObserver(_lifecycle!);
+    _startTimer();
+
+    ref.onDispose(() {
+      _stopTimer();
+      _detachLifecycle();
+    });
+
     return _fetch();
+  }
+
+  void _startTimer() {
+    _timer ??= Timer.periodic(_pollInterval, (_) => refresh());
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void _detachLifecycle() {
+    if (_lifecycle != null) {
+      WidgetsBinding.instance.removeObserver(_lifecycle!);
+      _lifecycle = null;
+    }
   }
 
   Future<List<FollowRequestResponse>> _fetch() async {
@@ -68,65 +132,136 @@ final pendingRequestsCountProvider = Provider<int>((ref) {
       );
 });
 
-class MyFollowersNotifier extends AsyncNotifier<List<FollowResponse>> {
-  @override
-  Future<List<FollowResponse>> build() => _fetch();
+const int _kFollowPageSize = 20;
 
-  Future<List<FollowResponse>> _fetch() async {
+/// cursor string은 int 형태로 들어오지만 JSON에서 String으로도 전달될 수 있음.
+int? _parseCursor(String? cursor) {
+  if (cursor == null || cursor.isEmpty) return null;
+  return int.tryParse(cursor);
+}
+
+class MyFollowersNotifier extends AsyncNotifier<FollowListState> {
+  @override
+  Future<FollowListState> build() => _fetchFirst();
+
+  Future<FollowListState> _fetchFirst() async {
     final repo = ref.read(followRepositoryProvider);
-    final resp = await repo.getFollowers();
+    final resp = await repo.getFollowers(limit: _kFollowPageSize);
     if (!resp.success) throw Exception(resp.message);
-    return resp.data ?? const [];
+    final page = resp.data;
+    return FollowListState(
+      items: page?.items ?? const [],
+      nextCursor: page?.nextCursor,
+      hasMore: page?.hasMore ?? false,
+    );
   }
 
+  /// 사용자 새로고침(pull-to-refresh) — 깜빡임 방지 위해 silent.
   Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+    state = await AsyncValue.guard(_fetchFirst);
+  }
+
+  Future<void> fetchMore() async {
+    final cur = state.valueOrNull;
+    if (cur == null || cur.isFetchingMore || !cur.hasMore) return;
+    state = AsyncData(cur.copyWith(isFetchingMore: true));
+    try {
+      final repo = ref.read(followRepositoryProvider);
+      final resp = await repo.getFollowers(
+        cursor: _parseCursor(cur.nextCursor),
+        limit: _kFollowPageSize,
+      );
+      if (!resp.success || resp.data == null) {
+        state = AsyncData(cur.copyWith(isFetchingMore: false));
+        return;
+      }
+      final page = resp.data!;
+      state = AsyncData(FollowListState(
+        items: [...cur.items, ...page.items],
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+      ));
+    } catch (_) {
+      state = AsyncData(cur.copyWith(isFetchingMore: false));
+    }
   }
 }
 
 final myFollowersProvider =
-    AsyncNotifierProvider<MyFollowersNotifier, List<FollowResponse>>(
+    AsyncNotifierProvider<MyFollowersNotifier, FollowListState>(
   MyFollowersNotifier.new,
 );
 
-class MyFollowingsNotifier extends AsyncNotifier<List<FollowResponse>> {
+class MyFollowingsNotifier extends AsyncNotifier<FollowListState> {
   @override
-  Future<List<FollowResponse>> build() => _fetch();
+  Future<FollowListState> build() => _fetchFirst();
 
-  Future<List<FollowResponse>> _fetch() async {
+  Future<FollowListState> _fetchFirst() async {
     final repo = ref.read(followRepositoryProvider);
-    final resp = await repo.getFollowings();
+    final resp = await repo.getFollowings(limit: _kFollowPageSize);
     if (!resp.success) throw Exception(resp.message);
-    return resp.data ?? const [];
+    final page = resp.data;
+    return FollowListState(
+      items: page?.items ?? const [],
+      nextCursor: page?.nextCursor,
+      hasMore: page?.hasMore ?? false,
+    );
   }
 
+  /// 사용자 새로고침(pull-to-refresh) — 깜빡임 방지 위해 silent.
   Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+    state = await AsyncValue.guard(_fetchFirst);
+  }
+
+  Future<void> fetchMore() async {
+    final cur = state.valueOrNull;
+    if (cur == null || cur.isFetchingMore || !cur.hasMore) return;
+    state = AsyncData(cur.copyWith(isFetchingMore: true));
+    try {
+      final repo = ref.read(followRepositoryProvider);
+      final resp = await repo.getFollowings(
+        cursor: _parseCursor(cur.nextCursor),
+        limit: _kFollowPageSize,
+      );
+      if (!resp.success || resp.data == null) {
+        state = AsyncData(cur.copyWith(isFetchingMore: false));
+        return;
+      }
+      final page = resp.data!;
+      state = AsyncData(FollowListState(
+        items: [...cur.items, ...page.items],
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+      ));
+    } catch (_) {
+      state = AsyncData(cur.copyWith(isFetchingMore: false));
+    }
   }
 
   Future<void> unfollow(int targetUserId) async {
     final cur = state.valueOrNull;
     if (cur == null) return;
-    final original = [...cur];
-    state = AsyncData(cur.where((f) => f.userId != targetUserId).toList());
+    final originalItems = [...cur.items];
+    state = AsyncData(cur.copyWith(
+      items: cur.items.where((f) => f.userId != targetUserId).toList(),
+    ));
     try {
       final repo = ref.read(followRepositoryProvider);
       final resp = await repo.cancelOrUnfollow(targetUserId);
       if (!resp.success) {
-        state = AsyncData(original);
+        state = AsyncData(cur.copyWith(items: originalItems));
         throw Exception(resp.message);
       }
+      ref.invalidate(userPublicProfileProvider(targetUserId));
     } catch (e) {
-      state = AsyncData(original);
+      state = AsyncData(cur.copyWith(items: originalItems));
       rethrow;
     }
   }
 }
 
 final myFollowingsProvider =
-    AsyncNotifierProvider<MyFollowingsNotifier, List<FollowResponse>>(
+    AsyncNotifierProvider<MyFollowingsNotifier, FollowListState>(
   MyFollowingsNotifier.new,
 );
 
@@ -140,6 +275,7 @@ class FollowActionNotifier extends FamilyNotifier<void, int> {
     final resp = await repo.sendFollowRequest(arg);
     if (!resp.success) throw Exception(resp.message);
     ref.invalidate(myFollowingsProvider);
+    ref.invalidate(userPublicProfileProvider(arg));
   }
 
   Future<void> unfollow() async {
@@ -147,6 +283,7 @@ class FollowActionNotifier extends FamilyNotifier<void, int> {
     final resp = await repo.cancelOrUnfollow(arg);
     if (!resp.success) throw Exception(resp.message);
     ref.invalidate(myFollowingsProvider);
+    ref.invalidate(userPublicProfileProvider(arg));
   }
 }
 
@@ -154,3 +291,25 @@ final followActionProvider =
     NotifierProviderFamily<FollowActionNotifier, void, int>(
   FollowActionNotifier.new,
 );
+
+/// 앱 라이프사이클을 듣고 foreground/background에 따라 콜백을 호출한다.
+/// Notifier가 직접 WidgetsBindingObserver를 mixin할 수 없어서 별도 클래스로 분리.
+class _FollowPollingLifecycleObserver with WidgetsBindingObserver {
+  _FollowPollingLifecycleObserver({
+    required this.onResumed,
+    required this.onPaused,
+  });
+
+  final VoidCallback onResumed;
+  final VoidCallback onPaused;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResumed();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      onPaused();
+    }
+  }
+}

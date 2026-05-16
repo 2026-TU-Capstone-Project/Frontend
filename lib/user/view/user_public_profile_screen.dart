@@ -76,15 +76,8 @@ class _ProfileBody extends ConsumerWidget {
     final myUserId = ref.watch(userMeProvider).valueOrNull?.userId;
     final isSelf = myUserId != null && myUserId == userId;
 
-    // 맞팔 판정에만 내 팔로워 리스트가 필요
-    final myFollowersAsync = ref.watch(myFollowersProvider);
-    final iFollowThem = profile.isFollowing ?? false;
-    final theyFollowMe = myFollowersAsync.maybeWhen(
-      data: (list) => list.any((f) => f.userId == userId),
-      orElse: () => false,
-    );
-    final isMutual = iFollowThem && theyFollowMe;
-    final hideFollowButton = isSelf || isMutual;
+    final theyFollowMe = profile.followsMeBack ?? false;
+    final hideFollowButton = isSelf;
 
     final feedsAsync = ref.watch(userFeedsProvider(
       (userId: userId, nickname: profile.nickname),
@@ -93,7 +86,6 @@ class _ProfileBody extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(userPublicProfileProvider(userId));
-        ref.invalidate(myFollowersProvider);
         ref.invalidate(feedListProvider);
       },
       child: CustomScrollView(
@@ -184,6 +176,7 @@ class _ProfileBody extends ConsumerWidget {
                       userId: userId,
                       isFollowing: profile.isFollowing ?? false,
                       isRequested: profile.isRequested ?? false,
+                      followsMeBack: theyFollowMe,
                     ),
                   ],
                 ],
@@ -302,11 +295,13 @@ class _FollowToggleButton extends ConsumerStatefulWidget {
   final int userId;
   final bool isFollowing;
   final bool isRequested;
+  final bool followsMeBack;
 
   const _FollowToggleButton({
     required this.userId,
     required this.isFollowing,
     required this.isRequested,
+    required this.followsMeBack,
   });
 
   @override
@@ -370,9 +365,12 @@ class _FollowToggleButtonState extends ConsumerState<_FollowToggleButton> {
   Widget build(BuildContext context) {
     final following = _isFollowing;
     final requested = _isRequested;
+    final mutual = following && widget.followsMeBack;
 
     final String label;
-    if (following) {
+    if (mutual) {
+      label = '맞팔로우';
+    } else if (following) {
       label = '팔로잉';
     } else if (requested) {
       label = '요청됨';

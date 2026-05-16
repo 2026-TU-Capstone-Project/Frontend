@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:capstone_fe/fitting/provider/fitting_provider.dart';
@@ -11,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
+import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
@@ -189,9 +189,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    '등록된 프로필 사진이 없어요. 유저 탭에서 사진을 먼저 등록해주세요.',
-                  ),
+                  content: Text('등록된 프로필 사진이 없어요. 유저 탭에서 사진을 먼저 등록해주세요.'),
                 ),
               );
             }
@@ -214,9 +212,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  '네트워크 오류로 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-                ),
+                content: Text('네트워크 오류로 사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'),
               ),
             );
           }
@@ -333,32 +329,32 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
       // 2. SSE 통신을 위한 Completer 생성
       final completer = Completer<String?>();
 
-      // 3. dart:io HttpClient로 SSE 연결 (Dio 인터셉터 우회)
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'ACCESS_TOKEN');
-
-      final httpClient = HttpClient();
-      final uri = Uri.parse('$baseUrl/api/v1/virtual-fitting/$taskId/stream');
-      final request = await httpClient.getUrl(uri);
-
-      if (token != null && token.isNotEmpty) {
-        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
-      }
-      request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
-      request.headers.set('cache-control', 'no-cache');
-
-      final response = await request.close();
+      // 3. authDio로 SSE 연결 → 401 시 인터셉터가 토큰 자동 갱신 후 재시도.
+      final authDio = ref.read(authDioProvider);
+      final cancelToken = CancelToken();
+      final response = await authDio.get<ResponseBody>(
+        '/api/v1/virtual-fitting/$taskId/stream',
+        cancelToken: cancelToken,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: {
+            HttpHeaders.acceptHeader: 'text/event-stream',
+            'cache-control': 'no-cache',
+          },
+        ),
+      );
       debugPrint(" [SSE] 응답 상태: ${response.statusCode}");
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        httpClient.close(force: true);
-        throw Exception('SSE 연결 실패 (HTTP ${response.statusCode})');
+      final byteStream = response.data?.stream;
+      if (byteStream == null) {
+        throw Exception('SSE 연결 실패 (빈 응답 스트림)');
       }
 
       // 4. 버퍼 기반 SSE 이벤트 파싱 (\n\n 구분)
       final buffer = StringBuffer();
 
-      final streamSubscription = response
+      final streamSubscription = byteStream
+          .cast<List<int>>()
           .transform(utf8.decoder)
           .listen(
             (String text) {
@@ -503,7 +499,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
 
       // 6. 스트림 정리
       await streamSubscription.cancel();
-      httpClient.close(force: true);
+      if (!cancelToken.isCancelled) cancelToken.cancel();
 
       // 7. SSE에서 결과를 받았으면 바로 완료, 아니면 폴링 전환
       String? finalUrl = sseUrl;
@@ -584,30 +580,45 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     }
   }
 
-  /// SSE 연결이 끊겼을 때 상태 API를 주기적으로 호출해 결과 URL 복구 (최대 약 5분)
-  Future<String?> _pollFittingResult(int taskId) async {
-    const maxAttempts = 150;
-    const interval = Duration(seconds: 2);
+  /// SSE 연결이 끊겼을 때 상태 API를 주기적으로 호출해 결과 URL 복구.
+  /// 초반엔 자주, 시간이 지날수록 간격을 늘려 서버/네트워크 부담을 줄인다.
+  /// 누적 대기 시간이 [_pollMaxDuration]을 넘으면 중단.
+  static const _pollMaxDuration = Duration(minutes: 5);
+  static const _pollMinInterval = Duration(seconds: 1);
+  static const _pollMaxInterval = Duration(seconds: 10);
 
-    for (var i = 0; i < maxAttempts; i++) {
-      if (i > 0) await Future<void>.delayed(interval);
+  Future<String?> _pollFittingResult(int taskId) async {
+    final deadline = DateTime.now().add(_pollMaxDuration);
+    var interval = _pollMinInterval;
+    var attempt = 0;
+
+    while (DateTime.now().isBefore(deadline)) {
+      if (attempt > 0) await Future<void>.delayed(interval);
       if (!mounted) return null;
+      attempt++;
       try {
         final resp = await _fittingRepository.checkStatus(taskId: taskId);
         final data = resp.data;
-        if (data == null) continue;
-        final status = data.status.toUpperCase();
-        if (status == 'COMPLETED') {
-          final url = data.resultImgUrl?.trim();
-          if (url != null && url.isNotEmpty) return url;
-        }
-        if (status == 'FAILED') {
-          throw Exception('백엔드 피팅 처리 실패 (FAILED)');
+        if (data != null) {
+          final status = data.status.toUpperCase();
+          if (status == 'COMPLETED') {
+            final url = data.resultImgUrl?.trim();
+            if (url != null && url.isNotEmpty) return url;
+          }
+          if (status == 'FAILED') {
+            throw Exception('백엔드 피팅 처리 실패 (FAILED)');
+          }
         }
       } catch (e) {
         if (e is Exception && e.toString().contains('FAILED')) rethrow;
-        debugPrint("⏳ [폴링 ${i + 1}/$maxAttempts] 대기 중...");
+        debugPrint("⏳ [폴링 #$attempt, 다음 ${interval.inSeconds}s] 대기 중...");
       }
+      // 1s → 2s → 4s → 8s → 10s(cap) 백오프
+      final nextMs = (interval.inMilliseconds * 2).clamp(
+        _pollMinInterval.inMilliseconds,
+        _pollMaxInterval.inMilliseconds,
+      );
+      interval = Duration(milliseconds: nextMs);
     }
     throw Exception('시간이 지나도 결과를 받지 못했어요.');
   }
@@ -809,11 +820,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF8FAFF),
-              Color(0xFFEEF1F8),
-              Color(0xFFF5F5F7),
-            ],
+            colors: [Color(0xFFF8FAFF), Color(0xFFEEF1F8), Color(0xFFF5F5F7)],
             stops: [0.0, 0.45, 1.0],
           ),
         ),
@@ -829,87 +836,62 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
 
                   // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
                   FittingMainStage(
-                      mainImagePath:
-                          _progress.resultImageUrl ??
-                          _selectedUserImage?.path,
-                      isLoading: _progress.isFittingNow,
-                      isResult:
-                          _progress.resultImageUrl != null &&
-                          !_progress.isFittingNow,
+                    mainImagePath:
+                        _progress.resultImageUrl ?? _selectedUserImage?.path,
+                    isLoading: _progress.isFittingNow,
+                    isResult:
+                        _progress.resultImageUrl != null &&
+                        !_progress.isFittingNow,
 
-                      // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
-                      onUserImageTap: _progress.resultImageUrl != null
-                          ? _openResultImageFullScreen
-                          : _pickUserImage,
+                    // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
+                    onUserImageTap: _progress.resultImageUrl != null
+                        ? _openResultImageFullScreen
+                        : _pickUserImage,
+                    onUserImageRemove: _progress.resultImageUrl == null
+                        ? () => setState(() => _selectedUserImage = null)
+                        : null,
 
-                      // 상의 선택 로직
-                      topImageFile: _selectedTopFile,
-                      topImageUrl: _selectedTopUrl,
-                      onTopTap: () => showAddClothingBottomSheet(
-                        context,
-                        '상의',
-                        onWardrobeTap: () => _openWardrobePicker('TOP'),
-                        onImageSelected: (file) {
-                          setState(() {
-                            _selectedTopFile = file;
-                            _selectedTopUrl = null;
-                          });
-                        },
-                      ),
-
-                      // 하의 선택 로직
-                      bottomImageFile: _selectedBottomFile,
-                      bottomImageUrl: _selectedBottomUrl,
-                      onBottomTap: () => showAddClothingBottomSheet(
-                        context,
-                        '하의',
-                        onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
-                        onImageSelected: (file) {
-                          setState(() {
-                            _selectedBottomFile = file;
-                            _selectedBottomUrl = null;
-                          });
-                        },
-                      ),
+                    // 상의 선택 로직
+                    topImageFile: _selectedTopFile,
+                    topImageUrl: _selectedTopUrl,
+                    onTopTap: () => showAddClothingBottomSheet(
+                      context,
+                      '상의',
+                      onWardrobeTap: () => _openWardrobePicker('TOP'),
+                      onImageSelected: (file) {
+                        setState(() {
+                          _selectedTopFile = file;
+                          _selectedTopUrl = null;
+                        });
+                      },
                     ),
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.ACCENT_BLUE.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AppColors.ACCENT_BLUE.withValues(alpha: 0.18),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
-                            Icons.touch_app_outlined,
-                            size: 14,
-                            color: AppColors.ACCENT_BLUE,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            "좌측 이미지를 탭하여 전신 사진을 변경하세요",
-                            style: TextStyle(
-                              color: AppColors.BODY_COLOR,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ],
-                      ),
+                    onTopRemove: () => setState(() {
+                      _selectedTopFile = null;
+                      _selectedTopUrl = null;
+                      _selectedTopClothesId = null;
+                    }),
+
+                    // 하의 선택 로직
+                    bottomImageFile: _selectedBottomFile,
+                    bottomImageUrl: _selectedBottomUrl,
+                    onBottomTap: () => showAddClothingBottomSheet(
+                      context,
+                      '하의',
+                      onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
+                      onImageSelected: (file) {
+                        setState(() {
+                          _selectedBottomFile = file;
+                          _selectedBottomUrl = null;
+                        });
+                      },
                     ),
+                    onBottomRemove: () => setState(() {
+                      _selectedBottomFile = null;
+                      _selectedBottomUrl = null;
+                      _selectedBottomClothesId = null;
+                    }),
                   ),
-                  const SizedBox(height: 120),
+                  const SizedBox(height: 140),
                 ],
               ),
             ),
@@ -1030,10 +1012,7 @@ class _ResultActionBar extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [
-                            AppColors.PRIMARYCOLOR,
-                            Color(0xFF3F4651),
-                          ],
+                          colors: [AppColors.PRIMARYCOLOR, Color(0xFF3F4651)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -1273,9 +1252,7 @@ class _FullScreenImageView extends StatelessWidget {
                   fit: BoxFit.contain,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return const Center(
-                      child: LoadingIndicator(),
-                    );
+                    return const Center(child: LoadingIndicator());
                   },
                   errorBuilder: (_, __, ___) => const Center(
                     child: Icon(
@@ -1304,4 +1281,3 @@ class _FullScreenImageView extends StatelessWidget {
 }
 
 // ── 내 옷장 미리보기 — AI 스타일리스트 탭 하단 ─────────────────────────────────
-

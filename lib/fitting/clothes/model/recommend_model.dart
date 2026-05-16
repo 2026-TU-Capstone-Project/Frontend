@@ -2,16 +2,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'recommend_model.g.dart';
 
-@JsonSerializable()
-class RecommendResult {
-  final List<RecommendationModel>? recommendations;
-
-  RecommendResult({this.recommendations});
-
-  factory RecommendResult.fromJson(Map<String, dynamic> json) =>
-      _$RecommendResultFromJson(json);
-}
-
 /// 스타일 추천 한 건 (camelCase / snake_case 둘 다 처리)
 @JsonSerializable(createFactory: false)
 class RecommendationModel {

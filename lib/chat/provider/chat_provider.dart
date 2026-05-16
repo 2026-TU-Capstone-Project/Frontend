@@ -13,7 +13,7 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 
 // ─── Weather Cache (5분 TTL) ─────────────────────────────────────────────────
 
-class _WeatherCache {
+class WeatherCache {
   WeatherInfo? _data;
   DateTime? _fetchedAt;
   static const _ttl = Duration(minutes: 5);
@@ -31,7 +31,7 @@ class _WeatherCache {
   }
 }
 
-final _weatherCache = _WeatherCache();
+final weatherCacheProvider = Provider<WeatherCache>((ref) => WeatherCache());
 
 /// 마지막으로 캐시된 날씨 정보를 UI에서 읽을 수 있도록 노출
 final cachedWeatherProvider = StateProvider<WeatherInfo?>((ref) => null);
@@ -123,11 +123,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
 
     // 2. 날씨 조회 (캐시 5분 유효 → GPS 재호출 방지)
-    WeatherInfo? weather = _weatherCache.data;
+    final weatherCache = _ref.read(weatherCacheProvider);
+    WeatherInfo? weather = weatherCache.data;
     if (weather == null) {
       try {
         weather = await fetchWeatherFromCurrentPosition();
-        _weatherCache.update(weather);
+        weatherCache.update(weather);
       } catch (_) {}
     }
     // UI에서 날씨 정보를 표시할 수 있도록 캐시 갱신

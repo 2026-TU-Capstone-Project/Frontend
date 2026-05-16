@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/common/const/data.dart';
+import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 
 enum _UploadStep {
@@ -70,19 +71,20 @@ extension _UploadStepX on _UploadStep {
 /// 옷 업로드 진행 상황을 SSE로 실시간 수신하는 프로그레스 다이얼로그.
 ///
 /// - SSE가 정상 동작 시: COMPLETED → pop(true), FAILED → pop(false)
-/// - SSE 연결 자체 실패 시: POST는 이미 성공했으므로 일정 시간 후 pop(true)로 폴백
-class ClothingUploadProgressDialog extends StatefulWidget {
+/// - SSE 연결 자체 실패 시: POST는 이미 성공했으므로 pop(null)로 폴백하고
+///   호출자가 목록 새로고침으로 등록 여부를 확인하도록 한다.
+class ClothingUploadProgressDialog extends ConsumerStatefulWidget {
   const ClothingUploadProgressDialog({super.key, required this.taskId});
 
   final int taskId;
 
   @override
-  State<ClothingUploadProgressDialog> createState() =>
+  ConsumerState<ClothingUploadProgressDialog> createState() =>
       _ClothingUploadProgressDialogState();
 }
 
 class _ClothingUploadProgressDialogState
-    extends State<ClothingUploadProgressDialog> {
+    extends ConsumerState<ClothingUploadProgressDialog> {
   _UploadStep _step = _UploadStep.queued;
   bool _isDone = false;
 
@@ -92,7 +94,7 @@ class _ClothingUploadProgressDialogState
   // SSE 연결 실패 후 폴백 타이머가 돌고 있을 때 true
   bool _fallbackMode = false;
 
-  HttpClient? _httpClient;
+  final CancelToken _cancelToken = CancelToken();
   StreamSubscription<String>? _subscription;
 
   @override
@@ -104,44 +106,45 @@ class _ClothingUploadProgressDialogState
   @override
   void dispose() {
     _subscription?.cancel();
-    _httpClient?.close(force: true);
+    if (!_cancelToken.isCancelled) _cancelToken.cancel();
     super.dispose();
   }
 
   Future<void> _connectSse() async {
     try {
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'ACCESS_TOKEN');
+      final authDio = ref.read(authDioProvider);
       if (!mounted) return;
 
-      final uri = Uri.parse(
-        '$baseUrl/api/v1/clothes/upload/${widget.taskId}/stream',
+      debugPrint(
+        '[SSE] 연결 시도: /api/v1/clothes/upload/${widget.taskId}/stream',
       );
-      debugPrint('[SSE] 연결 시도: $uri');
 
-      _httpClient = HttpClient();
-      final request = await _httpClient!.getUrl(uri);
-
-      if (token != null && token.isNotEmpty) {
-        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
-      }
-      request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
-      request.headers.set('cache-control', 'no-cache');
-
-      final response = await request.close();
+      final response = await authDio.get<ResponseBody>(
+        '/api/v1/clothes/upload/${widget.taskId}/stream',
+        cancelToken: _cancelToken,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: {
+            HttpHeaders.acceptHeader: 'text/event-stream',
+            'cache-control': 'no-cache',
+          },
+        ),
+      );
       debugPrint('[SSE] 응답 상태: ${response.statusCode}');
 
       if (!mounted) return;
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        debugPrint('[SSE] 비정상 응답 → 폴백 처리');
+      final byteStream = response.data?.stream;
+      if (byteStream == null) {
+        debugPrint('[SSE] 빈 응답 스트림 → 폴백 처리');
         _onSseConnectionLost();
         return;
       }
 
       final buffer = StringBuffer();
 
-      _subscription = response.transform(utf8.decoder).listen(
+      _subscription =
+          byteStream.cast<List<int>>().transform(utf8.decoder).listen(
         (text) {
           if (_isDone) return;
           debugPrint('[SSE] 수신 청크: ${text.replaceAll('\n', '↵')}');
@@ -239,16 +242,16 @@ class _ClothingUploadProgressDialogState
     });
   }
 
-  /// SSE 연결 자체가 실패 — POST는 이미 성공했으므로 폴백으로 처리
-  ///
-  /// 서버가 AI 처리를 완료하면 옷은 등록되므로, 일정 시간 후 성공으로 닫는다.
+  /// SSE 연결 자체가 실패 — POST는 이미 성공했으므로 폴백으로 처리한다.
+  /// 서버 처리 결과를 확신할 수 없으므로 `null`을 반환하고, 호출자가
+  /// 목록 새로고침으로 실제 등록 여부를 확인하도록 한다.
   void _onSseConnectionLost() {
     if (!mounted || _isDone) return;
     _isDone = true;
-    debugPrint('[SSE] 연결 유실 — 20초 대기 후 목록 갱신으로 폴백');
+    debugPrint('[SSE] 연결 유실 — 5초 후 결과 확인 안내로 닫음');
     setState(() => _fallbackMode = true);
-    Future.delayed(const Duration(seconds: 20), () {
-      if (mounted) Navigator.of(context).pop(true);
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) Navigator.of(context).pop(null);
     });
   }
 
@@ -350,10 +353,10 @@ class _ClothingUploadProgressDialogState
   }
 
   Widget _buildStatusMessage() {
-    // SSE 연결 실패 폴백 모드
+    // SSE 연결 실패 폴백 모드 — 서버 처리 결과가 확실하지 않음을 명시
     if (_fallbackMode && !_serverFailed && _step != _UploadStep.completed) {
       return const Text(
-        '등록 처리 중입니다.\n완료되면 자동으로 닫힙니다.',
+        '실시간 진행 상황을 받지 못했어요.\n잠시 후 옷장에서 등록 결과를 확인해주세요.',
         style: TextStyle(
           fontSize: 14,
           color: AppColors.BODY_COLOR,

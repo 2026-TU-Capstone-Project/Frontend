@@ -127,9 +127,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     final followersAsync = ref.watch(myFollowersProvider);
     final followingsAsync = ref.watch(myFollowingsProvider);
     
-    // valueOrNull을 사용하여 백그라운드 새로고침 중에도 이전 데이터를 유지
-    final followersCount = followersAsync.valueOrNull?.length ?? 0;
-    final followingsCount = followingsAsync.valueOrNull?.length ?? 0;
+    // valueOrNull을 사용하여 백그라운드 새로고침 중에도 이전 데이터를 유지.
+    // 현재 페이지에 로드된 개수만 보여주므로 정확한 총 카운트는 백엔드 응답을 별도 필드로 받아야 한다.
+    final followersCount = followersAsync.valueOrNull?.items.length ?? 0;
+    final followingsCount = followingsAsync.valueOrNull?.items.length ?? 0;
 
     return SafeArea(
       child: CustomScrollView(

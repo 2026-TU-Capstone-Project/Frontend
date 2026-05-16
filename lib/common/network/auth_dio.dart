@@ -21,7 +21,6 @@ Dio createAuthDio() {
         p.contains('auth/signup') ||
         p.contains('auth/logout') ||
         p.contains('auth/token/refresh') ||
-        p.contains('auth/token/exchange') ||
         p.contains('auth/google') ||
         p.contains('auth/kakao');
   }

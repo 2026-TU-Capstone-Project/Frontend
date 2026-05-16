@@ -17,6 +17,9 @@ class FittingMainStage extends StatefulWidget {
   final String? topImageUrl;
   final File? bottomImageFile;
   final String? bottomImageUrl;
+  final VoidCallback? onUserImageRemove;
+  final VoidCallback? onTopRemove;
+  final VoidCallback? onBottomRemove;
 
   const FittingMainStage({
     super.key,
@@ -30,6 +33,9 @@ class FittingMainStage extends StatefulWidget {
     this.topImageUrl,
     this.bottomImageFile,
     this.bottomImageUrl,
+    this.onUserImageRemove,
+    this.onTopRemove,
+    this.onBottomRemove,
   });
 
   @override
@@ -158,6 +164,17 @@ class _FittingMainStageState extends State<FittingMainStage> {
                             ],
                           ),
                         ),
+
+                      if (widget.mainImagePath != null &&
+                          !widget.isLoading &&
+                          widget.onUserImageRemove != null)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: _RemoveButton(
+                            onTap: widget.onUserImageRemove!,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -191,6 +208,7 @@ class _FittingMainStageState extends State<FittingMainStage> {
                         widget.topImageFile != null ||
                         widget.topImageUrl != null,
                     onTap: widget.onTopTap,
+                    onRemove: widget.onTopRemove,
                   ),
                 ),
                 const SizedBox(height: 14), // 간격 축소
@@ -212,6 +230,7 @@ class _FittingMainStageState extends State<FittingMainStage> {
                         widget.bottomImageFile != null ||
                         widget.bottomImageUrl != null,
                     onTap: widget.onBottomTap,
+                    onRemove: widget.onBottomRemove,
                   ),
                 ),
               ],
@@ -285,6 +304,7 @@ class _ClothingSlot extends StatelessWidget {
   final Widget placeholderIcon;
   final bool isActive;
   final VoidCallback onTap;
+  final VoidCallback? onRemove;
 
   const _ClothingSlot({
     required this.label,
@@ -293,6 +313,7 @@ class _ClothingSlot extends StatelessWidget {
     required this.placeholderIcon,
     required this.isActive,
     required this.onTap,
+    required this.onRemove,
   });
 
   @override
@@ -364,8 +385,47 @@ class _ClothingSlot extends StatelessWidget {
                   ),
                 ),
               ),
+
+              if (isActive && onRemove != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _RemoveButton(onTap: onRemove!),
+                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RemoveButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _RemoveButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: AppColors.BLACK.withValues(alpha: 0.55),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.18),
+            width: 0.5,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.close_rounded,
+          size: 16,
+          color: Colors.white,
         ),
       ),
     );

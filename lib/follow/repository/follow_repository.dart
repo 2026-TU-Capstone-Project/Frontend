@@ -39,9 +39,31 @@ abstract class FollowRepository {
 
   @GET('/api/v1/follows/followings')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<FollowResponse>>> getFollowings();
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getFollowings({
+    @Query('cursor') int? cursor,
+    @Query('limit') int? limit,
+  });
 
   @GET('/api/v1/follows/followers')
   @Headers({'accessToken': 'true'})
-  Future<ApiResponse<List<FollowResponse>>> getFollowers();
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getFollowers({
+    @Query('cursor') int? cursor,
+    @Query('limit') int? limit,
+  });
+
+  @GET('/api/v1/follows/{userId}/followings')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getUserFollowings(
+    @Path('userId') int userId, {
+    @Query('cursor') int? cursor,
+    @Query('limit') int? limit,
+  });
+
+  @GET('/api/v1/follows/{userId}/followers')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<CursorPagination<FollowResponse>>> getUserFollowers(
+    @Path('userId') int userId, {
+    @Query('cursor') int? cursor,
+    @Query('limit') int? limit,
+  });
 }

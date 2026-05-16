@@ -14,19 +14,12 @@ class AuthRepository {
 
   /// 서버가 { "success": true, "data": { ... } } 형태로 응답을 래핑할 때
   /// Retrofit이 파싱하기 전에 data 필드만 꺼내도록 인터셉터를 추가한다.
+  /// 동일 Dio에 여러 번 호출돼도 인터셉터가 중복 등록되지 않도록 보장.
   static Dio _withUnwrap(Dio dio) {
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onResponse: (response, handler) {
-          final body = response.data;
-          if (body is Map<String, dynamic> &&
-              body['data'] is Map<String, dynamic>) {
-            response.data = body['data'] as Map<String, dynamic>;
-          }
-          handler.next(response);
-        },
-      ),
-    );
+    if (dio.interceptors.any((i) => i is _AuthUnwrapInterceptor)) {
+      return dio;
+    }
+    dio.interceptors.add(_AuthUnwrapInterceptor());
     return dio;
   }
 
@@ -84,17 +77,6 @@ class AuthRepository {
     }
   }
 
-  Future<TokenResponse> exchangeTempKey({required String tempKey}) async {
-    try {
-      return await _client.exchangeTempKey(ExchangeBody(tempKey: tempKey));
-    } catch (e) {
-      if (e is DioException && e.response?.statusCode == 401) {
-        throw Exception('유효하지 않거나 만료된 임시 키입니다.');
-      }
-      throw Exception('토큰 교환 실패: $e');
-    }
-  }
-
   Future<TokenResponse> loginWithGoogle({required String idToken}) async {
     try {
       return await _client.loginWithGoogle(GoogleLoginBody(idToken: idToken));
@@ -127,6 +109,10 @@ class AuthRepository {
 
   /// 마이페이지 조회 (GET /api/v1/users/me). Bearer 필요.
   /// 응답이 { success, message, data } 래핑이면 data 안 객체로 파싱.
+  ///
+  /// - 200: UserMe 반환 (data 없으면 null)
+  /// - 401(authDio refresh 후에도 실패): [UnauthorizedException] 던짐
+  /// - 그 외(네트워크/파싱): [Exception] 던짐
   Future<UserMe?> getMe(Dio authDio) async {
     try {
       final response = await authDio.get<Map<String, dynamic>>(
@@ -138,8 +124,11 @@ class AuthRepository {
       final data = body['data'] as Map<String, dynamic>?;
       if (data == null) return null;
       return UserMe.fromJson(data);
-    } catch (_) {
-      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw UnauthorizedException();
+      }
+      throw Exception('마이페이지 조회 실패: ${e.message ?? e}');
     }
   }
 
@@ -244,5 +233,28 @@ class AuthRepository {
     } catch (_) {
       rethrow;
     }
+  }
+}
+
+/// 401 Unauthorized — 토큰이 만료/유효하지 않을 때 호출자가 명시적으로 분기하기 위한 예외.
+/// authDio가 refresh를 시도하고도 실패한 경우에만 노출된다.
+class UnauthorizedException implements Exception {
+  final String message;
+  UnauthorizedException([this.message = '인증이 필요합니다.']);
+  @override
+  String toString() => 'UnauthorizedException: $message';
+}
+
+/// `{success, message, data}` 응답에서 data를 꺼내 Retrofit이 파싱할 수 있게 한다.
+/// 인스턴스 타입으로 중복 등록 여부를 식별하기 위한 전용 클래스.
+class _AuthUnwrapInterceptor extends Interceptor {
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final body = response.data;
+    if (body is Map<String, dynamic> &&
+        body['data'] is Map<String, dynamic>) {
+      response.data = body['data'] as Map<String, dynamic>;
+    }
+    handler.next(response);
   }
 }

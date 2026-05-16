@@ -6,6 +6,7 @@ import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/chat/model/chat_model.dart';
 import 'package:capstone_fe/chat/provider/chat_provider.dart';
 import 'package:capstone_fe/common/const/colors.dart';
+import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
 
 // =============================================================================
@@ -608,17 +609,14 @@ class _BotBubble extends StatelessWidget {
             .toList() ??
         [];
 
+    final hasAnyResult =
+        outfits.isNotEmpty || tops.isNotEmpty || bottoms.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (message.text != null && message.text!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 56),
-              child: _BotTextBubble(text: message.text!),
-            ),
-
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 2),
             child: Row(
@@ -638,9 +636,13 @@ class _BotBubble extends StatelessWidget {
             ),
           ),
 
+          if (!hasAnyResult) ...[
+            const SizedBox(height: 10),
+            const _NoMatchBubble(),
+          ],
           if (outfits.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _OutfitRecommendationSection(items: outfits),
+            _OutfitRecommendationSection(items: outfits, data: data),
           ],
           if (tops.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -656,25 +658,69 @@ class _BotBubble extends StatelessWidget {
   }
 }
 
-class _BotTextBubble extends StatelessWidget {
-  final String text;
-
-  const _BotTextBubble({required this.text});
+class _NoMatchBubble extends StatelessWidget {
+  const _NoMatchBubble();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: _botBubbleColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFF1D1D1F),
-          fontSize: 15,
-          height: 1.5,
+    return Padding(
+      padding: const EdgeInsets.only(right: 56),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: _botBubbleColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFE5E5EA),
+                  width: 0.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.sentiment_dissatisfied_rounded,
+                size: 16,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '맞는 스타일을 찾지 못했어요',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1D1D1F),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '다른 키워드나 상황을 알려주시면 다시 추천해드릴게요.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF6E6E73),
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -849,8 +895,12 @@ class _ErrorBubble extends StatelessWidget {
 
 class _OutfitRecommendationSection extends StatelessWidget {
   final List<RecommendationItem> items;
+  final ChatResponseData? data;
 
-  const _OutfitRecommendationSection({required this.items});
+  const _OutfitRecommendationSection({
+    required this.items,
+    required this.data,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -868,7 +918,8 @@ class _OutfitRecommendationSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (_, i) => _OutfitCard(item: items[i]),
+            itemBuilder: (_, i) =>
+                _OutfitCard(item: items[i], data: data),
           ),
         ),
       ],
@@ -878,20 +929,20 @@ class _OutfitRecommendationSection extends StatelessWidget {
 
 class _OutfitCard extends StatelessWidget {
   final RecommendationItem item;
+  final ChatResponseData? data;
 
-  const _OutfitCard({required this.item});
+  const _OutfitCard({required this.item, required this.data});
 
   @override
   Widget build(BuildContext context) {
     final imgUrl = item.resultImgUrl;
     final score = item.score;
-    final analysis = item.styleAnalysis;
 
     return Container(
       width: 170,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.07),
@@ -901,48 +952,26 @@ class _OutfitCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (imgUrl != null && imgUrl.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => _showFullScreenImage(context, imgUrl),
-                    child: CachedNetworkImage(
-                      imageUrl: imgUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => const _ShimmerBox(),
-                      errorWidget: (_, __, ___) => _placeholder(),
-                    ),
-                  )
-                else
-                  _placeholder(),
-                if (score != null)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: _ScoreBadge(score: score),
-                  ),
-              ],
-            ),
-          ),
-          if (analysis != null && analysis.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Text(
-                analysis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF1D1D1F),
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+          if (imgUrl != null && imgUrl.isNotEmpty)
+            GestureDetector(
+              onTap: () => _showOutfitDetail(context, item, data),
+              child: CachedNetworkImage(
+                imageUrl: imgUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const _ShimmerBox(),
+                errorWidget: (_, __, ___) => _placeholder(),
               ),
+            )
+          else
+            _placeholder(),
+          if (score != null)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _ScoreBadge(score: score),
             ),
         ],
       ),
@@ -956,6 +985,303 @@ class _OutfitCard extends StatelessWidget {
         Icons.checkroom_outlined,
         size: 48,
         color: Color(0xFFAEAEB2),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 코디 상세 정보 — Bottom Sheet (이미지 + 착용 옷 + 스타일 분석)
+// =============================================================================
+
+ClothesModel? _findClothesById(ClothesItemsWrapper? wrapper, int? id) {
+  if (id == null) return null;
+  final items = wrapper?.items?.whereType<ClothesScoreItem>().toList() ?? [];
+  for (final i in items) {
+    if (i.clothes?.id == id) return i.clothes;
+  }
+  return null;
+}
+
+void _showOutfitDetail(
+  BuildContext context,
+  RecommendationItem item,
+  ChatResponseData? data,
+) {
+  final imgUrl = item.resultImgUrl;
+  final analysis = item.styleAnalysis;
+  final top = _findClothesById(data?.recommendationsTops, item.topId);
+  final bottom =
+      _findClothesById(data?.recommendationsBottoms, item.bottomId);
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.55),
+    builder: (ctx) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.88,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              children: [
+                _OutfitDetailHeader(onClose: () => Navigator.of(ctx).pop()),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (imgUrl != null && imgUrl.isNotEmpty)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: AspectRatio(
+                              aspectRatio: 3 / 4,
+                              child: CachedNetworkImage(
+                                imageUrl: imgUrl,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => const _ShimmerBox(),
+                                errorWidget: (_, __, ___) => Container(
+                                  color: const Color(0xFFE5E5EA),
+                                  child: const Icon(
+                                    Icons.checkroom_outlined,
+                                    size: 64,
+                                    color: Color(0xFFAEAEB2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (top != null || bottom != null) ...[
+                          const SizedBox(height: 24),
+                          const _DetailLabel(
+                            icon: Icons.checkroom_rounded,
+                            label: '함께 매치한 아이템',
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 200,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                if (top != null) ...[
+                                  _WornClothesCard(clothes: top),
+                                  const SizedBox(width: 12),
+                                ],
+                                if (bottom != null)
+                                  _WornClothesCard(clothes: bottom),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (analysis != null && analysis.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          const _DetailLabel(
+                            icon: Icons.auto_awesome_rounded,
+                            label: '스타일 가이드',
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F5F7),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFFE5E5EA),
+                              ),
+                            ),
+                            child: Text(
+                              analysis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1D1D1F),
+                                height: 1.55,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+class _OutfitDetailHeader extends StatelessWidget {
+  final VoidCallback onClose;
+
+  const _OutfitDetailHeader({required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+        Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5E5EA),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '코디 상세 정보',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1D1D1F),
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              _CircleIconButton(
+                icon: Icons.close_rounded,
+                onTap: onClose,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailLabel extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _DetailLabel({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF1D1D1F)),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WornClothesCard extends StatelessWidget {
+  final ClothesModel clothes;
+
+  const _WornClothesCard({required this.clothes});
+
+  @override
+  Widget build(BuildContext context) {
+    final imgUrl = clothes.imgUrl;
+    final name = clothes.name ?? '';
+    final brand = clothes.brand ?? '';
+
+    return Container(
+      width: 140,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E5EA)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: imgUrl != null && imgUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imgUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    placeholder: (_, __) => const _ShimmerBox(),
+                    errorWidget: (_, __, ___) => Container(
+                      color: const Color(0xFFE5E5EA),
+                      child: const Icon(
+                        Icons.checkroom_outlined,
+                        size: 36,
+                        color: Color(0xFFAEAEB2),
+                      ),
+                    ),
+                  )
+                : Container(
+                    color: const Color(0xFFE5E5EA),
+                    child: const Icon(
+                      Icons.checkroom_outlined,
+                      size: 36,
+                      color: Color(0xFFAEAEB2),
+                    ),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (name.isNotEmpty)
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1D1D1F),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (brand.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    brand,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF6E6E73),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1416,7 +1742,11 @@ class _ShimmerBoxState extends State<_ShimmerBox>
 // 전체 화면 이미지 뷰어
 // =============================================================================
 
-void _showFullScreenImage(BuildContext context, String imageUrl) {
+void _showFullScreenImage(
+  BuildContext context,
+  String imageUrl, {
+  String? analysis,
+}) {
   Navigator.of(context).push(
     PageRouteBuilder(
       opaque: false,
@@ -1450,6 +1780,37 @@ void _showFullScreenImage(BuildContext context, String imageUrl) {
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
+              if (analysis != null && analysis.isNotEmpty)
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: MediaQuery.of(context).padding.bottom + 24,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: Text(
+                        analysis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

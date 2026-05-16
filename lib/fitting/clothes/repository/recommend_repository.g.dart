@@ -11,48 +11,13 @@ part of 'recommend_repository.dart';
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element,unnecessary_string_interpolations,unused_element_parameter,avoid_unused_constructor_parameters,unreachable_from_main
 
 class _RecommendRepository implements RecommendRepository {
-  _RecommendRepository(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'https://diverba.kro.kr';
-  }
+  _RecommendRepository(this._dio, {this.baseUrl, this.errorLogger});
 
   final Dio _dio;
 
   String? baseUrl;
 
   final ParseErrorLogger? errorLogger;
-
-  @override
-  Future<ApiResponse<RecommendResult>> getRecommendations({
-    required String query,
-  }) async {
-    final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'query': query};
-    final _headers = <String, dynamic>{r'accessToken': 'true'};
-    _headers.removeWhere((k, v) => v == null);
-    const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<ApiResponse<RecommendResult>>(
-      Options(method: 'GET', headers: _headers, extra: _extra)
-          .compose(
-            _dio.options,
-            '/api/v1/virtual-fitting/recommendation/style',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
-    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late ApiResponse<RecommendResult> _value;
-    try {
-      _value = ApiResponse<RecommendResult>.fromJson(
-        _result.data!,
-        (json) => RecommendResult.fromJson(json as Map<String, dynamic>),
-      );
-    } on Object catch (e, s) {
-      errorLogger?.logError(e, s, _options, response: _result);
-      rethrow;
-    }
-    return _value;
-  }
 
   @override
   Future<ApiResponse<WeatherStyleResult>> getWeatherStyleRecommendations({

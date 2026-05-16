@@ -76,17 +76,7 @@ class KakaoLoginBody {
   Map<String, dynamic> toJson() => _$KakaoLoginBodyToJson(this);
 }
 
-// 7. 소셜 로그인 임시 키 교환 Body (OAuth2 리다이렉트 후 ?key= 로 받은 값)
-@JsonSerializable()
-class ExchangeBody {
-  final String tempKey;
-
-  ExchangeBody({required this.tempKey});
-
-  Map<String, dynamic> toJson() => _$ExchangeBodyToJson(this);
-}
-
-// 8. 로그아웃 요청 Body (서버의 Redis 토큰 파기용, Swagger RefreshTokenRequestDto)
+// 7. 로그아웃 요청 Body (서버의 Redis 토큰 파기용, Swagger RefreshTokenRequestDto)
 @JsonSerializable()
 class LogoutBody {
   final String refreshToken;
@@ -125,7 +115,7 @@ class UserMe {
 
 // 10. 공개 프로필 조회 응답 (GET /api/v1/users/{userId})
 // API: followStatus(null | PENDING | ACCEPTED). 구버전 키(isFollowing/isRequested)도 호환.
-@JsonSerializable(createFactory: false)
+@JsonSerializable()
 class UserPublicProfile {
   final int? userId;
   final String? username;
@@ -133,8 +123,9 @@ class UserPublicProfile {
   final String? profileImageUrl;
   final int? followerCount;
   final int? followingCount;
-  final bool? isFollowing;
-  final bool? isRequested;
+  final String? followStatus; // null | PENDING | ACCEPTED
+  final bool? followsMeBack;
+  final bool? me;
 
   UserPublicProfile({
     this.userId,
@@ -143,24 +134,19 @@ class UserPublicProfile {
     this.profileImageUrl,
     this.followerCount,
     this.followingCount,
-    this.isFollowing,
-    this.isRequested,
+    this.followStatus,
+    this.followsMeBack,
+    this.me,
   });
 
-  factory UserPublicProfile.fromJson(Map<String, dynamic> json) {
-    final status = json['followStatus'] as String?;
-    return UserPublicProfile(
-      userId: (json['userId'] as num?)?.toInt(),
-      username: json['username'] as String?,
-      nickname: json['nickname'] as String?,
-      profileImageUrl: json['profileImageUrl'] as String?,
-      followerCount: (json['followerCount'] as num?)?.toInt(),
-      followingCount: (json['followingCount'] as num?)?.toInt(),
-      isFollowing: json['isFollowing'] as bool? ?? (status == 'ACCEPTED'),
-      isRequested: json['isRequested'] as bool? ?? (status == 'PENDING'),
-    );
-  }
+  factory UserPublicProfile.fromJson(Map<String, dynamic> json) =>
+      _$UserPublicProfileFromJson(json);
+
   Map<String, dynamic> toJson() => _$UserPublicProfileToJson(this);
+
+  // 구버전 호환용 getter
+  bool get isFollowing => followStatus == 'ACCEPTED';
+  bool get isRequested => followStatus == 'PENDING';
 }
 
 // 11. 유저 검색 응답 item (GET /api/v1/users/search)
@@ -170,12 +156,14 @@ class UserSearchItem {
   final String? username;
   final String? nickname;
   final String? profileImageUrl;
+  final String? followStatus;
 
   UserSearchItem({
     this.userId,
     this.username,
     this.nickname,
     this.profileImageUrl,
+    this.followStatus,
   });
 
   factory UserSearchItem.fromJson(Map<String, dynamic> json) =>

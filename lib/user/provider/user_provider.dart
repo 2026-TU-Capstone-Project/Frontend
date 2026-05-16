@@ -26,18 +26,19 @@ class UserMeNotifier extends AsyncNotifier<UserMe?> {
   @override
   Future<UserMe?> build() => _fetch();
 
+  /// 401(만료된 인증): null 반환 (authDio가 자동 refresh를 이미 시도한 결과).
+  /// 그 외 에러는 throw해 UI가 에러 상태를 보여줄 수 있게 한다.
   Future<UserMe?> _fetch() async {
+    final repo = ref.read(authRepositoryProvider);
+    final authDio = ref.read(authDioProvider);
     try {
-      final repo = ref.read(authRepositoryProvider);
-      final authDio = ref.read(authDioProvider);
       return await repo.getMe(authDio);
-    } catch (_) {
+    } on UnauthorizedException {
       return null;
     }
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading();
     state = await AsyncValue.guard(_fetch);
   }
 }

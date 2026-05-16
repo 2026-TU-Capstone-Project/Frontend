@@ -6,6 +6,24 @@ part of 'follow_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+CursorPagination<T> _$CursorPaginationFromJson<T>(
+  Map<String, dynamic> json,
+  T Function(Object? json) fromJsonT,
+) => CursorPagination<T>(
+  items: (json['items'] as List<dynamic>).map(fromJsonT).toList(),
+  nextCursor: json['nextCursor'] as String?,
+  hasMore: json['hasMore'] as bool,
+);
+
+Map<String, dynamic> _$CursorPaginationToJson<T>(
+  CursorPagination<T> instance,
+  Object? Function(T value) toJsonT,
+) => <String, dynamic>{
+  'items': instance.items.map(toJsonT).toList(),
+  'nextCursor': instance.nextCursor,
+  'hasMore': instance.hasMore,
+};
+
 FollowResponse _$FollowResponseFromJson(Map<String, dynamic> json) =>
     FollowResponse(
       followId: (json['followId'] as num?)?.toInt(),

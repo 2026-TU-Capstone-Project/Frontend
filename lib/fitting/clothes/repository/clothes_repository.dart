@@ -39,14 +39,4 @@ abstract class ClothesRepository {
     @Query("category") required String category,
     @Part(name: "file") required File file,
   });
-
-
-  @POST('/api/v1/clothes/analysis')
-  @MultiPart()
-  @Headers({'accessToken': 'true'})
-  Future<ApiResponse<String>> uploadAnalysisCloth({
-    @Part(name: "top") File? top,
-    @Part(name: "bottom") File? bottom,
-    @Part(name: "shoes") File? shoes,
-  });
 }

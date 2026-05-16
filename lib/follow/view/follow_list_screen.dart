@@ -1,5 +1,6 @@
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
+import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/follow/model/follow_model.dart';
 import 'package:capstone_fe/follow/provider/follow_provider.dart';
 import 'package:capstone_fe/user/view/user_public_profile_screen.dart';
@@ -80,11 +81,39 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen>
   }
 }
 
-class _FollowersTab extends ConsumerWidget {
+class _FollowersTab extends ConsumerStatefulWidget {
   const _FollowersTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FollowersTab> createState() => _FollowersTabState();
+}
+
+class _FollowersTabState extends ConsumerState<_FollowersTab> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      ref.read(myFollowersProvider.notifier).fetchMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final asyncFollowers = ref.watch(myFollowersProvider);
     return asyncFollowers.when(
       loading: () => const LoadingIndicator(),
@@ -92,18 +121,32 @@ class _FollowersTab extends ConsumerWidget {
         message: e.toString(),
         onRetry: () => ref.read(myFollowersProvider.notifier).refresh(),
       ),
-      data: (followers) {
-        if (followers.isEmpty) {
+      data: (state) {
+        if (state.items.isEmpty) {
           return const _EmptyView(message: '아직 팔로워가 없어요.');
         }
+        final itemCount = state.items.length + (state.isFetchingMore ? 1 : 0);
         return RefreshIndicator(
           onRefresh: () => ref.read(myFollowersProvider.notifier).refresh(),
           child: ListView.separated(
+            controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: followers.length,
+            itemCount: itemCount,
             separatorBuilder: (_, __) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
-              final user = followers[index];
+              if (index >= state.items.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
+              final user = state.items[index];
               return _UserRow(user: user);
             },
           ),
@@ -113,11 +156,39 @@ class _FollowersTab extends ConsumerWidget {
   }
 }
 
-class _FollowingsTab extends ConsumerWidget {
+class _FollowingsTab extends ConsumerStatefulWidget {
   const _FollowingsTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FollowingsTab> createState() => _FollowingsTabState();
+}
+
+class _FollowingsTabState extends ConsumerState<_FollowingsTab> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      ref.read(myFollowingsProvider.notifier).fetchMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final asyncFollowings = ref.watch(myFollowingsProvider);
     return asyncFollowings.when(
       loading: () => const LoadingIndicator(),
@@ -125,18 +196,32 @@ class _FollowingsTab extends ConsumerWidget {
         message: e.toString(),
         onRetry: () => ref.read(myFollowingsProvider.notifier).refresh(),
       ),
-      data: (followings) {
-        if (followings.isEmpty) {
+      data: (state) {
+        if (state.items.isEmpty) {
           return const _EmptyView(message: '아직 팔로잉한 유저가 없어요.');
         }
+        final itemCount = state.items.length + (state.isFetchingMore ? 1 : 0);
         return RefreshIndicator(
           onRefresh: () => ref.read(myFollowingsProvider.notifier).refresh(),
           child: ListView.separated(
+            controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: followings.length,
+            itemCount: itemCount,
             separatorBuilder: (_, __) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
-              final user = followings[index];
+              if (index >= state.items.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
+              final user = state.items[index];
               return _UserRow(
                 user: user,
                 trailing: _UnfollowButton(targetUserId: user.userId),
@@ -264,25 +349,12 @@ class _UnfollowButtonState extends ConsumerState<_UnfollowButton> {
     final id = widget.targetUserId;
     if (id == null || _busy) return;
 
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.confirm(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('언팔로우'),
-        content: const Text('이 유저를 언팔로우하시겠어요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              '언팔로우',
-              style: TextStyle(color: AppColors.ERROR_COLOR),
-            ),
-          ),
-        ],
-      ),
+      title: '언팔로우',
+      content: '이 유저를 언팔로우하시겠어요?',
+      confirmLabel: '언팔로우',
+      confirmIsDestructive: true,
     );
     if (confirm != true) return;
 
