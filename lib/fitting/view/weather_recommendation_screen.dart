@@ -312,7 +312,18 @@ class _DynamicWeatherHeader extends StatelessWidget {
     required this.gradientColors,
   });
 
-  String get _weatherIcon => weatherLabel(weather.conditionCode).emoji;
+  IconData get _weatherIconData {
+    final code = weather.conditionCode;
+    if (code >= 200 && code < 300) return Icons.thunderstorm_rounded;
+    if (code >= 300 && code < 400) return Icons.grain_rounded;
+    if (code >= 500 && code < 600) return Icons.water_drop_rounded;
+    if (code >= 600 && code < 700) return Icons.ac_unit_rounded;
+    if (code >= 700 && code < 800) return Icons.cloud_rounded;
+    if (code == 800) return Icons.wb_sunny_rounded;
+    if (code == 801) return Icons.wb_sunny_rounded;
+    if (code == 802) return Icons.cloud_queue_rounded;
+    return Icons.cloud_rounded;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -452,9 +463,10 @@ class _DynamicWeatherHeader extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.15),
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          _weatherIcon,
-                          style: const TextStyle(fontSize: 42),
+                        child: Icon(
+                          _weatherIconData,
+                          size: 42,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(width: 20),
