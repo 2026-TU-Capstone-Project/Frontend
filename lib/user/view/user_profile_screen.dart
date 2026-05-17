@@ -10,8 +10,8 @@ import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/follow/provider/follow_provider.dart';
 import 'package:capstone_fe/follow/view/follow_list_screen.dart';
-import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
+import 'package:capstone_fe/user/model/user_model.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:capstone_fe/user/component/user_me_edit_sheet.dart';
@@ -27,7 +27,6 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
-  UserMe? _me;
   String? _nicknameFromStorage;
   bool _loading = true;
   List<FeedListResponseDto> _myFeeds = [];
@@ -46,7 +45,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
 
-    // 팔로워/팔로잉 목록 강제 새로고침 — userMeProvider에서 myId 해결 후 family에 위임.
+    // userMe를 먼저 새로고침해 myId를 확보한 뒤 팔로워/팔로잉 family에 위임.
+    await ref.read(userMeProvider.notifier).refresh();
     final myId = ref.read(userMeProvider).valueOrNull?.userId;
     if (myId != null) {
       await Future.wait([
@@ -55,9 +55,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       ]).catchError((_) => []);
     }
 
-    final authDio = createAuthDio();
-    final repo = AuthRepository(Dio(), baseUrl: baseUrl);
-    final me = await repo.getMe(authDio);
     final stored = await const FlutterSecureStorage().read(key: 'NICKNAME');
     List<FeedListResponseDto> myFeeds = [];
     try {
@@ -68,7 +65,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     } catch (_) {}
     if (mounted) {
       setState(() {
-        _me = me;
         _nicknameFromStorage = stored;
         _myFeeds = myFeeds;
         _loading = false;
@@ -77,12 +73,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   }
 
   void _openMeEditSheet() {
+    final me = ref.read(userMeProvider).valueOrNull;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) =>
-          UserMeEditSheet(initial: _me, onSaved: _load, onLogout: _onLogout),
+          UserMeEditSheet(initial: me, onSaved: _load, onLogout: _onLogout),
     );
   }
 
@@ -118,7 +115,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       return const LoadingIndicator();
     }
 
-    final me = _me;
+    final me = ref.watch(userMeProvider).valueOrNull;
     // 수정 후 저장된 닉네임(스토리지) 우선, 없으면 서버 값
     final nickname = _nicknameFromStorage?.trim().isNotEmpty == true
         ? _nicknameFromStorage!.trim()
@@ -128,18 +125,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         : '내 프로필';
     final gender = me?.gender?.trim();
 
-    final myId = ref.watch(userMeProvider).valueOrNull?.userId;
-    final followersAsync = myId != null
-        ? ref.watch(followersProvider(myId))
-        : const AsyncValue<FollowListState>.loading();
-    final followingsAsync = myId != null
-        ? ref.watch(followingsProvider(myId))
-        : const AsyncValue<FollowListState>.loading();
-
-    // valueOrNull을 사용하여 백그라운드 새로고침 중에도 이전 데이터를 유지.
-    // 현재 페이지에 로드된 개수만 보여주므로 정확한 총 카운트는 백엔드 응답을 별도 필드로 받아야 한다.
-    final followersCount = followersAsync.valueOrNull?.items.length ?? 0;
-    final followingsCount = followingsAsync.valueOrNull?.items.length ?? 0;
+    final followersCount = me?.followerCount ?? 0;
+    final followingsCount = me?.followingCount ?? 0;
 
     return SafeArea(
       child: CustomScrollView(
@@ -365,7 +352,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   }
 
   /// 헤더용 아바타: 서버 profileImageUrl 우선, 없으면 기본 아이콘
-  Widget _buildAvatar(UserMe? me) {
+  Widget _buildAvatar(UserModel? me) {
     final networkUrl = me?.profileImageUrl?.trim();
     return Container(
       width: 72,

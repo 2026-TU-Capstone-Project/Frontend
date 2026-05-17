@@ -54,6 +54,15 @@ abstract class FeedRepository {
     @Path('fittingTaskId') int fittingTaskId,
   );
 
+  /// 특정 유저의 공개 피드 목록 (페이지네이션)
+  @GET('/api/v1/feeds/users/{userId}')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<PageFeedListResponseDto>> listByUser(
+    @Path('userId') int userId,
+    @Query('page') int page,
+    @Query('size') int size,
+  );
+
   /// 내 피드 목록 (페이지네이션)
   @GET('/api/v1/feeds/me')
   @Headers({'accessToken': 'true'})

@@ -1,10 +1,13 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+
 import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
-import 'package:capstone_fe/user/model/auth_model.dart';
+import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/provider/feed_provider.dart';
+import 'package:capstone_fe/user/model/user_model.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:capstone_fe/user/repository/user_repository.dart';
-import 'package:capstone_fe/feed/provider/feed_provider.dart';
-import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,28 +25,50 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 // 현재 로그인 유저 정보
 // ─────────────────────────────────────────────
 
-class UserMeNotifier extends AsyncNotifier<UserMe?> {
+class UserMeNotifier extends AsyncNotifier<UserModel?> {
   @override
-  Future<UserMe?> build() => _fetch();
+  Future<UserModel?> build() => _fetch();
 
-  /// 401(만료된 인증): null 반환 (authDio가 자동 refresh를 이미 시도한 결과).
-  /// 그 외 에러는 throw해 UI가 에러 상태를 보여줄 수 있게 한다.
-  Future<UserMe?> _fetch() async {
-    final repo = ref.read(authRepositoryProvider);
-    final authDio = ref.read(authDioProvider);
+  Future<UserModel?> _fetch() async {
+    final repo = ref.read(userRepositoryProvider);
     try {
-      return await repo.getMe(authDio);
-    } on UnauthorizedException {
-      return null;
+      final resp = await repo.getMe();
+      debugPrint('[UserMeNotifier] success=${resp.success}, data=${resp.data?.toJson()}');
+      if (!resp.success) throw Exception(resp.message);
+      return resp.data;
+    } on DioException catch (e) {
+      debugPrint('[UserMeNotifier] DioException: ${e.response?.statusCode} / ${e.response?.data}');
+      if (e.response?.statusCode == 401) return null;
+      rethrow;
     }
   }
 
   Future<void> refresh() async {
     state = await AsyncValue.guard(_fetch);
   }
+
+  Future<UserModel?> updateProfile({
+    String? nickname,
+    double? height,
+    double? weight,
+    String? gender,
+    File? file,
+  }) async {
+    final repo = ref.read(userRepositoryProvider);
+    final resp = await repo.updateProfile(
+      nickname: nickname,
+      height: height,
+      weight: weight,
+      gender: gender,
+      file: file,
+    );
+    if (!resp.success) throw Exception(resp.message);
+    state = AsyncValue.data(resp.data);
+    return resp.data;
+  }
 }
 
-final userMeProvider = AsyncNotifierProvider<UserMeNotifier, UserMe?>(
+final userMeProvider = AsyncNotifierProvider<UserMeNotifier, UserModel?>(
   UserMeNotifier.new,
 );
 
@@ -52,7 +77,7 @@ final userMeProvider = AsyncNotifierProvider<UserMeNotifier, UserMe?>(
 // ─────────────────────────────────────────────
 
 final userPublicProfileProvider =
-    FutureProvider.family<UserPublicProfile, int>((ref, userId) async {
+    FutureProvider.family<PublicUserInfo, int>((ref, userId) async {
   final repo = ref.watch(userRepositoryProvider);
   final resp = await repo.getPublicProfile(userId);
   if (!resp.success || resp.data == null) {
@@ -61,18 +86,30 @@ final userPublicProfileProvider =
   return resp.data!;
 });
 
-/// 특정 유저의 피드 목록 (전체 피드에서 닉네임 기준 필터링)
+/// 특정 유저의 피드 목록.
+/// - 본인이면 /feeds/me 사용
+/// - 타인이면 GET /api/v1/feeds/users/{userId} 사용
 final userFeedsProvider = FutureProvider.family<
     List<FeedListResponseDto>, ({int userId, String? nickname})>(
   (ref, args) async {
-    final nickname = args.nickname?.trim();
-    if (nickname == null || nickname.isEmpty) return const [];
+    final me = ref.read(userMeProvider).valueOrNull;
+    final repo = ref.read(feedRepositoryProvider);
 
-    // 전체 피드 목록에서 해당 유저의 글만 필터링 (임시)
-    final listState = await ref.watch(feedListProvider.future);
-    return listState.items
-        .where((f) => (f.authorNickname ?? '').trim() == nickname)
-        .toList();
+    if (me != null && args.userId == me.userId) {
+      final resp = await repo.listMy(0, 50);
+      if (!resp.success || resp.data == null) return const [];
+      return resp.data!.content;
+    }
+
+    try {
+      final resp = await repo.listByUser(args.userId, 0, 20);
+      debugPrint('[userFeedsProvider] userId=${args.userId}, success=${resp.success}, dataNull=${resp.data == null}, contentLen=${resp.data?.content.length}');
+      if (!resp.success || resp.data == null) return const [];
+      return resp.data!.content;
+    } catch (e, st) {
+      debugPrint('[userFeedsProvider] ERROR for userId=${args.userId}: $e\n$st');
+      return const [];
+    }
   },
 );
 

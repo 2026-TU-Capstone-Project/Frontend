@@ -37,6 +37,13 @@ Dio createAuthDio() {
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
+      // GET/DELETE 등 body 없는 요청에서 Content-Type 제거
+      // → Spring Boot가 HttpMediaTypeNotSupportedException을 던지는 것 방지
+      final method = options.method.toUpperCase();
+      if (method == 'GET' || method == 'DELETE' || method == 'HEAD') {
+        options.headers.remove('content-type');
+        options.contentType = null;
+      }
       handler.next(options);
     },
     onError: (error, handler) async {

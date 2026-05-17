@@ -4,7 +4,7 @@ import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/follow/provider/follow_provider.dart';
 import 'package:capstone_fe/follow/view/follow_list_screen.dart';
-import 'package:capstone_fe/user/model/auth_model.dart';
+import 'package:capstone_fe/user/model/user_model.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,7 +55,7 @@ class UserPublicProfileScreen extends ConsumerWidget {
 }
 
 class _ProfileBody extends ConsumerWidget {
-  final UserPublicProfile profile;
+  final PublicUserInfo profile;
 
   const _ProfileBody({required this.profile});
 

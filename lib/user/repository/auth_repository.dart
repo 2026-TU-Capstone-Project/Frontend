@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:capstone_fe/user/repository/auth_client.dart';
 import '../model/auth_model.dart';
+import '../model/user_model.dart';
 
 class AuthRepository {
   final AuthClient _client;
@@ -113,7 +114,7 @@ class AuthRepository {
   /// - 200: UserMe 반환 (data 없으면 null)
   /// - 401(authDio refresh 후에도 실패): [UnauthorizedException] 던짐
   /// - 그 외(네트워크/파싱): [Exception] 던짐
-  Future<UserMe?> getMe(Dio authDio) async {
+  Future<UserModel?> getMe(Dio authDio) async {
     try {
       final response = await authDio.get<Map<String, dynamic>>(
         '/api/v1/users/me',
@@ -123,7 +124,7 @@ class AuthRepository {
       if (body == null) return null;
       final data = body['data'] as Map<String, dynamic>?;
       if (data == null) return null;
-      return UserMe.fromJson(data);
+      return UserModel.fromJson(data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw UnauthorizedException();
@@ -135,7 +136,7 @@ class AuthRepository {
   /// 최초 온보딩 프로필 등록 (POST /api/v1/users/me).
   /// Query params: username, nickname, height, weight, gender. Body: multipart file(선택).
   /// 보낸 필드만 저장되므로 null/빈 값은 전송하지 않음.
-  Future<UserMe?> submitOnboardingProfile(
+  Future<UserModel?> submitOnboardingProfile(
     Dio authDio, {
     String? username,
     String? nickname,
@@ -174,7 +175,7 @@ class AuthRepository {
       if (body == null) return null;
       final data = body['data'] as Map<String, dynamic>?;
       if (data == null) return null;
-      return UserMe.fromJson(data);
+      return UserModel.fromJson(data);
     } catch (e) {
       debugPrint('온보딩 프로필 전송 실패: $e');
       return null;
@@ -184,7 +185,7 @@ class AuthRepository {
   /// 마이페이지 수정 (PATCH /api/v1/users/me).
   /// 스펙: username, nickname, height, weight, gender(MALE|FEMALE)는 query parameter,
   /// 프로필 이미지(file)만 multipart/form-data. 보낸 필드만 수정된다.
-  Future<UserMe?> patchMe(
+  Future<UserModel?> patchMe(
     Dio authDio, {
     String? username,
     String? nickname,
@@ -227,7 +228,7 @@ class AuthRepository {
       if (body == null) return null;
       final data = body['data'] as Map<String, dynamic>?;
       if (data == null) return null;
-      return UserMe.fromJson(data);
+      return UserModel.fromJson(data);
     } catch (_) {
       rethrow;
     }

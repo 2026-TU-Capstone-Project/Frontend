@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
-import 'package:capstone_fe/user/model/auth_model.dart';
+import 'package:capstone_fe/user/model/user_model.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:capstone_fe/user/view/user_public_profile_screen.dart';
 import 'package:flutter/material.dart';

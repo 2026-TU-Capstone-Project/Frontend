@@ -2,26 +2,24 @@ import 'dart:io';
 
 import 'package:capstone_fe/common/camera/photo_guide_screen.dart';
 import 'package:capstone_fe/common/const/colors.dart';
-import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:capstone_fe/common/network/auth_dio.dart';
-import 'package:capstone_fe/user/model/auth_model.dart';
-import 'package:capstone_fe/user/repository/auth_repository.dart';
-import 'package:dio/dio.dart';
+import 'package:capstone_fe/user/model/user_model.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
-class UserMeEditSheet extends StatefulWidget {
-  final UserMe? initial;
+class UserMeEditSheet extends ConsumerStatefulWidget {
+  final UserModel? initial;
   final VoidCallback? onSaved;
   final VoidCallback? onLogout;
 
   const UserMeEditSheet({this.initial, this.onSaved, this.onLogout, super.key});
 
   @override
-  State<UserMeEditSheet> createState() => _UserMeEditSheetState();
+  ConsumerState<UserMeEditSheet> createState() => _UserMeEditSheetState();
 }
 
 
@@ -30,7 +28,7 @@ List<double> get _heightOptions => List.generate(1501, (i) => 100.0 + i * 0.1);
 
 List<double> get _weightOptions => List.generate(1701, (i) => 30.0 + i * 0.1);
 
-class _UserMeEditSheetState extends State<UserMeEditSheet> {
+class _UserMeEditSheetState extends ConsumerState<UserMeEditSheet> {
   final _nicknameController = TextEditingController();
 
   double? _height;
@@ -326,25 +324,17 @@ class _UserMeEditSheetState extends State<UserMeEditSheet> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final authDio = createAuthDio();
-      final repo = AuthRepository(Dio(), baseUrl: baseUrl);
-
       String? nickname;
       if (_nicknameController.text.trim().isNotEmpty) {
         nickname = _nicknameController.text.trim();
       }
 
-      final height = _height;
-      final weight = _weight;
-      final gender = _gender;
-
-      final updated = await repo.patchMe(
-        authDio,
+      final updated = await ref.read(userMeProvider.notifier).updateProfile(
         nickname: nickname,
-        height: height,
-        weight: weight,
-        gender: gender,
-        profileImage: _pickedImage,
+        height: _height,
+        weight: _weight,
+        gender: _gender,
+        file: _pickedImage,
       );
 
       if (!mounted) return;
