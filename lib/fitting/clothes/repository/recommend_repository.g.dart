@@ -41,7 +41,7 @@ class _RecommendRepository implements RecommendRepository {
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<ApiResponse<WeatherStyleResult>>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+      Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
             '/api/v1/virtual-fitting/recommendation/weather-style',

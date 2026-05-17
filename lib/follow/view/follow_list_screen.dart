@@ -3,6 +3,7 @@ import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/follow/model/follow_model.dart';
 import 'package:capstone_fe/follow/provider/follow_provider.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:capstone_fe/user/view/user_public_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +12,13 @@ enum FollowListType { followers, followings }
 
 class FollowListScreen extends ConsumerStatefulWidget {
   final FollowListType initialType;
+  final int? userId;
 
-  const FollowListScreen({super.key, required this.initialType});
+  const FollowListScreen({
+    super.key,
+    required this.initialType,
+    this.userId,
+  });
 
   @override
   ConsumerState<FollowListScreen> createState() => _FollowListScreenState();
@@ -40,6 +46,10 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen>
 
   @override
   Widget build(BuildContext context) {
+    final myUserId = ref.watch(userMeProvider).valueOrNull?.userId;
+    final targetUserId = widget.userId ?? myUserId;
+    final isSelf = targetUserId != null && targetUserId == myUserId;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -70,19 +80,22 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          _FollowersTab(),
-          _FollowingsTab(),
-        ],
-      ),
+      body: targetUserId == null
+          ? const _EmptyView(message: '로그인 정보를 불러올 수 없어요.')
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _FollowersTab(userId: targetUserId),
+                _FollowingsTab(userId: targetUserId, isSelf: isSelf),
+              ],
+            ),
     );
   }
 }
 
 class _FollowersTab extends ConsumerStatefulWidget {
-  const _FollowersTab();
+  final int userId;
+  const _FollowersTab({required this.userId});
 
   @override
   ConsumerState<_FollowersTab> createState() => _FollowersTabState();
@@ -108,18 +121,19 @@ class _FollowersTabState extends ConsumerState<_FollowersTab> {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 200) {
-      ref.read(myFollowersProvider.notifier).fetchMore();
+      ref.read(followersProvider(widget.userId).notifier).fetchMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final asyncFollowers = ref.watch(myFollowersProvider);
+    final asyncFollowers = ref.watch(followersProvider(widget.userId));
     return asyncFollowers.when(
       loading: () => const LoadingIndicator(),
       error: (e, _) => _ErrorView(
         message: e.toString(),
-        onRetry: () => ref.read(myFollowersProvider.notifier).refresh(),
+        onRetry: () =>
+            ref.read(followersProvider(widget.userId).notifier).refresh(),
       ),
       data: (state) {
         if (state.items.isEmpty) {
@@ -127,7 +141,8 @@ class _FollowersTabState extends ConsumerState<_FollowersTab> {
         }
         final itemCount = state.items.length + (state.isFetchingMore ? 1 : 0);
         return RefreshIndicator(
-          onRefresh: () => ref.read(myFollowersProvider.notifier).refresh(),
+          onRefresh: () =>
+              ref.read(followersProvider(widget.userId).notifier).refresh(),
           child: ListView.separated(
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -157,7 +172,9 @@ class _FollowersTabState extends ConsumerState<_FollowersTab> {
 }
 
 class _FollowingsTab extends ConsumerStatefulWidget {
-  const _FollowingsTab();
+  final int userId;
+  final bool isSelf;
+  const _FollowingsTab({required this.userId, required this.isSelf});
 
   @override
   ConsumerState<_FollowingsTab> createState() => _FollowingsTabState();
@@ -183,18 +200,19 @@ class _FollowingsTabState extends ConsumerState<_FollowingsTab> {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 200) {
-      ref.read(myFollowingsProvider.notifier).fetchMore();
+      ref.read(followingsProvider(widget.userId).notifier).fetchMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final asyncFollowings = ref.watch(myFollowingsProvider);
+    final asyncFollowings = ref.watch(followingsProvider(widget.userId));
     return asyncFollowings.when(
       loading: () => const LoadingIndicator(),
       error: (e, _) => _ErrorView(
         message: e.toString(),
-        onRetry: () => ref.read(myFollowingsProvider.notifier).refresh(),
+        onRetry: () =>
+            ref.read(followingsProvider(widget.userId).notifier).refresh(),
       ),
       data: (state) {
         if (state.items.isEmpty) {
@@ -202,7 +220,8 @@ class _FollowingsTabState extends ConsumerState<_FollowingsTab> {
         }
         final itemCount = state.items.length + (state.isFetchingMore ? 1 : 0);
         return RefreshIndicator(
-          onRefresh: () => ref.read(myFollowingsProvider.notifier).refresh(),
+          onRefresh: () =>
+              ref.read(followingsProvider(widget.userId).notifier).refresh(),
           child: ListView.separated(
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -224,7 +243,12 @@ class _FollowingsTabState extends ConsumerState<_FollowingsTab> {
               final user = state.items[index];
               return _UserRow(
                 user: user,
-                trailing: _UnfollowButton(targetUserId: user.userId),
+                trailing: widget.isSelf
+                    ? _UnfollowButton(
+                        listOwnerId: widget.userId,
+                        targetUserId: user.userId,
+                      )
+                    : null,
               );
             },
           ),
@@ -335,8 +359,12 @@ class _Avatar extends StatelessWidget {
 }
 
 class _UnfollowButton extends ConsumerStatefulWidget {
+  final int listOwnerId;
   final int? targetUserId;
-  const _UnfollowButton({required this.targetUserId});
+  const _UnfollowButton({
+    required this.listOwnerId,
+    required this.targetUserId,
+  });
 
   @override
   ConsumerState<_UnfollowButton> createState() => _UnfollowButtonState();
@@ -360,7 +388,9 @@ class _UnfollowButtonState extends ConsumerState<_UnfollowButton> {
 
     setState(() => _busy = true);
     try {
-      await ref.read(myFollowingsProvider.notifier).unfollow(id);
+      await ref
+          .read(followingsProvider(widget.listOwnerId).notifier)
+          .unfollow(id);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -3,6 +3,7 @@ import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/follow/provider/follow_provider.dart';
+import 'package:capstone_fe/follow/view/follow_list_screen.dart';
 import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:flutter/material.dart';
@@ -166,8 +167,24 @@ class _ProfileBody extends ConsumerWidget {
                         ),
                         label: '게시물',
                       ),
-                      _StatItem(count: '$followerCount', label: '팔로워'),
-                      _StatItem(count: '$followingCount', label: '팔로잉'),
+                      _StatItem(
+                        count: '$followerCount',
+                        label: '팔로워',
+                        onTap: () => _openFollowList(
+                          context,
+                          userId: userId,
+                          type: FollowListType.followers,
+                        ),
+                      ),
+                      _StatItem(
+                        count: '$followingCount',
+                        label: '팔로잉',
+                        onTap: () => _openFollowList(
+                          context,
+                          userId: userId,
+                          type: FollowListType.followings,
+                        ),
+                      ),
                     ],
                   ),
                   if (!hideFollowButton) ...[
@@ -266,12 +283,13 @@ class _ProfileBody extends ConsumerWidget {
 class _StatItem extends StatelessWidget {
   final String count;
   final String label;
+  final VoidCallback? onTap;
 
-  const _StatItem({required this.count, required this.label});
+  const _StatItem({required this.count, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final column = Column(
       children: [
         Text(
           count,
@@ -288,7 +306,29 @@ class _StatItem extends StatelessWidget {
         ),
       ],
     );
+
+    if (onTap == null) return column;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: column,
+      ),
+    );
   }
+}
+
+void _openFollowList(
+  BuildContext context, {
+  required int userId,
+  required FollowListType type,
+}) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => FollowListScreen(userId: userId, initialType: type),
+    ),
+  );
 }
 
 class _FollowToggleButton extends ConsumerStatefulWidget {

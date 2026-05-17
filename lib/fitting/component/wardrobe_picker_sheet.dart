@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
+import 'package:capstone_fe/feed/provider/favorite_feed_provider.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/util/clothes_category_util.dart';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
@@ -28,12 +29,16 @@ class WardrobePickerSheet extends ConsumerStatefulWidget {
 class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
   List<ClothesModel> _filteredClothes = [];
   int _pressedIndex = -1;
-  // 'closet' | 'bookmark'
+  // 'closet' | 'bookmark' | 'favorite_feed' (favorite_feed는 STYLE 모드 전용)
   String _source = 'closet';
+
+  bool get _styleMode => widget.category.toUpperCase() == 'STYLE';
 
   @override
   void initState() {
     super.initState();
+    // STYLE 모드는 즐겨찾기 피드만 노출 (탭 없음)
+    if (_styleMode) _source = 'favorite_feed';
     _filterClothes();
   }
 
@@ -55,6 +60,15 @@ class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
         imgUrl: b.imgUrl,
       );
 
+  /// 즐겨찾기 피드 → ClothesModel 합성. styleImageUrl을 imgUrl로 전달해
+  /// 호출자(_selectStyleCloth)에서 임시 파일로 다운로드 가능하게 한다.
+  ClothesModel _feedToClothes(FeedListResponseDto f) => ClothesModel(
+        id: f.feedId,
+        category: 'STYLE',
+        name: f.feedTitle,
+        imgUrl: f.styleImageUrl,
+      );
+
   String _categoryLabel(String? category) {
     if (category == null) return '';
     final upper = category.toUpperCase();
@@ -65,7 +79,20 @@ class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.category == 'TOP' ? "상의 선택하기" : "하의 선택하기";
+    final String title;
+    switch (widget.category.toUpperCase()) {
+      case 'TOP':
+        title = "상의 선택하기";
+        break;
+      case 'BOTTOM':
+        title = "하의 선택하기";
+        break;
+      case 'STYLE':
+        title = "스타일 사진 선택하기";
+        break;
+      default:
+        title = "옷장에서 선택하기";
+    }
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
@@ -94,10 +121,14 @@ class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildSourceTabs(),
+          if (!_styleMode) _buildSourceTabs(),
           const SizedBox(height: 8),
           Expanded(
-            child: _source == 'closet' ? _buildClosetGrid() : _buildBookmarkGrid(),
+            child: switch (_source) {
+              'closet' => _buildClosetGrid(),
+              'favorite_feed' => _buildFavoriteFeedGrid(),
+              _ => _buildBookmarkGrid(),
+            },
           ),
         ],
       ),
@@ -207,6 +238,88 @@ class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
     );
   }
 
+  Widget _buildFavoriteFeedGrid() {
+    final asyncList = ref.watch(favoriteFeedListProvider);
+    return asyncList.when(
+      loading: () => const LoadingIndicator(),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            e.toString(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.BODY_COLOR),
+          ),
+        ),
+      ),
+      data: (list) {
+        if (list.isEmpty) return _buildFavoriteFeedEmpty();
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final feed = list[index];
+            return _FeedTile(
+              imageUrl: feed.styleImageUrl,
+              onTap: () {
+                Navigator.pop(context);
+                widget.onClothSelected(_feedToClothes(feed));
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFavoriteFeedEmpty() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              color: AppColors.INPUT_BG_COLOR,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.favorite_border_rounded,
+              size: 40,
+              color: AppColors.MEDIUM_GREY,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "즐겨찾기한 피드가 없어요",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.BODY_COLOR,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "마음에 드는 룩을 즐겨찾기에\n저장해보세요!",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.MEDIUM_GREY,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBookmarkEmpty() {
     return Center(
       child: Column(
@@ -296,8 +409,8 @@ class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
 
     return GestureDetector(
       onTap: () {
-        widget.onClothSelected(cloth);
         Navigator.pop(context);
+        widget.onClothSelected(cloth);
       },
       onTapDown: (_) => setState(() => _pressedIndex = index),
       onTapUp: (_) => setState(() => _pressedIndex = -1),
@@ -388,6 +501,63 @@ class _WardrobePickerSheetState extends ConsumerState<WardrobePickerSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedTile extends StatefulWidget {
+  const _FeedTile({required this.imageUrl, required this.onTap});
+  final String imageUrl;
+  final VoidCallback onTap;
+
+  @override
+  State<_FeedTile> createState() => _FeedTileState();
+}
+
+class _FeedTileState extends State<_FeedTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                offset: const Offset(0, 4),
+                blurRadius: 12,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(
+              widget.imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (_, child, p) => p == null
+                  ? child
+                  : Container(color: AppColors.INPUT_BG_COLOR),
+              errorBuilder: (_, __, ___) => Container(
+                color: AppColors.INPUT_BG_COLOR,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.broken_image_outlined,
+                  color: AppColors.MEDIUM_GREY,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

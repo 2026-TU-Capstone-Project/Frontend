@@ -108,12 +108,10 @@ class _FittingMainStageState extends State<FittingMainStage> {
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: widget.mainImagePath != null
-                        ? AppColors.PRIMARYCOLOR
-                        : AppColors.BORDER_COLOR,
-                    width: widget.mainImagePath != null ? 1.5 : 1.0,
+                    color: AppColors.BORDER_COLOR,
+                    width: 1.0,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -326,8 +324,8 @@ class _ClothingSlot extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16), // 둥글기 살짝 줄임 (컴팩트함)
           border: Border.all(
-            color: isActive ? AppColors.PRIMARYCOLOR : AppColors.BORDER_COLOR,
-            width: isActive ? 1.5 : 1.0,
+            color: AppColors.BORDER_COLOR,
+            width: 1.0,
           ),
           boxShadow: [
             BoxShadow(

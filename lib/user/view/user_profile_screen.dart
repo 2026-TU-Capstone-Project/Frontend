@@ -12,6 +12,7 @@ import 'package:capstone_fe/follow/provider/follow_provider.dart';
 import 'package:capstone_fe/follow/view/follow_list_screen.dart';
 import 'package:capstone_fe/user/model/auth_model.dart';
 import 'package:capstone_fe/user/model/fitting_profile.dart';
+import 'package:capstone_fe/user/provider/user_provider.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
 import 'package:capstone_fe/user/component/user_me_edit_sheet.dart';
 import 'package:capstone_fe/user/view/social_login_screen.dart';
@@ -44,12 +45,15 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    
-    // 팔로워/팔로잉 목록 강제 새로고침
-    await Future.wait([
-      ref.read(myFollowersProvider.notifier).refresh(),
-      ref.read(myFollowingsProvider.notifier).refresh(),
-    ]).catchError((_) => []);
+
+    // 팔로워/팔로잉 목록 강제 새로고침 — userMeProvider에서 myId 해결 후 family에 위임.
+    final myId = ref.read(userMeProvider).valueOrNull?.userId;
+    if (myId != null) {
+      await Future.wait([
+        ref.read(followersProvider(myId).notifier).refresh(),
+        ref.read(followingsProvider(myId).notifier).refresh(),
+      ]).catchError((_) => []);
+    }
 
     final authDio = createAuthDio();
     final repo = AuthRepository(Dio(), baseUrl: baseUrl);
@@ -124,9 +128,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         : '내 프로필';
     final gender = me?.gender?.trim();
 
-    final followersAsync = ref.watch(myFollowersProvider);
-    final followingsAsync = ref.watch(myFollowingsProvider);
-    
+    final myId = ref.watch(userMeProvider).valueOrNull?.userId;
+    final followersAsync = myId != null
+        ? ref.watch(followersProvider(myId))
+        : const AsyncValue<FollowListState>.loading();
+    final followingsAsync = myId != null
+        ? ref.watch(followingsProvider(myId))
+        : const AsyncValue<FollowListState>.loading();
+
     // valueOrNull을 사용하여 백그라운드 새로고침 중에도 이전 데이터를 유지.
     // 현재 페이지에 로드된 개수만 보여주므로 정확한 총 카운트는 백엔드 응답을 별도 필드로 받아야 한다.
     final followersCount = followersAsync.valueOrNull?.items.length ?? 0;

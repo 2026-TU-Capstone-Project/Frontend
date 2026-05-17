@@ -61,6 +61,18 @@ abstract class FeedRepository {
     @Query('page') int page,
     @Query('size') int size,
   );
+
+  /// 내 피드 즐겨찾기 목록
+  @GET('/api/favorites/feeds/me')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<List<FeedListResponseDto>>> listFavoriteFeeds();
+
+  /// 피드 즐겨찾기 토글
+  @POST('/api/favorites/feeds/{feedId}')
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<bool>> toggleFavoriteFeed(
+    @Path('feedId') int feedId,
+  );
 }
 
 /// POST /api/v1/feeds 요청 body
@@ -68,21 +80,17 @@ class CreateFeedBody {
   final int fittingTaskId;
   final String feedTitle;
   final String feedContent;
-  // PUBLIC | FOLLOWERS_ONLY
-  final String visibility;
 
   CreateFeedBody({
     required this.fittingTaskId,
     required this.feedTitle,
     required this.feedContent,
-    this.visibility = 'PUBLIC',
   });
 
   Map<String, dynamic> toJson() => {
         'fittingTaskId': fittingTaskId,
         'feedTitle': feedTitle,
         'feedContent': feedContent,
-        'visibility': visibility,
       };
 }
 

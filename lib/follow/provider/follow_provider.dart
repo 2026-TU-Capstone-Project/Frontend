@@ -108,7 +108,7 @@ class FollowRequestsNotifier
     final resp = await repo.acceptFollow(followId);
     if (!resp.success) throw Exception(resp.message);
     state = AsyncData(cur.where((r) => r.followId != followId).toList());
-    ref.invalidate(myFollowersProvider);
+    _invalidateMyFollowers();
   }
 
   Future<void> reject(int followId) async {
@@ -118,7 +118,12 @@ class FollowRequestsNotifier
     final resp = await repo.rejectFollow(followId);
     if (!resp.success) throw Exception(resp.message);
     state = AsyncData(cur.where((r) => r.followId != followId).toList());
-    ref.invalidate(myFollowersProvider);
+    _invalidateMyFollowers();
+  }
+
+  void _invalidateMyFollowers() {
+    final myId = ref.read(userMeProvider).valueOrNull?.userId;
+    if (myId != null) ref.invalidate(followersProvider(myId));
   }
 }
 
@@ -140,13 +145,14 @@ int? _parseCursor(String? cursor) {
   return int.tryParse(cursor);
 }
 
-class MyFollowersNotifier extends AsyncNotifier<FollowListState> {
+class FollowersNotifier
+    extends AutoDisposeFamilyAsyncNotifier<FollowListState, int> {
   @override
-  Future<FollowListState> build() => _fetchFirst();
+  Future<FollowListState> build(int userId) => _fetchFirst();
 
   Future<FollowListState> _fetchFirst() async {
     final repo = ref.read(followRepositoryProvider);
-    final resp = await repo.getFollowers(limit: _kFollowPageSize);
+    final resp = await repo.getUserFollowers(arg, limit: _kFollowPageSize);
     if (!resp.success) throw Exception(resp.message);
     final page = resp.data;
     return FollowListState(
@@ -156,7 +162,6 @@ class MyFollowersNotifier extends AsyncNotifier<FollowListState> {
     );
   }
 
-  /// 사용자 새로고침(pull-to-refresh) — 깜빡임 방지 위해 silent.
   Future<void> refresh() async {
     state = await AsyncValue.guard(_fetchFirst);
   }
@@ -167,7 +172,8 @@ class MyFollowersNotifier extends AsyncNotifier<FollowListState> {
     state = AsyncData(cur.copyWith(isFetchingMore: true));
     try {
       final repo = ref.read(followRepositoryProvider);
-      final resp = await repo.getFollowers(
+      final resp = await repo.getUserFollowers(
+        arg,
         cursor: _parseCursor(cur.nextCursor),
         limit: _kFollowPageSize,
       );
@@ -187,18 +193,19 @@ class MyFollowersNotifier extends AsyncNotifier<FollowListState> {
   }
 }
 
-final myFollowersProvider =
-    AsyncNotifierProvider<MyFollowersNotifier, FollowListState>(
-  MyFollowersNotifier.new,
+final followersProvider = AsyncNotifierProvider.autoDispose
+    .family<FollowersNotifier, FollowListState, int>(
+  FollowersNotifier.new,
 );
 
-class MyFollowingsNotifier extends AsyncNotifier<FollowListState> {
+class FollowingsNotifier
+    extends AutoDisposeFamilyAsyncNotifier<FollowListState, int> {
   @override
-  Future<FollowListState> build() => _fetchFirst();
+  Future<FollowListState> build(int userId) => _fetchFirst();
 
   Future<FollowListState> _fetchFirst() async {
     final repo = ref.read(followRepositoryProvider);
-    final resp = await repo.getFollowings(limit: _kFollowPageSize);
+    final resp = await repo.getUserFollowings(arg, limit: _kFollowPageSize);
     if (!resp.success) throw Exception(resp.message);
     final page = resp.data;
     return FollowListState(
@@ -208,7 +215,6 @@ class MyFollowingsNotifier extends AsyncNotifier<FollowListState> {
     );
   }
 
-  /// 사용자 새로고침(pull-to-refresh) — 깜빡임 방지 위해 silent.
   Future<void> refresh() async {
     state = await AsyncValue.guard(_fetchFirst);
   }
@@ -219,7 +225,8 @@ class MyFollowingsNotifier extends AsyncNotifier<FollowListState> {
     state = AsyncData(cur.copyWith(isFetchingMore: true));
     try {
       final repo = ref.read(followRepositoryProvider);
-      final resp = await repo.getFollowings(
+      final resp = await repo.getUserFollowings(
+        arg,
         cursor: _parseCursor(cur.nextCursor),
         limit: _kFollowPageSize,
       );
@@ -260,9 +267,9 @@ class MyFollowingsNotifier extends AsyncNotifier<FollowListState> {
   }
 }
 
-final myFollowingsProvider =
-    AsyncNotifierProvider<MyFollowingsNotifier, FollowListState>(
-  MyFollowingsNotifier.new,
+final followingsProvider = AsyncNotifierProvider.autoDispose
+    .family<FollowingsNotifier, FollowListState, int>(
+  FollowingsNotifier.new,
 );
 
 /// 액션 트리거 전용 — state 머신 불필요. follow/unfollow 후 변경된 캐시만 invalidate.
@@ -274,15 +281,20 @@ class FollowActionNotifier extends FamilyNotifier<void, int> {
     final repo = ref.read(followRepositoryProvider);
     final resp = await repo.sendFollowRequest(arg);
     if (!resp.success) throw Exception(resp.message);
-    ref.invalidate(myFollowingsProvider);
-    ref.invalidate(userPublicProfileProvider(arg));
+    _invalidateAfterAction();
   }
 
   Future<void> unfollow() async {
     final repo = ref.read(followRepositoryProvider);
     final resp = await repo.cancelOrUnfollow(arg);
     if (!resp.success) throw Exception(resp.message);
-    ref.invalidate(myFollowingsProvider);
+    _invalidateAfterAction();
+  }
+
+  void _invalidateAfterAction() {
+    final myId = ref.read(userMeProvider).valueOrNull?.userId;
+    if (myId != null) ref.invalidate(followingsProvider(myId));
+    ref.invalidate(followersProvider(arg));
     ref.invalidate(userPublicProfileProvider(arg));
   }
 }

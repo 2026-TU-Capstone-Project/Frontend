@@ -6,16 +6,18 @@ import 'package:capstone_fe/fitting/model/fit_type.dart';
 /// 가상피팅 시작 전 핏감(슬림/레귤러/오버)을 선택하는 바텀시트.
 /// 선택 후 "피팅 시작" 버튼을 누르면 [FitType]을 반환하며 닫힘.
 class FitTypeSelectorSheet extends StatefulWidget {
-  const FitTypeSelectorSheet({super.key});
+  const FitTypeSelectorSheet({super.key, this.title});
+
+  final String? title;
 
   /// 바텀시트를 표시하고, 사용자가 선택한 [FitType]을 반환.
   /// 시트를 닫으면(바깥 탭 등) null.
-  static Future<FitType?> show(BuildContext context) {
+  static Future<FitType?> show(BuildContext context, {String? title}) {
     return showModalBottomSheet<FitType>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const FitTypeSelectorSheet(),
+      builder: (_) => FitTypeSelectorSheet(title: title),
     );
   }
 
@@ -59,9 +61,9 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
             ),
             const SizedBox(height: 24),
             // 타이틀
-            const Text(
-              '핏감 선택',
-              style: TextStyle(
+            Text(
+              widget.title ?? '핏감 선택',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppColors.BLACK,
@@ -69,7 +71,7 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
             ),
             const SizedBox(height: 6),
             const Text(
-              '원하는 핏감을 선택하고 피팅을 시작하세요',
+              '원하는 핏감을 선택해주세요',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.MEDIUM_GREY,
@@ -190,7 +192,7 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
                 ),
                 child: const Center(
                   child: Text(
-                    '피팅 시작하기',
+                    '선택 완료',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,

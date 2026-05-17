@@ -21,13 +21,17 @@ class _FittingRepository implements FittingRepository {
 
   @override
   Future<ApiResponse<FittingRequestData>> requestFitting({
-    required String fitType,
+    required String topFitType,
+    String? bottomFitType,
     required File userImage,
     required File topImage,
     File? bottomImage,
   }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'fit_type': fitType};
+    final queryParameters = <String, dynamic>{
+      r'top_fit_type': topFitType,
+      r'bottom_fit_type': bottomFitType,
+    };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'accessToken': 'true'};
     _headers.removeWhere((k, v) => v == null);
@@ -71,6 +75,63 @@ class _FittingRepository implements FittingRepository {
           .compose(
             _dio.options,
             '/api/v1/virtual-fitting',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ApiResponse<FittingRequestData> _value;
+    try {
+      _value = ApiResponse<FittingRequestData>.fromJson(
+        _result.data!,
+        (json) => FittingRequestData.fromJson(json as Map<String, dynamic>),
+      );
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<ApiResponse<FittingRequestData>> requestStyleFitting({
+    required File userImage,
+    required File styleImage,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'accessToken': 'true'};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    _data.files.add(
+      MapEntry(
+        'user_image',
+        MultipartFile.fromFileSync(
+          userImage.path,
+          filename: userImage.path.split(Platform.pathSeparator).last,
+        ),
+      ),
+    );
+    _data.files.add(
+      MapEntry(
+        'style_image',
+        MultipartFile.fromFileSync(
+          styleImage.path,
+          filename: styleImage.path.split(Platform.pathSeparator).last,
+        ),
+      ),
+    );
+    final _options = _setStreamType<ApiResponse<FittingRequestData>>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/virtual-fitting/style-photo',
             queryParameters: queryParameters,
             data: _data,
           )

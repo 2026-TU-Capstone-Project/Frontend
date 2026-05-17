@@ -133,9 +133,12 @@ class AuthRepository {
   }
 
   /// 최초 온보딩 프로필 등록 (POST /api/v1/users/me).
-  /// Query params: height, weight, gender. Body: multipart file(선택).
+  /// Query params: username, nickname, height, weight, gender. Body: multipart file(선택).
+  /// 보낸 필드만 저장되므로 null/빈 값은 전송하지 않음.
   Future<UserMe?> submitOnboardingProfile(
     Dio authDio, {
+    String? username,
+    String? nickname,
     required double height,
     required double weight,
     required String gender,
@@ -158,6 +161,8 @@ class AuthRepository {
       final response = await authDio.post<Map<String, dynamic>>(
         '/api/v1/users/me',
         queryParameters: {
+          if (username != null && username.isNotEmpty) 'username': username,
+          if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
           'height': height,
           'weight': weight,
           'gender': gender,
@@ -177,8 +182,8 @@ class AuthRepository {
   }
 
   /// 마이페이지 수정 (PATCH /api/v1/users/me).
-  /// multipart/form-data: nickname, height, weight, gender(MALE|FEMALE) 필드 + file(선택). 보낸 필드만 수정.
-  /// (서버가 쿼리가 아닌 본문 필드만 읽는 경우가 많아, 모두 form 필드로 전송)
+  /// 스펙: username, nickname, height, weight, gender(MALE|FEMALE)는 query parameter,
+  /// 프로필 이미지(file)만 multipart/form-data. 보낸 필드만 수정된다.
   Future<UserMe?> patchMe(
     Dio authDio, {
     String? username,
@@ -189,24 +194,18 @@ class AuthRepository {
     File? profileImage,
   }) async {
     try {
-      final formData = FormData();
+      final queryParams = <String, dynamic>{
+        if (username != null && username.isNotEmpty) 'username': username,
+        if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
+        if (height != null) 'height': height,
+        if (weight != null) 'weight': weight,
+        if (gender != null && (gender == 'MALE' || gender == 'FEMALE'))
+          'gender': gender,
+      };
 
-      if (username != null && username.isNotEmpty) {
-        formData.fields.add(MapEntry('username', username));
-      }
-      if (nickname != null && nickname.isNotEmpty) {
-        formData.fields.add(MapEntry('nickname', nickname));
-      }
-      if (height != null) {
-        formData.fields.add(MapEntry('height', height.toString()));
-      }
-      if (weight != null) {
-        formData.fields.add(MapEntry('weight', weight.toString()));
-      }
-      if (gender != null && (gender == 'MALE' || gender == 'FEMALE')) {
-        formData.fields.add(MapEntry('gender', gender));
-      }
+      FormData? formData;
       if (profileImage != null) {
+        formData = FormData();
         formData.files.add(
           MapEntry(
             'file',
@@ -220,9 +219,8 @@ class AuthRepository {
 
       final response = await authDio.patch<Map<String, dynamic>>(
         '/api/v1/users/me',
-        data: formData.fields.isEmpty && formData.files.isEmpty
-            ? null
-            : formData,
+        queryParameters: queryParams,
+        data: formData,
         options: Options(responseType: ResponseType.json),
       );
       final body = response.data;

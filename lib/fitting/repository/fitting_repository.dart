@@ -13,10 +13,20 @@ abstract class FittingRepository {
   @MultiPart()
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<FittingRequestData>> requestFitting({
-    @Query("fit_type") required String fitType,
+    @Query("top_fit_type") required String topFitType,
+    @Query("bottom_fit_type") String? bottomFitType,
     @Part(name: "user_image") required File userImage,
     @Part(name: "top_image") required File topImage,
     @Part(name: "bottom_image") File? bottomImage,
+  });
+
+  /// 스타일 사진 기반 피팅: 사용자 사진에 참조 스타일 사진의 룩을 입힘
+  @POST('/api/v1/virtual-fitting/style-photo')
+  @MultiPart()
+  @Headers({'accessToken': 'true'})
+  Future<ApiResponse<FittingRequestData>> requestStyleFitting({
+    @Part(name: "user_image") required File userImage,
+    @Part(name: "style_image") required File styleImage,
   });
 
   @GET('/api/v1/virtual-fitting/{taskId}/status')

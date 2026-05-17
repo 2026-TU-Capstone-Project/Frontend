@@ -8,9 +8,9 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/feed/component/feed_detail_sheet.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
+import 'package:capstone_fe/feed/provider/favorite_feed_provider.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/fitting/model/fitting_model.dart';
-import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 
 import 'package:capstone_fe/fitting/component/ai_stylist_input.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
@@ -703,7 +703,7 @@ class _StackCardData {
 }
 
 // =============================================================================
-// 2. 내 최근 코디 - 저장한 코디 가로 스크롤 (옷장 API 동일)
+// 2. 내 최근 코디 — FittingRoomScreen 로 이동됨
 // =============================================================================
 class SavedOutfitCard extends StatelessWidget {
   final SavedFittingData item;
@@ -800,114 +800,6 @@ class SavedOutfitRack extends StatelessWidget {
             onTap: onItemTap != null ? () => onItemTap!(item) : null,
           );
         },
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// 내 최근 코디 — 빈 상태 배너
-// =============================================================================
-class _EmptyOutfitBanner extends StatelessWidget {
-  final VoidCallback? onTap;
-
-  const _EmptyOutfitBanner({this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: DivervaDesign.kPadding),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F2FF),
-          borderRadius: BorderRadius.circular(DivervaDesign.kRadius),
-          border: Border.all(color: const Color(0xFFDDD5FF), width: 1),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEDE8FF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.checkroom_outlined,
-                size: 28,
-                color: AppColors.ACCENT_PURPLE,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              '아직 저장된 코디가 없어요',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1D1D1F),
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '가상 피팅으로 나만의 코디를 만들어보세요',
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF6E6E73),
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 11,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.30),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '피팅 시작하기',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    SizedBox(width: 6),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1106,6 +998,211 @@ class ProductGridCard extends StatelessWidget {
 }
 
 // =============================================================================
+// 인스타그램 스타일 피드 카드 (Header → Image → Actions → Likes → Title)
+// =============================================================================
+class _HomeFeedCard extends ConsumerWidget {
+  final FeedListResponseDto item;
+  final VoidCallback? onTap;
+
+  const _HomeFeedCard({required this.item, this.onTap});
+
+  Future<void> _toggleLike(WidgetRef ref) =>
+      ref.read(feedListProvider.notifier).toggleLike(item.feedId);
+
+  Future<void> _toggleBookmark(BuildContext context, WidgetRef ref) async {
+    final ok = await ref
+        .read(favoriteFeedListProvider.notifier)
+        .toggleFavorite(item.feedId);
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('북마크 처리에 실패했어요')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nickname = item.authorNickname?.trim() ?? '';
+    final profileUrl = item.authorProfileImageUrl;
+    final title = item.feedTitle.trim();
+    final liked = item.liked ?? false;
+    final likeCount = item.likeCount ?? 0;
+
+    final bookmarked = ref
+            .watch(favoriteFeedListProvider)
+            .valueOrNull
+            ?.any((f) => f.feedId == item.feedId) ??
+        false;
+
+    return Container(
+      width: double.infinity,
+      color: DivervaDesign.backgroundPureWhite,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: profile + nickname
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: DivervaDesign.textSecondary.withValues(
+                    alpha: 0.15,
+                  ),
+                  backgroundImage:
+                      (profileUrl != null && profileUrl.isNotEmpty)
+                      ? NetworkImage(profileUrl)
+                      : null,
+                  child: (profileUrl == null || profileUrl.isEmpty)
+                      ? const Icon(
+                          Icons.person,
+                          size: 20,
+                          color: DivervaDesign.textSecondary,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    nickname.isNotEmpty ? nickname : 'unknown',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: DivervaDesign.textPrimary,
+                      letterSpacing: -0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(
+                    Icons.more_horiz,
+                    size: 22,
+                    color: DivervaDesign.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Main image: full-width 4:5 (탭 시 상세, 더블탭 시 좋아요)
+          GestureDetector(
+            onTap: onTap,
+            onDoubleTap: () => _toggleLike(ref),
+            child: AspectRatio(
+              aspectRatio: 4 / 5,
+              child: Image.network(
+                item.styleImageUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                errorBuilder: (_, __, ___) => Container(
+                  color: DivervaDesign.textSecondary.withValues(alpha: 0.15),
+                  child: const Icon(
+                    Icons.checkroom,
+                    size: 56,
+                    color: DivervaDesign.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Action bar: Like .... Bookmark
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: Row(
+              children: [
+                _FeedActionIcon(
+                  icon: liked ? Icons.favorite : Icons.favorite_border,
+                  color: liked ? const Color(0xFFEF4444) : DivervaDesign.textPrimary,
+                  onTap: () => _toggleLike(ref),
+                ),
+                const Spacer(),
+                _FeedActionIcon(
+                  icon: bookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: DivervaDesign.textPrimary,
+                  onTap: () => _toggleBookmark(context, ref),
+                ),
+              ],
+            ),
+          ),
+          // Likes count
+          if (likeCount > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: Text(
+                '좋아요 $likeCount개',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: DivervaDesign.textPrimary,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          // Title (author + caption style)
+          if (title.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: RichText(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: DivervaDesign.textPrimary,
+                    height: 1.35,
+                    letterSpacing: -0.2,
+                  ),
+                  children: [
+                    if (nickname.isNotEmpty) ...[
+                      TextSpan(
+                        text: nickname,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const TextSpan(text: '  '),
+                    ],
+                    TextSpan(text: title),
+                  ],
+                ),
+              ),
+            )
+          else
+            const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeedActionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _FeedActionIcon({
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      visualDensity: VisualDensity.compact,
+      splashRadius: 22,
+      icon: Icon(icon, size: 26, color: color),
+    );
+  }
+}
+
+// =============================================================================
 // 메인 홈 화면 (CustomScrollView)
 // =============================================================================
 class HomeScreen extends ConsumerStatefulWidget {
@@ -1125,8 +1222,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  List<SavedFittingData> _savedOutfits = [];
-  bool _loadingOutfits = true;
   WeatherInfo? _weather;
   String? _nickname;
   List<ClothesModel> _serverClothes = [];
@@ -1134,7 +1229,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSavedOutfits();
     _loadWeather();
     _loadNickname();
     _loadWardrobe();
@@ -1173,21 +1267,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final weather = await fetchWeatherFromCurrentPosition();
     if (!mounted || weather == null) return;
     setState(() => _weather = weather);
-  }
-
-  Future<void> _loadSavedOutfits() async {
-    try {
-      final dio = createAuthDio();
-      final repo = FittingRepository(dio, baseUrl: baseUrl);
-      final resp = await repo.getMyCloset();
-      if (!mounted) return;
-      setState(() {
-        _savedOutfits = (resp.data ?? []).reversed.toList();
-        _loadingOutfits = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loadingOutfits = false);
-    }
   }
 
   @override
@@ -1232,17 +1311,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 weather: _weather,
               ),
             ),
-            const SliverToBoxAdapter(child: SectionHeader(title: '내 최근 코디')),
-            SliverToBoxAdapter(
-              child: _loadingOutfits
-                  ? const SizedBox(
-                      height: 200,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : _savedOutfits.isEmpty
-                  ? _EmptyOutfitBanner(onTap: widget.onGoToFittingRoom)
-                  : SavedOutfitRack(items: _savedOutfits, onItemTap: (_) {}),
-            ),
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
             const SliverToBoxAdapter(child: SectionHeader(title: '인기 스타일')),
             switch (ref.watch(feedListProvider)) {
@@ -1251,24 +1319,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   (a, b) => (b.likeCount ?? 0).compareTo(a.likeCount ?? 0),
                 );
                 return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 10,
-                          crossAxisSpacing: 10,
-                          childAspectRatio: 0.55,
-                        ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => ProductGridCard(
-                        item: sortedItems[index],
-                        onTap: () => showFeedDetailSheet(
-                          context,
-                          sortedItems[index].feedId,
-                        ),
+                  padding: const EdgeInsets.only(bottom: 24),
+                  sliver: SliverList.separated(
+                    itemCount: sortedItems.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) => _HomeFeedCard(
+                      item: sortedItems[index],
+                      onTap: () => showFeedDetailSheet(
+                        context,
+                        sortedItems[index].feedId,
                       ),
-                      childCount: sortedItems.length,
                     ),
                   ),
                 );

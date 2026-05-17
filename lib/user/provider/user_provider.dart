@@ -67,7 +67,7 @@ final userFeedsProvider = FutureProvider.family<
   (ref, args) async {
     final nickname = args.nickname?.trim();
     if (nickname == null || nickname.isEmpty) return const [];
-    
+
     // 전체 피드 목록에서 해당 유저의 글만 필터링 (임시)
     final listState = await ref.watch(feedListProvider.future);
     return listState.items
@@ -75,3 +75,23 @@ final userFeedsProvider = FutureProvider.family<
         .toList();
   },
 );
+
+// ─────────────────────────────────────────────
+// 유저 검색
+// ─────────────────────────────────────────────
+
+class UserSearchNotifier
+    extends FamilyAsyncNotifier<List<UserSearchItem>, String> {
+  @override
+  Future<List<UserSearchItem>> build(String query) async {
+    final keyword = query.trim();
+    if (keyword.isEmpty) return const [];
+    final repo = ref.watch(userRepositoryProvider);
+    final resp = await repo.search(keyword);
+    if (!resp.success) throw Exception(resp.message);
+    return resp.data ?? const [];
+  }
+}
+
+final userSearchProvider = AsyncNotifierProvider.family<UserSearchNotifier,
+    List<UserSearchItem>, String>(UserSearchNotifier.new);

@@ -12,18 +12,25 @@ import 'package:capstone_fe/common/const/data.dart';
 import 'package:capstone_fe/common/network/auth_dio.dart';
 import 'package:capstone_fe/common/provider/dio_provider.dart';
 import 'package:capstone_fe/common/widget/app_dialog.dart';
+import 'package:capstone_fe/common/model/api_response.dart';
+import 'package:capstone_fe/fitting/model/fitting_model.dart';
 import 'package:capstone_fe/fitting/repository/fitting_repository.dart';
 import 'package:capstone_fe/fitting/clothes/repository/clothes_repository.dart';
 import 'package:capstone_fe/fitting/clothes/model/clothes_model.dart';
 import 'package:capstone_fe/fitting/clothes_set/repository/clothes_set_repository.dart';
 import 'package:capstone_fe/fitting/clothes_set/model/clothes_set_model.dart';
 import 'package:capstone_fe/user/repository/auth_repository.dart';
+import 'package:capstone_fe/home/view/home_screen.dart'
+    show SectionHeader, SavedOutfitRack;
 import '../component/fitting_main_stage.dart';
 import '../component/add_clothing_sheet.dart';
 import '../component/wardrobe_picker_sheet.dart';
 import '../component/fit_type_selector_sheet.dart';
 import '../model/fit_type.dart';
 import '../util/clothes_category_util.dart';
+
+/// 피팅 입력 모드: 아이템 조합 (상의/하의 선택) vs 스타일 사진 (참조 룩 사진)
+enum _FittingMode { itemCombination, stylePhoto }
 
 /// 피팅 진행 상태를 화면(탭) 전환과 무관하게 유지. 탭을 떠났다 와도 로딩/결과가 유지됨.
 class _FittingProgressHolder extends ChangeNotifier {
@@ -95,9 +102,12 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
   /// 화면 표시용은 holder에서 읽음. (탭 전환 후 복귀 시에도 동기화)
   _FittingProgressHolder get _progress => FittingRoomScreen._fittingProgress;
 
+  _FittingMode _mode = _FittingMode.itemCombination;
+
   File? _selectedUserImage;
   File? _selectedTopFile;
   File? _selectedBottomFile;
+  File? _selectedStyleImage;
 
   String? _selectedTopUrl;
   String? _selectedBottomUrl;
@@ -105,7 +115,13 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
   int? _selectedTopClothesId;
   int? _selectedBottomClothesId;
 
+  FitType _selectedTopFit = FitType.regular;
+  FitType _selectedBottomFit = FitType.regular;
+
   List<ClothesModel> _serverClothes = [];
+
+  List<SavedFittingData> _savedOutfits = [];
+  bool _loadingOutfits = true;
 
   /// 헤더용: 서버 마이페이지 + 로컬 피팅 프로필 (피팅 탭 선택 시 갱신)
 
@@ -116,13 +132,30 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     super.initState();
     _progress.addListener(_onFittingProgressChanged);
     _initServices();
+    _loadSavedOutfits();
     FittingRoomScreen.onFittingTabSelected = () {
       _loadHeaderUserInfo();
       _loadWardrobe();
+      _loadSavedOutfits();
     };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHeaderUserInfo();
     });
+  }
+
+  Future<void> _loadSavedOutfits() async {
+    try {
+      final dio = createAuthDio();
+      final repo = FittingRepository(dio, baseUrl: baseUrl);
+      final resp = await repo.getMyCloset();
+      if (!mounted) return;
+      setState(() {
+        _savedOutfits = (resp.data ?? []).reversed.toList();
+        _loadingOutfits = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingOutfits = false);
+    }
   }
 
   void _onFittingProgressChanged() {
@@ -227,18 +260,30 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     final imageUrl = cloth.imgUrl!;
     final isTop = isTopCategory(cloth.category);
 
+    // Step 1: Ask fit type FIRST — do NOT update state yet.
+    final fit = await FitTypeSelectorSheet.show(
+      context,
+      title: isTop ? '상의 핏 선택' : '하의 핏 선택',
+    );
+    // Step 2: If user cancelled, discard the selection entirely.
+    if (fit == null || !mounted) return;
+
+    // Step 3: Fit type confirmed — now update state atomically.
     setState(() {
       if (isTop) {
         _selectedTopUrl = imageUrl;
         _selectedTopFile = null;
         _selectedTopClothesId = cloth.id;
+        _selectedTopFit = fit;
       } else {
         _selectedBottomUrl = imageUrl;
         _selectedBottomFile = null;
         _selectedBottomClothesId = cloth.id;
+        _selectedBottomFit = fit;
       }
     });
 
+    // Download the image file in the background for later multipart upload.
     try {
       final tempDir = await getTemporaryDirectory();
       final fileName = 'cloth_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -258,14 +303,72 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     }
   }
 
-  /// CTA 버튼 탭 시: 핏감 선택 바텀시트 → 선택 완료 → 팝업 닫힘 → SSE 피팅 시작
-  Future<void> _showFitTypeThenStart() async {
-    final fitType = await FitTypeSelectorSheet.show(context);
-    if (fitType == null || !mounted) return; // 사용자가 닫음
-    _startVirtualFitting(fitType);
+  /// Show fit type selector and return the chosen value.
+  /// Returns null if the user cancelled.
+  Future<FitType?> _promptFitTypeFor({required bool isTop}) async {
+    final fit = await FitTypeSelectorSheet.show(
+      context,
+      title: isTop ? '상의 핏 선택' : '하의 핏 선택',
+    );
+    return fit;
   }
 
-  Future<void> _startVirtualFitting(FitType fitType) async {
+  Future<void> _pickStyleImage() async {
+    showAddClothingBottomSheet(
+      context,
+      '스타일',
+      onWardrobeTap: _openStyleWardrobePicker,
+      onImageSelected: (file) {
+        if (mounted) setState(() => _selectedStyleImage = file);
+      },
+    );
+  }
+
+  /// 스타일 모드 전용 옷장 피커 — 카테고리 'STYLE'을 넘겨 전체 옷장/북마크 노출
+  void _openStyleWardrobePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => WardrobePickerSheet(
+        clothes: _serverClothes,
+        onClothSelected: _selectStyleCloth,
+        category: 'STYLE',
+      ),
+    );
+  }
+
+  Future<void> _selectStyleCloth(ClothesModel cloth) async {
+    if (cloth.imgUrl == null) return;
+    final imageUrl = cloth.imgUrl!;
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final tempPath =
+          '${tempDir.path}/style_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await Dio().download(imageUrl, tempPath);
+      if (!mounted) return;
+      setState(() => _selectedStyleImage = File(tempPath));
+    } catch (e) {
+      debugPrint("스타일 이미지 다운로드 에러: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('스타일 이미지를 불러오지 못했어요. 다시 시도해주세요.')),
+        );
+      }
+    }
+  }
+
+  void _switchMode(_FittingMode mode) {
+    if (_mode == mode || _progress.isFittingNow) return;
+    setState(() => _mode = mode);
+  }
+
+  /// CTA: 아이템별로 미리 선택된 핏감을 사용해 바로 피팅 시작
+  Future<void> _onCtaPressed() async {
+    await _startVirtualFitting();
+  }
+
+  Future<void> _startVirtualFitting() async {
     if (_selectedUserImage == null) {
       ScaffoldMessenger.of(
         context,
@@ -273,38 +376,48 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
       return;
     }
 
-    // (이미지 다운로드 및 예외 처리 로직은 기존과 동일)
-    if (_selectedTopFile == null && _selectedTopUrl != null) {
-      try {
-        final tempDir = await getTemporaryDirectory();
-        final path =
-            '${tempDir.path}/top_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await Dio().download(_selectedTopUrl!, path);
-        if (mounted) setState(() => _selectedTopFile = File(path));
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('상의 이미지를 불러오는 데 실패했어요. 다시 선택해주세요.')),
-          );
-        }
+    if (_mode == _FittingMode.stylePhoto) {
+      if (_selectedStyleImage == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('입혀볼 스타일 사진을 선택해주세요.')),
+        );
         return;
       }
-    }
-    if (_selectedBottomFile == null && _selectedBottomUrl != null) {
-      try {
-        final tempDir = await getTemporaryDirectory();
-        final path =
-            '${tempDir.path}/bottom_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await Dio().download(_selectedBottomUrl!, path);
-        if (mounted) setState(() => _selectedBottomFile = File(path));
-      } catch (_) {}
-    }
-    if (_selectedTopFile == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('상의를 선택해주세요.')));
-      return;
+    } else {
+      // 아이템 모드: 옷장에서 고른 URL은 임시 파일로 다운로드 후 multipart에 실음
+      if (_selectedTopFile == null && _selectedTopUrl != null) {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final path =
+              '${tempDir.path}/top_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          await Dio().download(_selectedTopUrl!, path);
+          if (mounted) setState(() => _selectedTopFile = File(path));
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('상의 이미지를 불러오는 데 실패했어요. 다시 선택해주세요.')),
+            );
+          }
+          return;
+        }
+      }
+      if (_selectedBottomFile == null && _selectedBottomUrl != null) {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final path =
+              '${tempDir.path}/bottom_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          await Dio().download(_selectedBottomUrl!, path);
+          if (mounted) setState(() => _selectedBottomFile = File(path));
+        } catch (_) {}
+      }
+      if (_selectedTopFile == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('상의를 선택해주세요.')));
+        return;
+      }
     }
 
     final stopwatch = Stopwatch()..start();
@@ -312,13 +425,23 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
 
     int? taskIdForPolling;
     try {
-      // 1. 서버에 가상 피팅 작업을 지시하고 Task ID를 받아옵니다.
-      final reqResp = await _fittingRepository.requestFitting(
-        fitType: fitType.apiValue,
-        userImage: _selectedUserImage!,
-        topImage: _selectedTopFile!,
-        bottomImage: _selectedBottomFile,
-      );
+      // 모드별 API 분기 — 응답 타입/Task ID 흐름 동일 → 이후 SSE/폴링 그대로 재사용
+      final ApiResponse<FittingRequestData> reqResp;
+      if (_mode == _FittingMode.stylePhoto) {
+        reqResp = await _fittingRepository.requestStyleFitting(
+          userImage: _selectedUserImage!,
+          styleImage: _selectedStyleImage!,
+        );
+      } else {
+        reqResp = await _fittingRepository.requestFitting(
+          topFitType: _selectedTopFit.apiValue,
+          bottomFitType:
+              _selectedBottomFile != null ? _selectedBottomFit.apiValue : null,
+          userImage: _selectedUserImage!,
+          topImage: _selectedTopFile!,
+          bottomImage: _selectedBottomFile,
+        );
+      }
 
       if (reqResp.data == null) throw Exception("서버 응답 오류 (Task ID 없음)");
       final taskId = reqResp.data!.taskId;
@@ -636,6 +759,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
           _selectedTopUrl = null;
           _selectedBottomFile = null;
           _selectedBottomUrl = null;
+          _selectedStyleImage = null;
         });
         ScaffoldMessenger.of(
           context,
@@ -664,6 +788,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
           _selectedTopUrl = null;
           _selectedBottomFile = null;
           _selectedBottomUrl = null;
+          _selectedStyleImage = null;
         });
         if (resp.success) {
           _progress.clearResult();
@@ -790,15 +915,25 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     super.build(context); // AutomaticKeepAliveClientMixin
     final bool hasUser = _selectedUserImage != null;
     final bool hasTop = _selectedTopFile != null || _selectedTopUrl != null;
-    final bool isReady = hasUser && hasTop;
+    final bool hasStyle = _selectedStyleImage != null;
+    final bool isReady = _mode == _FittingMode.itemCombination
+        ? (hasUser && hasTop)
+        : (hasUser && hasStyle);
 
-    final String helperText = !hasUser ? "전신 사진을 선택하세요" : "상의를 선택하세요";
+    final String helperText;
+    if (!hasUser) {
+      helperText = "전신 사진을 선택하세요";
+    } else if (_mode == _FittingMode.itemCombination) {
+      helperText = "상의를 선택하세요";
+    } else {
+      helperText = "입혀볼 스타일 사진을 선택하세요";
+    }
 
     final bool hasResult =
         _progress.resultImageUrl != null && _progress.currentTaskId != null;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFFF5F5F7),
       bottomNavigationBar: hasResult
           ? _ResultActionBar(
               latencyText: _progress.latency != null
@@ -812,89 +947,125 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
           ? _BottomCtaBar(
               isReady: isReady,
               helperText: helperText,
-              onPressed: isReady ? _showFitTypeThenStart : null,
+              ctaLabel: _mode == _FittingMode.itemCombination
+                  ? '가상 피팅 시작'
+                  : '스타일 입혀보기',
+              onPressed: isReady ? _onCtaPressed : null,
             )
           : null,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF8FAFF), Color(0xFFEEF1F8), Color(0xFFF5F5F7)],
-            stops: [0.0, 0.45, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          top: true,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-
-                  // 피팅룸 탭: 전신+상하의 선택 / AI 탭: 스타일리스트 입력만
-                  FittingMainStage(
-                    mainImagePath:
-                        _progress.resultImageUrl ?? _selectedUserImage?.path,
-                    isLoading: _progress.isFittingNow,
-                    isResult:
-                        _progress.resultImageUrl != null &&
-                        !_progress.isFittingNow,
-
-                    // 피팅 결과일 때 탭 → 크게 보기, 아니면 전신 사진 선택
-                    onUserImageTap: _progress.resultImageUrl != null
-                        ? _openResultImageFullScreen
-                        : _pickUserImage,
-                    onUserImageRemove: _progress.resultImageUrl == null
-                        ? () => setState(() => _selectedUserImage = null)
-                        : null,
-
-                    // 상의 선택 로직
-                    topImageFile: _selectedTopFile,
-                    topImageUrl: _selectedTopUrl,
-                    onTopTap: () => showAddClothingBottomSheet(
-                      context,
-                      '상의',
-                      onWardrobeTap: () => _openWardrobePicker('TOP'),
-                      onImageSelected: (file) {
-                        setState(() {
-                          _selectedTopFile = file;
+      body: SafeArea(
+        top: true,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 결과 표시 중에는 모드 전환 숨김 (결과는 단일 뷰)
+                    if (!hasResult)
+                      _FittingModeToggle(
+                        mode: _mode,
+                        onChanged: _switchMode,
+                      ),
+                    const SizedBox(height: 16),
+                    if (_mode == _FittingMode.itemCombination)
+                      FittingMainStage(
+                        mainImagePath:
+                            _progress.resultImageUrl ?? _selectedUserImage?.path,
+                        isLoading: _progress.isFittingNow,
+                        isResult:
+                            _progress.resultImageUrl != null &&
+                            !_progress.isFittingNow,
+                        onUserImageTap: _progress.resultImageUrl != null
+                            ? _openResultImageFullScreen
+                            : _pickUserImage,
+                        onUserImageRemove: _progress.resultImageUrl == null
+                            ? () => setState(() => _selectedUserImage = null)
+                            : null,
+                        topImageFile: _selectedTopFile,
+                        topImageUrl: _selectedTopUrl,
+                        onTopTap: () => showAddClothingBottomSheet(
+                          context,
+                          '상의',
+                          onWardrobeTap: () => _openWardrobePicker('TOP'),
+                          onImageSelected: (file) async {
+                            // Ask fit type FIRST before updating state.
+                            final fit = await _promptFitTypeFor(isTop: true);
+                            if (fit == null || !mounted) return;
+                            // Fit confirmed — update state atomically.
+                            setState(() {
+                              _selectedTopFile = file;
+                              _selectedTopUrl = null;
+                              _selectedTopClothesId = null;
+                              _selectedTopFit = fit;
+                            });
+                          },
+                        ),
+                        onTopRemove: () => setState(() {
+                          _selectedTopFile = null;
                           _selectedTopUrl = null;
-                        });
-                      },
-                    ),
-                    onTopRemove: () => setState(() {
-                      _selectedTopFile = null;
-                      _selectedTopUrl = null;
-                      _selectedTopClothesId = null;
-                    }),
-
-                    // 하의 선택 로직
-                    bottomImageFile: _selectedBottomFile,
-                    bottomImageUrl: _selectedBottomUrl,
-                    onBottomTap: () => showAddClothingBottomSheet(
-                      context,
-                      '하의',
-                      onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
-                      onImageSelected: (file) {
-                        setState(() {
-                          _selectedBottomFile = file;
+                          _selectedTopClothesId = null;
+                        }),
+                        bottomImageFile: _selectedBottomFile,
+                        bottomImageUrl: _selectedBottomUrl,
+                        onBottomTap: () => showAddClothingBottomSheet(
+                          context,
+                          '하의',
+                          onWardrobeTap: () => _openWardrobePicker('BOTTOM'),
+                          onImageSelected: (file) async {
+                            // Ask fit type FIRST before updating state.
+                            final fit = await _promptFitTypeFor(isTop: false);
+                            if (fit == null || !mounted) return;
+                            // Fit confirmed — update state atomically.
+                            setState(() {
+                              _selectedBottomFile = file;
+                              _selectedBottomUrl = null;
+                              _selectedBottomClothesId = null;
+                              _selectedBottomFit = fit;
+                            });
+                          },
+                        ),
+                        onBottomRemove: () => setState(() {
+                          _selectedBottomFile = null;
                           _selectedBottomUrl = null;
-                        });
-                      },
-                    ),
-                    onBottomRemove: () => setState(() {
-                      _selectedBottomFile = null;
-                      _selectedBottomUrl = null;
-                      _selectedBottomClothesId = null;
-                    }),
-                  ),
-                  const SizedBox(height: 140),
-                ],
+                          _selectedBottomClothesId = null;
+                        }),
+                      )
+                    else
+                      _StylePhotoStage(
+                        userImage: _selectedUserImage,
+                        styleImage: _selectedStyleImage,
+                        resultUrl: _progress.resultImageUrl,
+                        isLoading: _progress.isFittingNow,
+                        onUserTap: _progress.resultImageUrl != null
+                            ? _openResultImageFullScreen
+                            : _pickUserImage,
+                        onUserRemove: _progress.resultImageUrl == null
+                            ? () => setState(() => _selectedUserImage = null)
+                            : null,
+                        onStyleTap: _pickStyleImage,
+                        onStyleRemove: () =>
+                            setState(() => _selectedStyleImage = null),
+                      ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 32),
+              const SectionHeader(title: '내 최근 코디'),
+              if (_loadingOutfits)
+                const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_savedOutfits.isEmpty)
+                _EmptyOutfitBanner(onTap: _pickUserImage)
+              else
+                SavedOutfitRack(items: _savedOutfits, onItemTap: (_) {}),
+              const SizedBox(height: 140),
+            ],
           ),
         ),
       ),
@@ -1078,11 +1249,13 @@ class _BottomCtaBar extends StatelessWidget {
   const _BottomCtaBar({
     required this.isReady,
     required this.helperText,
+    required this.ctaLabel,
     required this.onPressed,
   });
 
   final bool isReady;
   final String helperText;
+  final String ctaLabel;
   final VoidCallback? onPressed;
 
   @override
@@ -1203,7 +1376,7 @@ class _BottomCtaBar extends StatelessWidget {
                           const SizedBox(width: 8),
                         ],
                         Text(
-                          isReady ? "핏감 선택하기" : helperText,
+                          isReady ? ctaLabel : helperText,
                           style: TextStyle(
                             color: isReady
                                 ? Colors.white
@@ -1280,4 +1453,410 @@ class _FullScreenImageView extends StatelessWidget {
   }
 }
 
+/// 상단 모드 전환 토글: 아이템 조합 ↔ 스타일 사진 (WardrobePickerSheet 스타일과 동일)
+class _FittingModeToggle extends StatelessWidget {
+  const _FittingModeToggle({required this.mode, required this.onChanged});
+
+  final _FittingMode mode;
+  final ValueChanged<_FittingMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tab(_FittingMode value, String label) {
+      final selected = mode == value;
+      return GestureDetector(
+        onTap: () => onChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: selected ? AppColors.BLACK : const Color(0xFF9E9E9E),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE4E4E4),
+          borderRadius: BorderRadius.circular(50),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            tab(_FittingMode.itemCombination, '아이템 조합'),
+            tab(_FittingMode.stylePhoto, '스타일 사진'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 스타일 사진 모드 스테이지: 내 사진 + 입혀볼 스타일 사진 2-슬롯
+class _StylePhotoStage extends StatelessWidget {
+  const _StylePhotoStage({
+    required this.userImage,
+    required this.styleImage,
+    required this.resultUrl,
+    required this.isLoading,
+    required this.onUserTap,
+    required this.onUserRemove,
+    required this.onStyleTap,
+    required this.onStyleRemove,
+  });
+
+  final File? userImage;
+  final File? styleImage;
+  final String? resultUrl;
+  final bool isLoading;
+  final VoidCallback onUserTap;
+  final VoidCallback? onUserRemove;
+  final VoidCallback onStyleTap;
+  final VoidCallback onStyleRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final showResult = resultUrl != null && !isLoading;
+
+    if (showResult) {
+      return GestureDetector(
+        onTap: onUserTap,
+        child: AspectRatio(
+          aspectRatio: 3 / 4,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 30,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.network(
+                resultUrl!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(child: LoadingIndicator());
+                },
+                errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    size: 64,
+                    color: AppColors.MEDIUM_GREY,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return AspectRatio(
+      aspectRatio: 3 / 4,
+      child: Row(
+        children: [
+          Expanded(
+            child: _StyleSlot(
+              label: '내 사진',
+              hint: '전신 사진을 추가하세요',
+              icon: Icons.person_outline_rounded,
+              file: userImage,
+              onTap: onUserTap,
+              onRemove: userImage != null ? onUserRemove : null,
+              isLoading: isLoading,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _StyleSlot(
+              label: '입혀볼 스타일',
+              hint: '참고할 룩 사진을 추가하세요',
+              icon: Icons.auto_awesome_outlined,
+              file: styleImage,
+              onTap: onStyleTap,
+              onRemove: styleImage != null ? onStyleRemove : null,
+              isLoading: isLoading,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StyleSlot extends StatelessWidget {
+  const _StyleSlot({
+    required this.label,
+    required this.hint,
+    required this.icon,
+    required this.file,
+    required this.onTap,
+    required this.onRemove,
+    required this.isLoading,
+  });
+
+  final String label;
+  final String hint;
+  final IconData icon;
+  final File? file;
+  final VoidCallback onTap;
+  final VoidCallback? onRemove;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = file != null;
+
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: hasImage
+                ? AppColors.PRIMARYCOLOR.withValues(alpha: 0.18)
+                : AppColors.BORDER_COLOR.withValues(alpha: 0.6),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 30,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: hasImage
+                    ? Image.file(file!, fit: BoxFit.cover)
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon, size: 36, color: AppColors.MEDIUM_GREY),
+                          const SizedBox(height: 8),
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.BODY_COLOR,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            child: Text(
+                              hint,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.MEDIUM_GREY,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+            if (hasImage)
+              Positioned(
+                left: 10,
+                top: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+              ),
+            if (hasImage && onRemove != null)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: GestureDetector(
+                  onTap: onRemove,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            if (isLoading)
+              const Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black26,
+                  child: Center(child: LoadingIndicator()),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── 내 옷장 미리보기 — AI 스타일리스트 탭 하단 ─────────────────────────────────
+
+/// 내 최근 코디 — 빈 상태 배너 (HomeScreen 에서 이동)
+class _EmptyOutfitBanner extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _EmptyOutfitBanner({this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F2FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFDDD5FF), width: 1),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEDE8FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.checkroom_outlined,
+                size: 28,
+                color: AppColors.ACCENT_PURPLE,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '아직 저장된 코디가 없어요',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1D1D1F),
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '가상 피팅으로 나만의 코디를 만들어보세요',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF6E6E73),
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 11,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF9B85F5), Color(0xFF6366F1)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.30),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '피팅 시작하기',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

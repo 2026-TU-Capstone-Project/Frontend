@@ -10,8 +10,8 @@ part 'recommend_repository.g.dart';
 abstract class RecommendRepository {
   factory RecommendRepository(Dio dio, {String? baseUrl}) = _RecommendRepository;
 
-  /// POST /api/v1/virtual-fitting/recommendation/weather-style
-  @POST('/api/v1/virtual-fitting/recommendation/weather-style')
+  /// GET /api/v1/virtual-fitting/recommendation/weather-style
+  @GET('/api/v1/virtual-fitting/recommendation/weather-style')
   @Headers({'accessToken': 'true'})
   Future<ApiResponse<WeatherStyleResult>> getWeatherStyleRecommendations({
     @Query('query') required String query,

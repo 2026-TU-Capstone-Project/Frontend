@@ -4,6 +4,7 @@ import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/view/feed_detail_screen.dart';
 import 'package:capstone_fe/feed/view/feed_write_screen.dart';
+import 'package:capstone_fe/user/view/user_search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -98,6 +99,40 @@ class _FashionFeedScreenState extends ConsumerState<FashionFeedScreen> {
                         fontSize: 13,
                         color: AppColors.MEDIUM_GREY,
                         fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UserSearchScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF2F2F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.search,
+                                size: 20, color: AppColors.MEDIUM_GREY),
+                            SizedBox(width: 8),
+                            Text(
+                              '닉네임 또는 아이디 검색',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppColors.MEDIUM_GREY,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

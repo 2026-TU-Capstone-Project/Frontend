@@ -4,6 +4,7 @@ import 'package:capstone_fe/common/widget/app_dialog.dart';
 import 'package:capstone_fe/feed/component/worn_product_card.dart';
 import 'package:capstone_fe/feed/model/feed_model.dart';
 import 'package:capstone_fe/feed/provider/clothes_bookmark_provider.dart';
+import 'package:capstone_fe/feed/provider/favorite_feed_provider.dart';
 import 'package:capstone_fe/feed/provider/feed_provider.dart';
 import 'package:capstone_fe/feed/repository/feed_repository.dart';
 import 'package:capstone_fe/user/provider/user_provider.dart';
@@ -33,6 +34,10 @@ class FeedDetailScreen extends ConsumerWidget {
                 ?.any((f) => f.feedId == feedId) ??
             false);
 
+    final favorites =
+        ref.watch(favoriteFeedListProvider).valueOrNull ?? const [];
+    final isFavorited = favorites.any((f) => f.feedId == feedId);
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -50,21 +55,29 @@ class FeedDetailScreen extends ConsumerWidget {
             color: AppColors.BLACK,
           ),
         ),
-        actions: isActuallyMine
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () =>
-                      _editFeed(context, ref, detailAsync.valueOrNull),
-                  tooltip: '수정',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _deleteFeed(context, ref),
-                  tooltip: '삭제',
-                ),
-              ]
-            : null,
+        actions: [
+          IconButton(
+            icon: Icon(
+              isFavorited ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+              color: AppColors.BLACK,
+            ),
+            tooltip: isFavorited ? '즐겨찾기 해제' : '즐겨찾기',
+            onPressed: () => _toggleFavorite(context, ref),
+          ),
+          if (isActuallyMine) ...[
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () =>
+                  _editFeed(context, ref, detailAsync.valueOrNull),
+              tooltip: '수정',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _deleteFeed(context, ref),
+              tooltip: '삭제',
+            ),
+          ],
+        ],
       ),
       body: detailAsync.when(
         loading: () => const LoadingIndicator(),
@@ -118,6 +131,17 @@ class FeedDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.toString())));
       }
+    }
+  }
+
+  Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
+    final ok = await ref
+        .read(favoriteFeedListProvider.notifier)
+        .toggleFavorite(feedId);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('즐겨찾기 처리에 실패했어요.')),
+      );
     }
   }
 
