@@ -76,8 +76,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         setState(() {
           if (clothesResp.success) _allClothes = clothesResp.data ?? [];
           _filterClothes();
-          if (savedResp.success) _savedFittings = (savedResp.data ?? []).reversed.toList();
-          if (setsResp.success) _clothesSets = (setsResp.data ?? []).reversed.toList();
+          if (savedResp.success)
+            _savedFittings = (savedResp.data ?? []).reversed.toList();
+          if (setsResp.success)
+            _clothesSets = (setsResp.data ?? []).reversed.toList();
         });
       }
     } catch (e) {
@@ -222,7 +224,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
                     const Text(
@@ -235,7 +238,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(child: Container(height: 1, color: AppColors.BORDER_COLOR)),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: AppColors.BORDER_COLOR,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -270,7 +278,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         file = await PhotoGuideScreen.open(context, type: guideType);
       } else {
         final picker = ImagePicker();
-        final XFile? picked = await picker.pickImage(source: ImageSource.camera);
+        final XFile? picked = await picker.pickImage(
+          source: ImageSource.camera,
+        );
         if (picked != null) file = File(picked.path);
       }
     } else {
@@ -318,7 +328,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('등록 실패: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('등록 실패: $e')));
     }
   }
 
@@ -353,7 +365,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: AppColors.MEDIUM_GREY, size: 20),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.MEDIUM_GREY,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -388,7 +404,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: AppColors.MEDIUM_GREY, size: 18),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.MEDIUM_GREY,
+              size: 18,
+            ),
           ],
         ),
       ),
@@ -443,9 +463,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             label: '북마크',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const ClothesBookmarkScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const ClothesBookmarkScreen()),
             ),
           ),
           // Title
@@ -463,11 +481,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             ),
           ),
           // Upload button
-          _PillButton(
-            icon: Icons.add,
-            label: '추가',
-            onTap: _onAddCloth,
-          ),
+          _PillButton(icon: Icons.add, label: '추가', onTap: _onAddCloth),
         ],
       ),
     );
@@ -519,7 +533,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 borderRadius: BorderRadius.circular(50),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isSelected ? 0.0 : 0.06),
+                    color: Colors.black.withValues(
+                      alpha: isSelected ? 0.0 : 0.06,
+                    ),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -576,7 +592,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           Center(
             child: Column(
               children: [
-                Icon(Icons.photo_library_outlined, size: 60, color: AppColors.BORDER_COLOR),
+                Icon(
+                  Icons.photo_library_outlined,
+                  size: 60,
+                  color: AppColors.BORDER_COLOR,
+                ),
                 SizedBox(height: 16),
                 Text(
                   '아직 저장된 코디가 없어요',
@@ -618,24 +638,21 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             sliver: SliverGrid(
               gridDelegate: gridDelegate,
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final folder = _clothesSets[index];
-                  return GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => ClothesSetDetailScreen(
-                          folder: folder,
-                          onUpdated: _loadWardrobe,
-                        ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final folder = _clothesSets[index];
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => ClothesSetDetailScreen(
+                        folder: folder,
+                        onUpdated: _loadWardrobe,
                       ),
                     ),
-                    child: _FolderGridCard(folder: folder),
-                  );
-                },
-                childCount: _clothesSets.length,
-              ),
+                  ),
+                  child: _FolderGridCard(folder: folder),
+                );
+              }, childCount: _clothesSets.length),
             ),
           ),
         ],
@@ -650,21 +667,18 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverGrid(
               gridDelegate: gridDelegate,
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = _savedFittings[index];
-                  return GestureDetector(
-                    onTap: () {
-                      final url = item.resultImgUrl;
-                      if (url != null && url.isNotEmpty) {
-                        _showSavedFittingFullScreen(url);
-                      }
-                    },
-                    child: _CollectionGridCard(item: item),
-                  );
-                },
-                childCount: _savedFittings.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final item = _savedFittings[index];
+                return GestureDetector(
+                  onTap: () {
+                    final url = item.resultImgUrl;
+                    if (url != null && url.isNotEmpty) {
+                      _showSavedFittingFullScreen(url);
+                    }
+                  },
+                  child: _CollectionGridCard(item: item),
+                );
+              }, childCount: _savedFittings.length),
             ),
           ),
         ],
@@ -723,7 +737,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ],
             ),
-            child: const Icon(Icons.checkroom_outlined, size: 36, color: AppColors.MEDIUM_GREY),
+            child: const Icon(
+              Icons.checkroom_outlined,
+              size: 36,
+              color: AppColors.MEDIUM_GREY,
+            ),
           ),
           const SizedBox(height: 20),
           Text(
@@ -814,7 +832,11 @@ class _TabChip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _TabChip({required this.label, required this.isSelected, required this.onTap});
+  const _TabChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -852,16 +874,9 @@ class _TabChip extends StatelessWidget {
 // ============================================================
 // Clothes Grid Card
 // ============================================================
-class _ClothGridCard extends StatefulWidget {
+class _ClothGridCard extends StatelessWidget {
   final ClothesModel cloth;
   const _ClothGridCard({required this.cloth});
-
-  @override
-  State<_ClothGridCard> createState() => _ClothGridCardState();
-}
-
-class _ClothGridCardState extends State<_ClothGridCard> {
-  bool _liked = false;
 
   @override
   Widget build(BuildContext context) {
@@ -879,38 +894,17 @@ class _ClothGridCardState extends State<_ClothGridCard> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              widget.cloth.imgUrl ?? '',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFFF0F0F0),
-                child: const Icon(
-                  Icons.checkroom_outlined,
-                  color: Color(0xFFCCCCCC),
-                  size: 40,
-                ),
-              ),
+        child: Image.network(
+          cloth.imgUrl ?? '',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: const Color(0xFFF0F0F0),
+            child: const Icon(
+              Icons.checkroom_outlined,
+              color: Color(0xFFCCCCCC),
+              size: 40,
             ),
-            // Heart icon (토글)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () => setState(() => _liked = !_liked),
-                child: Icon(
-                  _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  size: 22,
-                  color: _liked ? const Color(0xFFFF3B30) : Colors.white,
-                  shadows: const [
-                    Shadow(color: Colors.black26, blurRadius: 4),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -965,12 +959,12 @@ class _CollectionGridCardState extends State<_CollectionGridCard> {
               child: GestureDetector(
                 onTap: () => setState(() => _liked = !_liked),
                 child: Icon(
-                  _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  _liked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   size: 22,
                   color: _liked ? const Color(0xFFFF3B30) : Colors.white,
-                  shadows: const [
-                    Shadow(color: Colors.black26, blurRadius: 4),
-                  ],
+                  shadows: const [Shadow(color: Colors.black26, blurRadius: 4)],
                 ),
               ),
             ),
@@ -1045,7 +1039,10 @@ class _FolderGridCard extends StatelessWidget {
               right: 0,
               bottom: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
