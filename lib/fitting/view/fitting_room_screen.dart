@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show ImageFilter;
 import 'package:capstone_fe/common/component/loading_indicator.dart';
+import 'package:capstone_fe/fitting/component/fitting_loading_effect.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1580,6 +1582,44 @@ class _StylePhotoStage extends StatelessWidget {
       );
     }
 
+    if (isLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AspectRatio(
+          aspectRatio: 3 / 4,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 30,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (userImage != null)
+                    Image.file(userImage!, fit: BoxFit.cover)
+                  else
+                    Container(color: AppColors.INPUT_BG_COLOR),
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(color: Colors.transparent),
+                  ),
+                  const FittingLoadingEffect(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return AspectRatio(
       aspectRatio: 3 / 4,
       child: Row(
@@ -1739,13 +1779,6 @@ class _StyleSlot extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                ),
-              ),
-            if (isLoading)
-              const Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black26,
-                  child: Center(child: LoadingIndicator()),
                 ),
               ),
           ],

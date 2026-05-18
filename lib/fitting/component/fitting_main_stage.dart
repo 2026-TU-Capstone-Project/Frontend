@@ -45,7 +45,40 @@ class FittingMainStage extends StatefulWidget {
 class _FittingMainStageState extends State<FittingMainStage> {
   @override
   Widget build(BuildContext context) {
-    // 피팅 결과일 때: 전체 너비를 차지하는 단일 이미지 컨테이너
+    if (widget.isLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Container(
+          height: 520,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildImage(widget.mainImagePath),
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(color: Colors.transparent),
+                ),
+                const FittingLoadingEffect(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (widget.isResult) {
       return GestureDetector(
         onTap: widget.onUserImageTap,
@@ -128,14 +161,6 @@ class _FittingMainStageState extends State<FittingMainStage> {
                     children: [
                       _buildImage(widget.mainImagePath),
 
-                      if (widget.isLoading)
-                        BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                          child: Container(color: Colors.transparent),
-                        ),
-
-                      if (widget.isLoading) const FittingLoadingEffect(),
-
                       if (widget.mainImagePath == null)
                         Center(
                           child: Column(
@@ -164,7 +189,6 @@ class _FittingMainStageState extends State<FittingMainStage> {
                         ),
 
                       if (widget.mainImagePath != null &&
-                          !widget.isLoading &&
                           widget.onUserImageRemove != null)
                         Positioned(
                           top: 10,
