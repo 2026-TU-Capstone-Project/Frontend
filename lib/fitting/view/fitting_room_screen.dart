@@ -264,6 +264,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     final fit = await FitTypeSelectorSheet.show(
       context,
       title: isTop ? '상의 핏 선택' : '하의 핏 선택',
+      isTop: isTop,
     );
     // Step 2: If user cancelled, discard the selection entirely.
     if (fit == null || !mounted) return;
@@ -309,6 +310,7 @@ class _FittingRoomScreenState extends ConsumerState<FittingRoomScreen>
     final fit = await FitTypeSelectorSheet.show(
       context,
       title: isTop ? '상의 핏 선택' : '하의 핏 선택',
+      isTop: isTop,
     );
     return fit;
   }

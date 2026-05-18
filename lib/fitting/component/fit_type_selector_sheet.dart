@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:capstone_fe/common/const/colors.dart';
 import 'package:capstone_fe/fitting/model/fit_type.dart';
 
 /// 가상피팅 시작 전 핏감(슬림/레귤러/오버)을 선택하는 바텀시트.
 /// 선택 후 "피팅 시작" 버튼을 누르면 [FitType]을 반환하며 닫힘.
 class FitTypeSelectorSheet extends StatefulWidget {
-  const FitTypeSelectorSheet({super.key, this.title});
+  const FitTypeSelectorSheet({
+    super.key,
+    this.title,
+    this.isTop = true,
+  });
 
   final String? title;
+  final bool isTop;
 
   /// 바텀시트를 표시하고, 사용자가 선택한 [FitType]을 반환.
   /// 시트를 닫으면(바깥 탭 등) null.
-  static Future<FitType?> show(BuildContext context, {String? title}) {
+  static Future<FitType?> show(
+    BuildContext context, {
+    String? title,
+    bool isTop = true,
+  }) {
     return showModalBottomSheet<FitType>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FitTypeSelectorSheet(title: title),
+      builder: (_) => FitTypeSelectorSheet(title: title, isTop: isTop),
     );
   }
 
@@ -28,10 +38,16 @@ class FitTypeSelectorSheet extends StatefulWidget {
 class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
   FitType _selected = FitType.regular; // 기본값: 레귤러핏
 
-  static const _fitImages = <FitType, String>{
+  static const _topImages = <FitType, String>{
     FitType.slim: 'asset/img/slim.png',
     FitType.regular: 'asset/img/regular.png',
     FitType.oversize: 'asset/img/over.png',
+  };
+
+  static const _bottomImages = <FitType, String>{
+    FitType.slim: 'asset/img/pants_slim.svg',
+    FitType.regular: 'asset/img/pants_reg.svg',
+    FitType.oversize: 'asset/img/pants_over.svg',
   };
 
   @override
@@ -121,12 +137,10 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Image.asset(
-                            _fitImages[type]!,
-                            width: 36,
-                            height: 36,
-                            color: isSelected ? Colors.white : null,
-                            colorBlendMode: BlendMode.srcIn,
+                          _FitIcon(
+                            type: type,
+                            isTop: widget.isTop,
+                            isSelected: isSelected,
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -205,6 +219,44 @@ class _FitTypeSelectorSheetState extends State<FitTypeSelectorSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FitIcon extends StatelessWidget {
+  const _FitIcon({
+    required this.type,
+    required this.isTop,
+    required this.isSelected,
+  });
+
+  final FitType type;
+  final bool isTop;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = isSelected ? Colors.white : null;
+    final path = isTop
+        ? _FitTypeSelectorSheetState._topImages[type]!
+        : _FitTypeSelectorSheetState._bottomImages[type]!;
+
+    if (isTop) {
+      return Image.asset(
+        path,
+        width: 36,
+        height: 36,
+        color: tint,
+        colorBlendMode: BlendMode.srcIn,
+      );
+    }
+
+    return SvgPicture.asset(
+      path,
+      width: 36,
+      height: 36,
+      colorFilter:
+          tint == null ? null : ColorFilter.mode(tint, BlendMode.srcIn),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:capstone_fe/common/component/loading_indicator.dart';
 import 'package:capstone_fe/common/component/style_analysis_widget.dart';
@@ -193,15 +194,44 @@ String _summaryForWeather(WeatherInfo w) {
 }
 
 // ───────────────────────────────────────────────────────────
-// 시간별 예보 아이콘 (현재 기온 기반 시뮬레이션)
+// conditionCode → 날씨 아이콘 asset 경로
 // ───────────────────────────────────────────────────────────
-IconData _hourlyWeatherIcon(int conditionCode) {
-  if (conditionCode >= 200 && conditionCode < 300) return Icons.flash_on;
-  if (conditionCode >= 300 && conditionCode < 600) return Icons.grain;
-  if (conditionCode >= 600 && conditionCode < 700) return Icons.ac_unit;
-  if (conditionCode >= 700 && conditionCode < 800) return Icons.cloud;
-  if (conditionCode == 800) return Icons.wb_sunny_rounded;
-  return Icons.cloud;
+String _weatherAssetPath(int conditionCode) {
+  if (conditionCode >= 200 && conditionCode < 300) {
+    return 'asset/img/thunderstorm.svg';
+  }
+  if (conditionCode >= 300 && conditionCode < 400) {
+    return 'asset/img/drizzle.svg';
+  }
+  if (conditionCode >= 500 && conditionCode < 600) {
+    return 'asset/img/rain.svg';
+  }
+  if (conditionCode >= 600 && conditionCode < 700) {
+    return 'asset/img/snow.svg';
+  }
+  if (conditionCode >= 700 && conditionCode < 800) {
+    return 'asset/img/mist.svg';
+  }
+  if (conditionCode == 800) return 'asset/img/clear.png';
+  if (conditionCode <= 802) return 'asset/img/partly_cloudy.svg';
+  return 'asset/img/broken_clouds.svg';
+}
+
+// SVG / PNG 자동 분기 위젯
+class _WeatherAssetIcon extends StatelessWidget {
+  final int conditionCode;
+  final double size;
+
+  const _WeatherAssetIcon({required this.conditionCode, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final path = _weatherAssetPath(conditionCode);
+    if (path.endsWith('.svg')) {
+      return SvgPicture.asset(path, width: size, height: size);
+    }
+    return Image.asset(path, width: size, height: size, fit: BoxFit.contain);
+  }
 }
 
 // ───────────────────────────────────────────────────────────
@@ -232,9 +262,7 @@ class WeatherRecommendationScreen extends StatelessWidget {
           ),
 
           // 시간별 예보 스트립
-          SliverToBoxAdapter(
-            child: _HourlyForecastStrip(weather: weather),
-          ),
+          SliverToBoxAdapter(child: _HourlyForecastStrip(weather: weather)),
 
           // 추천 섹션 헤더
           SliverToBoxAdapter(
@@ -311,19 +339,6 @@ class _DynamicWeatherHeader extends StatelessWidget {
     required this.weather,
     required this.gradientColors,
   });
-
-  IconData get _weatherIconData {
-    final code = weather.conditionCode;
-    if (code >= 200 && code < 300) return Icons.thunderstorm_rounded;
-    if (code >= 300 && code < 400) return Icons.grain_rounded;
-    if (code >= 500 && code < 600) return Icons.water_drop_rounded;
-    if (code >= 600 && code < 700) return Icons.ac_unit_rounded;
-    if (code >= 700 && code < 800) return Icons.cloud_rounded;
-    if (code == 800) return Icons.wb_sunny_rounded;
-    if (code == 801) return Icons.wb_sunny_rounded;
-    if (code == 802) return Icons.cloud_queue_rounded;
-    return Icons.cloud_rounded;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -454,20 +469,10 @@ class _DynamicWeatherHeader extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // 이모지 아이콘
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.15),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          _weatherIconData,
-                          size: 42,
-                          color: Colors.white,
-                        ),
+                      // 날씨 아이콘
+                      _WeatherAssetIcon(
+                        conditionCode: weather.conditionCode,
+                        size: 60,
                       ),
                       const SizedBox(width: 20),
                       // 온도 + 설명
@@ -618,7 +623,6 @@ class _HourlyForecastStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final rng = Random(weather.temp.round());
-    final icon = _hourlyWeatherIcon(weather.conditionCode);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 16, 0, 8),
@@ -664,13 +668,14 @@ class _HourlyForecastStrip extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: isNow ? FontWeight.w700 : FontWeight.w500,
-                    color: isNow ? AppColors.ACCENT_BLUE : AppColors.MEDIUM_GREY,
+                    color: isNow
+                        ? AppColors.ACCENT_BLUE
+                        : AppColors.MEDIUM_GREY,
                   ),
                 ),
-                Icon(
-                  icon,
-                  size: 22,
-                  color: isNow ? AppColors.ACCENT_BLUE : AppColors.BODY_COLOR,
+                _WeatherAssetIcon(
+                  conditionCode: weather.conditionCode,
+                  size: 30,
                 ),
                 Text(
                   '$hourTemp°',
@@ -723,10 +728,7 @@ class _EnhancedRecommendationCard extends StatelessWidget {
         children: [
           // 이미지 + 오버레이 뱃지
           if (item.resultImgUrl != null && item.resultImgUrl!.isNotEmpty)
-            _ImageSection(
-              imageUrl: item.resultImgUrl!,
-              matchPct: matchPct,
-            )
+            _ImageSection(imageUrl: item.resultImgUrl!, matchPct: matchPct)
           else
             const _PlaceholderImage(),
 
@@ -761,10 +763,7 @@ class _ImageSection extends StatelessWidget {
   final String imageUrl;
   final int matchPct;
 
-  const _ImageSection({
-    required this.imageUrl,
-    required this.matchPct,
-  });
+  const _ImageSection({required this.imageUrl, required this.matchPct});
 
   @override
   Widget build(BuildContext context) {
