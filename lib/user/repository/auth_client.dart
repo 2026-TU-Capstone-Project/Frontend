@@ -5,7 +5,7 @@ import '../model/auth_model.dart';
 
 part 'auth_client.g.dart';
 
-@RestApi(baseUrl: 'https://$ip')
+@RestApi(baseUrl: baseUrl)
 abstract class AuthClient {
   factory AuthClient(Dio dio, {String? baseUrl}) = _AuthClient;
 

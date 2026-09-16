@@ -12,7 +12,7 @@ part of 'auth_client.dart';
 
 class _AuthClient implements AuthClient {
   _AuthClient(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'https://diverba.kro.kr';
+    baseUrl ??= 'http://192.168.45.18:8080';
   }
 
   final Dio _dio;

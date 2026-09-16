@@ -14,9 +14,13 @@ class SingleFeedModel {
   });
 }
 
-const ip = 'diverba.kro.kr';
-
-const baseUrl = 'https://$ip';
+/// API base URL. 로컬 데모: 백엔드를 띄운 맥의 Wi-Fi IP:8080 (폰과 같은 Wi-Fi 필수).
+/// 배포 서버로 되돌릴 때: flutter run --dart-define=API_BASE_URL=https://diverba.kro.kr
+/// 백엔드 실행 시 STORAGE_PUBLIC_BASE_URL 값과 글자 그대로 같아야 이미지가 보인다.
+const baseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://192.168.45.18:8080',
+);
 
 const String googleServerClientId =
     '591469667096-8u5m67p00l2b8ei6g2uk316m4snkmip4.apps.googleusercontent.com';
